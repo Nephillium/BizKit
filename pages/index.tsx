@@ -87,6 +87,320 @@ const tabLabels: Record<Tool, string> = {
   social_pack: 'Social Pack',
 }
 
+const LANGUAGES = [
+  'English',
+  'Spanish',
+  'French',
+  'German',
+  'Portuguese',
+  'Italian',
+  'Dutch',
+  'Swedish',
+  'Danish',
+  'Norwegian',
+  'Finnish',
+  'Polish',
+  'Turkish',
+  'Arabic',
+  'Hebrew',
+  'Russian',
+  'Ukrainian',
+  'Hindi',
+  'Bengali',
+  'Indonesian',
+  'Malay',
+  'Vietnamese',
+  'Thai',
+  'Chinese (Simplified)',
+  'Chinese (Traditional)',
+  'Japanese',
+  'Korean',
+]
+
+interface LanguagePickerProps {
+  value: string
+  onChange: (value: string) => void
+  testId: string
+}
+
+function LanguagePicker({ value, onChange, testId }: LanguagePickerProps) {
+  const [isOpen, setIsOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [isCustomMode, setIsCustomMode] = useState(false)
+  const [customValue, setCustomValue] = useState('')
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  const filteredLanguages = LANGUAGES.filter(lang =>
+    lang.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  const isCustomLanguage = value && !LANGUAGES.includes(value)
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+        setSearchQuery('')
+        setIsCustomMode(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const handleSelectLanguage = (lang: string) => {
+    onChange(lang)
+    setIsOpen(false)
+    setSearchQuery('')
+    setIsCustomMode(false)
+  }
+
+  const handleCustomSubmit = () => {
+    if (customValue.trim()) {
+      onChange(customValue.trim())
+      setIsOpen(false)
+      setSearchQuery('')
+      setIsCustomMode(false)
+      setCustomValue('')
+    }
+  }
+
+  return (
+    <div ref={dropdownRef} style={{ position: 'relative' }}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          width: '100%',
+          padding: '12px 16px',
+          fontSize: '1rem',
+          backgroundColor: 'rgb(255, 255, 255)',
+          border: '1px solid rgb(226, 232, 240)',
+          borderRadius: '6px',
+          color: value ? 'rgb(15, 23, 42)' : 'rgb(148, 163, 184)',
+          textAlign: 'left',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          transition: 'border-color 0.2s ease',
+        }}
+        data-testid={testId}
+      >
+        <span>{value || 'Select language'}</span>
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{
+            transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: 'transform 0.2s ease',
+            color: 'rgb(100, 116, 139)',
+          }}
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 4px)',
+            left: 0,
+            right: 0,
+            backgroundColor: 'rgb(255, 255, 255)',
+            border: '1px solid rgb(226, 232, 240)',
+            borderRadius: '8px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            zIndex: 50,
+            maxHeight: '300px',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+          data-testid={`${testId}-dropdown`}
+        >
+          {!isCustomMode ? (
+            <>
+              <div style={{ padding: '8px', borderBottom: '1px solid rgb(241, 245, 249)' }}>
+                <input
+                  type="text"
+                  placeholder="Search languages..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  autoFocus
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    fontSize: '0.875rem',
+                    backgroundColor: 'rgb(248, 250, 252)',
+                    border: '1px solid rgb(226, 232, 240)',
+                    borderRadius: '6px',
+                    color: 'rgb(15, 23, 42)',
+                  }}
+                  data-testid={`${testId}-search`}
+                />
+              </div>
+
+              <div style={{ overflowY: 'auto', maxHeight: '200px' }}>
+                {filteredLanguages.map((lang) => (
+                  <button
+                    key={lang}
+                    type="button"
+                    onClick={() => handleSelectLanguage(lang)}
+                    style={{
+                      width: '100%',
+                      padding: '10px 16px',
+                      fontSize: '0.875rem',
+                      textAlign: 'left',
+                      backgroundColor: value === lang ? 'rgb(238, 242, 255)' : 'transparent',
+                      color: value === lang ? 'rgb(99, 102, 241)' : 'rgb(51, 65, 85)',
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      transition: 'background-color 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (value !== lang) {
+                        e.currentTarget.style.backgroundColor = 'rgb(248, 250, 252)'
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (value !== lang) {
+                        e.currentTarget.style.backgroundColor = 'transparent'
+                      }
+                    }}
+                    data-testid={`${testId}-option-${lang.toLowerCase().replace(/[^a-z]/g, '-')}`}
+                  >
+                    <span>{lang}</span>
+                    {value === lang && (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
+                  </button>
+                ))}
+                {filteredLanguages.length === 0 && (
+                  <div style={{ padding: '16px', textAlign: 'center', color: 'rgb(100, 116, 139)', fontSize: '0.875rem' }}>
+                    No languages found
+                  </div>
+                )}
+              </div>
+
+              <div style={{ padding: '8px', borderTop: '1px solid rgb(241, 245, 249)' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCustomMode(true)
+                    setCustomValue(isCustomLanguage ? value : '')
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '10px 16px',
+                    fontSize: '0.875rem',
+                    textAlign: 'left',
+                    backgroundColor: 'transparent',
+                    color: 'rgb(99, 102, 241)',
+                    border: '1px dashed rgb(199, 210, 254)',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}
+                  data-testid={`${testId}-custom-option`}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                  Custom language...
+                </button>
+              </div>
+            </>
+          ) : (
+            <div style={{ padding: '12px' }}>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 500, color: 'rgb(100, 116, 139)', marginBottom: '8px' }}>
+                Enter custom language
+              </label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  type="text"
+                  value={customValue}
+                  onChange={(e) => setCustomValue(e.target.value)}
+                  placeholder="e.g. Swahili, Tagalog..."
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      handleCustomSubmit()
+                    }
+                    if (e.key === 'Escape') {
+                      setIsCustomMode(false)
+                    }
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '8px 12px',
+                    fontSize: '0.875rem',
+                    backgroundColor: 'rgb(248, 250, 252)',
+                    border: '1px solid rgb(226, 232, 240)',
+                    borderRadius: '6px',
+                    color: 'rgb(15, 23, 42)',
+                  }}
+                  data-testid={`${testId}-custom-input`}
+                />
+                <button
+                  type="button"
+                  onClick={handleCustomSubmit}
+                  disabled={!customValue.trim()}
+                  style={{
+                    padding: '8px 16px',
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                    backgroundColor: customValue.trim() ? 'rgb(99, 102, 241)' : 'rgb(226, 232, 240)',
+                    color: customValue.trim() ? 'rgb(255, 255, 255)' : 'rgb(148, 163, 184)',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: customValue.trim() ? 'pointer' : 'not-allowed',
+                  }}
+                  data-testid={`${testId}-custom-submit`}
+                >
+                  Add
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCustomMode(false)}
+                style={{
+                  marginTop: '8px',
+                  padding: '6px 12px',
+                  fontSize: '0.75rem',
+                  color: 'rgb(100, 116, 139)',
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
+                data-testid={`${testId}-custom-back`}
+              >
+                Back to list
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function Home() {
   const { user, isLoading: authLoading, isAuthenticated } = useAuth()
   const [activeTab, setActiveTab] = useState<Tool>('cold_email')
@@ -908,7 +1222,6 @@ export default function Home() {
                   </div>
                   <div>
                     <label
-                      htmlFor="language"
                       style={{
                         display: 'block',
                         fontSize: '0.875rem',
@@ -919,24 +1232,10 @@ export default function Home() {
                     >
                       Language
                     </label>
-                    <input
-                      id="language"
-                      type="text"
-                      placeholder="English"
+                    <LanguagePicker
                       value={formData.cold_email.language}
-                      onChange={(e) =>
-                        updateFormField('cold_email', 'language', e.target.value)
-                      }
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        fontSize: '1rem',
-                        backgroundColor: 'rgb(255, 255, 255)',
-                        border: '1px solid rgb(226, 232, 240)',
-                        borderRadius: '6px',
-                        color: 'rgb(15, 23, 42)',
-                      }}
-                      data-testid="input-language"
+                      onChange={(value) => updateFormField('cold_email', 'language', value)}
+                      testId="select-language"
                     />
                   </div>
                 </div>
@@ -1083,7 +1382,6 @@ export default function Home() {
                   </div>
                   <div>
                     <label
-                      htmlFor="proposalLanguage"
                       style={{
                         display: 'block',
                         fontSize: '0.875rem',
@@ -1094,24 +1392,10 @@ export default function Home() {
                     >
                       Language
                     </label>
-                    <input
-                      id="proposalLanguage"
-                      type="text"
-                      placeholder="English"
+                    <LanguagePicker
                       value={formData.proposal.language}
-                      onChange={(e) =>
-                        updateFormField('proposal', 'language', e.target.value)
-                      }
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        fontSize: '1rem',
-                        backgroundColor: 'rgb(255, 255, 255)',
-                        border: '1px solid rgb(226, 232, 240)',
-                        borderRadius: '6px',
-                        color: 'rgb(15, 23, 42)',
-                      }}
-                      data-testid="input-proposalLanguage"
+                      onChange={(value) => updateFormField('proposal', 'language', value)}
+                      testId="select-proposalLanguage"
                     />
                   </div>
                 </div>
@@ -1289,7 +1573,6 @@ export default function Home() {
                   </div>
                   <div>
                     <label
-                      htmlFor="contractLanguage"
                       style={{
                         display: 'block',
                         fontSize: '0.875rem',
@@ -1300,24 +1583,10 @@ export default function Home() {
                     >
                       Language
                     </label>
-                    <input
-                      id="contractLanguage"
-                      type="text"
-                      placeholder="English"
+                    <LanguagePicker
                       value={formData.contract.language}
-                      onChange={(e) =>
-                        updateFormField('contract', 'language', e.target.value)
-                      }
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        fontSize: '1rem',
-                        backgroundColor: 'rgb(255, 255, 255)',
-                        border: '1px solid rgb(226, 232, 240)',
-                        borderRadius: '6px',
-                        color: 'rgb(15, 23, 42)',
-                      }}
-                      data-testid="input-contractLanguage"
+                      onChange={(value) => updateFormField('contract', 'language', value)}
+                      testId="select-contractLanguage"
                     />
                   </div>
                 </div>
@@ -1460,7 +1729,6 @@ export default function Home() {
                   </div>
                   <div>
                     <label
-                      htmlFor="socialLanguage"
                       style={{
                         display: 'block',
                         fontSize: '0.875rem',
@@ -1471,24 +1739,10 @@ export default function Home() {
                     >
                       Language
                     </label>
-                    <input
-                      id="socialLanguage"
-                      type="text"
-                      placeholder="English"
+                    <LanguagePicker
                       value={formData.social_pack.language}
-                      onChange={(e) =>
-                        updateFormField('social_pack', 'language', e.target.value)
-                      }
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        fontSize: '1rem',
-                        backgroundColor: 'rgb(255, 255, 255)',
-                        border: '1px solid rgb(226, 232, 240)',
-                        borderRadius: '6px',
-                        color: 'rgb(15, 23, 42)',
-                      }}
-                      data-testid="input-socialLanguage"
+                      onChange={(value) => updateFormField('social_pack', 'language', value)}
+                      testId="select-socialLanguage"
                     />
                   </div>
                 </div>
