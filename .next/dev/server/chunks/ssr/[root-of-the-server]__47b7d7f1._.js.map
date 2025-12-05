@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 16, "column": 0}, "map": {"version":3,"sources":["file:///home/runner/workspace/pages/_app.tsx"],"sourcesContent":["import type { AppProps } from 'next/app'\nimport '@/styles/globals.css'\nimport { useState, useEffect } from 'react'\n\nfunction MyApp({ Component, pageProps }: AppProps) {\n  const [mounted, setMounted] = useState(false)\n\n  useEffect(() => {\n    setMounted(true)\n  }, [])\n\n  if (!mounted) {\n    return null\n  }\n\n  return <Component {...pageProps} />\n}\n\nexport default MyApp\n"],"names":[],"mappings":";;;;;AAEA;;;;AAEA,SAAS,MAAM,EAAE,SAAS,EAAE,SAAS,EAAY;IAC/C,MAAM,CAAC,SAAS,WAAW,GAAG,IAAA,+GAAQ,EAAC;IAEvC,IAAA,gHAAS,EAAC;QACR,WAAW;IACb,GAAG,EAAE;IAEL,IAAI,CAAC,SAAS;QACZ,OAAO;IACT;IAEA,qBAAO,qKAAC;QAAW,GAAG,SAAS;;;;;;AACjC;uCAEe"}}]
+}

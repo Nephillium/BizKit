@@ -1,132 +1,185 @@
 # BizKit AI Design Guidelines
 
 ## Design Approach
-**Reference-Based Approach**: Drawing inspiration from modern SaaS productivity tools like Linear, Notion, and Stripe for their clean, utility-focused aesthetics that prioritize functionality without sacrificing visual polish.
+
+**Selected Approach:** Design System (Utility-Focused SaaS Tool)  
+**Primary References:** Linear's clean interface patterns, Notion's form clarity, Stripe's professional trust  
+**Rationale:** BizKit AI is a productivity tool for professionals requiring efficiency, clarity, and trust-building design over visual flair.
 
 ## Core Design Principles
-1. **Clarity First**: Clean, uncluttered interface that guides users through content generation
-2. **Efficiency**: Minimal steps from input to output
-3. **Professional Polish**: SaaS-grade quality that builds trust
 
-## Typography System
+1. **Professional Efficiency:** Clean, distraction-free interface optimized for rapid content generation
+2. **Form Clarity:** Crystal-clear input hierarchy with helpful placeholders and visual grouping
+3. **Trust Through Polish:** Refined details that signal reliability and quality without over-design
+4. **Progressive Disclosure:** Tab-based interface revealing only active tool to reduce cognitive load
 
-**Font Families**:
-- Primary: Inter (Google Fonts) - all interface elements
-- Monospace: JetBrains Mono - for generated output display
+---
 
-**Scale**:
-- Hero Title: text-4xl (36px) / md:text-5xl (48px), font-bold
-- Hero Subtitle: text-lg (18px) / md:text-xl (20px), font-normal
-- Section Headers: text-2xl (24px), font-semibold
-- Tab Labels: text-base (16px), font-medium
-- Input Labels: text-sm (14px), font-medium
-- Body Text: text-base (16px), font-normal
-- Small Notes: text-sm (14px), font-normal
+## Typography
+
+### Font System
+- **Primary Font:** Inter or DM Sans (Google Fonts CDN)
+- **Monospace:** JetBrains Mono for code/output display
+
+### Hierarchy
+- **Hero Title:** 2.5rem (desktop) / 2rem (mobile), font-weight: 700, letter-spacing: -0.02em
+- **Hero Subtitle:** 1.125rem, font-weight: 400, line-height: 1.6
+- **Section Headers:** 1.5rem, font-weight: 600
+- **Tab Labels:** 0.875rem, font-weight: 500, uppercase tracking
+- **Form Labels:** 0.875rem, font-weight: 500
+- **Input Text:** 1rem, font-weight: 400
+- **Body/Helper Text:** 0.875rem, line-height: 1.5
+- **Button Text:** 0.875rem, font-weight: 600
+
+---
 
 ## Layout System
 
-**Spacing Units**: Use Tailwind spacing of 4, 6, 8, 12, 16, 24
-- Component padding: p-6 to p-8
-- Section spacing: space-y-8 to space-y-12
-- Form field gaps: gap-6
-- Hero section padding: py-16 md:py-24
+### Spacing Primitives
+**Consistent Tailwind Units:** 2, 4, 6, 8, 12, 16, 24  
+- Micro spacing (gaps, padding): p-2, p-4
+- Component spacing: p-6, p-8, mb-8
+- Section spacing: py-12, py-16, py-24
 
-**Container Strategy**:
-- Max-width: max-w-4xl for main content
-- Centered: mx-auto
-- Horizontal padding: px-4 md:px-6
+### Container Strategy
+- **Max Width:** max-w-4xl for main content area (clean, focused workspace)
+- **Page Padding:** px-4 (mobile), px-6 (tablet), px-8 (desktop)
+- **Form Width:** Full width within container for optimal mobile experience
+
+### Vertical Rhythm
+- Hero section: py-16 (mobile) / py-24 (desktop)
+- Tool interface: py-8
+- Form sections: space-y-6
+- Between form groups: mb-8
+
+---
 
 ## Component Library
 
 ### Hero Section
-- Clean, centered layout
-- Title + Subtitle + Beta note stacked vertically
-- Generous spacing (space-y-4)
-- Beta note in muted text with subtle background badge
-- No background image needed - clean, professional feel
+- **Layout:** Centered content, max-w-3xl
+- **Elements:**
+  - Main title with gradient text treatment or bold weight
+  - Subtitle with generous line-height (1.6)
+  - Beta badge: small pill with border, subtle styling
+- **Spacing:** py-16 to py-24 with bottom border or subtle divider
 
-### Tab Navigation
-- Horizontal tab bar with 4 options
-- Active state: solid background, bold text
-- Inactive state: transparent, medium weight text
-- Border-b on active tab for clear indicator
-- Full-width on mobile (grid-cols-2), inline on desktop
-- Smooth transitions between states
+### Tab Navigation System
+- **Style:** Horizontal button group with active state distinction
+- **Layout:** Flex wrap for mobile, horizontal scroll if needed
+- **Active State:** Distinct background treatment, possibly bottom border accent
+- **Inactive State:** Muted appearance, clear hover affordance
+- **Spacing:** gap-2 between tabs, mb-8 below tab bar
+- **Typography:** 0.875rem, font-weight 500, subtle uppercase
 
-### Form Layouts
-- Single-column stacked inputs
-- Labels above inputs (not floating)
-- Input fields: full-width, consistent height (h-10 for text, h-24 for textarea)
-- Rounded corners: rounded-lg
-- Borders: subtle, with focus states
-- Spacing between fields: space-y-6
+### Form Components
 
-### Input Fields
-**Text Inputs**:
-- Height: h-10
-- Padding: px-4
-- Border: 1px solid with focus ring on interaction
-- Rounded: rounded-lg
+**Input Fields:**
+- Border: 1-2px solid, rounded corners (rounded-md)
+- Padding: px-4 py-3 (comfortable touch targets)
+- Focus state: Distinct border treatment, subtle shadow
+- Placeholder: Muted but readable
+- Full width: w-full for consistency
 
-**Textareas**:
-- Min-height: h-24
-- Padding: p-4
+**Textarea:**
+- Min height: h-32 for project scope/deliverables
 - Resize: vertical only
+- Same styling as input fields
 
-**Placeholder Text**: Subtle, helpful examples
+**Labels:**
+- Position: Above input, mb-2
+- Weight: font-medium
+- Include helper text where beneficial (muted, text-sm, mt-1)
 
-### Buttons
-**Primary Generate Button**:
-- Full-width on mobile, auto-width on desktop
-- Height: h-12
-- Padding: px-8
-- Rounded: rounded-lg
-- Font: font-semibold text-base
-- Disabled state: reduced opacity, cursor-not-allowed
-- Loading state: "Generating..." text with spinner icon
+**Form Groups:**
+- Wrapper: space-y-6 for vertical rhythm
+- Clear visual separation between different input types
+
+### Generate Button
+- **Style:** Primary action button, prominent
+- **Size:** Full width on mobile, auto/max-width on desktop
+- **Padding:** px-8 py-3 (substantial click target)
+- **Loading State:** Disabled appearance with "Generating..." text
+- **Position:** mt-8 after form inputs
 
 ### Output Display
-- Large textarea: min-h-64 (256px)
-- Monospace font for readability
-- Read-only attribute
-- Copy-friendly formatting
-- Subtle background to distinguish from inputs
-- Rounded: rounded-lg
-- Border: subtle
+- **Container:** mt-8 with clear visual separation from form
+- **Element:** Textarea with monospace font or pre-formatted div
+- **Styling:** 
+  - Background: Subtle contrast from page background
+  - Border: Similar to form inputs for consistency
+  - Padding: p-6
+  - Min height: h-64
+  - Font: Monospace for code-like clarity
+  - Read-only: Clear visual indication
+- **Copy Button:** Positioned top-right of output area
 
-### Error States
-- Red accent for error messages
-- Clear, human-readable error text
-- Display above output area
-- Icon + message combination
+### Error Messages
+- **Style:** Inline below button or output area
+- **Typography:** text-sm with appropriate icon (exclamation)
+- **Treatment:** Muted red/warning treatment without harsh colors
 
-## Animations
-**Minimal, Purposeful Only**:
-- Tab transitions: smooth color/background changes (150ms)
-- Button loading: simple opacity pulse on disabled state
-- No scroll animations, no complex transitions
+---
 
-## Mobile Responsiveness
-- Stack all elements vertically on mobile
-- Tabs: 2-column grid on mobile, horizontal row on desktop
-- Inputs: full-width at all breakpoints
-- Generous touch targets (min 44px height)
-- Comfortable spacing for thumb navigation
+## Page Structure
 
-## Images
-**No Hero Image Required**: This is a utility-first SaaS tool. Clean typography and layout are more appropriate than decorative imagery. Focus on functional clarity over visual embellishment.
+### Single Page Layout
+1. **Header/Hero** (py-16/py-24)
+   - Centered title + subtitle
+   - Beta badge
+   - Optional subtle divider/border below
 
-## Visual Hierarchy
-1. Hero title (largest, boldest)
-2. Tab navigation (clear, interactive)
-3. Form labels and inputs (organized, scannable)
-4. Generate button (prominent, action-focused)
-5. Output display (large, readable)
-6. Helper text and notes (subtle, supportive)
+2. **Tool Interface** (py-8)
+   - Tab navigation (mb-8)
+   - Active form (space-y-6)
+   - Generate button (mt-8)
+   - Output display (mt-8, shown after generation)
 
-## Accessibility
-- Sufficient contrast ratios (4.5:1 minimum)
-- Clear focus indicators on all interactive elements
-- Semantic HTML (proper labels, buttons, textareas)
-- Keyboard navigation support
-- ARIA labels where needed
+3. **Footer** (py-8, mt-16)
+   - Simple credit line or contact
+   - Version/beta indicator
+   - Minimal, unobtrusive
+
+---
+
+## Mobile Considerations
+
+- **Stack Everything:** Single column layout, no side-by-side forms
+- **Touch Targets:** Minimum 44px height for buttons/tabs
+- **Tabs:** Horizontal scroll or wrap to multiple rows
+- **Font Scaling:** Slightly smaller hero (2rem vs 2.5rem)
+- **Spacing Reduction:** py-12 instead of py-24 for sections
+- **Form Width:** Full width with consistent px-4 padding
+
+---
+
+## Visual Enhancements (Minimal)
+
+- **Micro-interactions:** Subtle scale on button hover (scale-105)
+- **Focus Rings:** Clear, consistent focus states for accessibility
+- **Shadows:** Minimal use - subtle on buttons and active inputs only
+- **Borders:** Consistent 1-2px throughout for clean definition
+- **NO animations** beyond hover states and loading indicators
+
+---
+
+## Trust & Professionalism Elements
+
+- **Beta Badge:** Small pill design near hero title
+- **Clear Value Props:** Subtitle explicitly states what tools do
+- **Professional Output:** Monospace font suggests technical precision
+- **Consistent Spacing:** Signals attention to detail
+- **Loading States:** Clear feedback during generation
+- **Error Handling:** Friendly, helpful messages
+
+---
+
+## Key UX Patterns
+
+1. **Progressive Disclosure:** Only show active tool's form
+2. **Persistent Output:** Keep generated content visible until new generation
+3. **Clear States:** Loading, success, error all visually distinct
+4. **No Distractions:** Clean workspace without unnecessary elements
+5. **Form Validation:** Friendly inline validation if fields are required
+
+This design creates a professional, efficient SaaS tool interface that builds trust through polish and clarity while maintaining focus on the core value: rapid content generation.
