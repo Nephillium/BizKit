@@ -167,10 +167,17 @@ export default async function handler(
     return res.status(405).json({ ok: false, error: 'method_not_allowed' })
   }
 
-  const baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL
-  const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY
+  // Support both Replit AI Integrations and standard OpenAI API key
+  const replitBaseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL
+  const replitApiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY
+  const standardApiKey = process.env.OPENAI_API_KEY
 
-  if (!baseURL || !apiKey) {
+  // Use Replit AI Integrations if available, otherwise fall back to standard OpenAI
+  const useReplitIntegrations = replitBaseURL && replitApiKey
+  const apiKey = useReplitIntegrations ? replitApiKey : standardApiKey
+  const baseURL = useReplitIntegrations ? replitBaseURL : undefined
+
+  if (!apiKey) {
     return res.status(500).json({ ok: false, error: 'missing_openai_key' })
   }
 
@@ -199,7 +206,7 @@ export default async function handler(
       : systemPrompt
 
     const openai = new OpenAI({
-      baseURL,
+      ...(baseURL && { baseURL }),
       apiKey,
     })
 
