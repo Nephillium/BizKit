@@ -1,7 +1,9 @@
-import { useState, FormEvent, useRef } from 'react'
+import { useState, FormEvent, useRef, useEffect } from 'react'
 import Head from 'next/head'
 import { jsPDF } from 'jspdf'
 import { Document, Packer, Paragraph, TextRun } from 'docx'
+import { useAuth } from '../hooks/useAuth'
+import type { Generation } from '../shared/schema'
 
 type Tool = 'cold_email' | 'proposal' | 'contract' | 'social_pack'
 type CopyState = 'idle' | 'copied' | 'error'
@@ -77,6 +79,7 @@ const tabLabels: Record<Tool, string> = {
 }
 
 export default function Home() {
+  const { user, isLoading: authLoading, isAuthenticated } = useAuth()
   const [activeTab, setActiveTab] = useState<Tool>('cold_email')
   const [formData, setFormData] = useState<FormData>(initialFormData)
   const [output, setOutput] = useState<string>('')
@@ -86,6 +89,79 @@ export default function Home() {
   const [exportState, setExportState] = useState<ExportState>('idle')
   const [showExportMenu, setShowExportMenu] = useState(false)
   const exportMenuRef = useRef<HTMLDivElement>(null)
+  const [generations, setGenerations] = useState<Generation[]>([])
+  const [showHistory, setShowHistory] = useState(false)
+  const [historyLoading, setHistoryLoading] = useState(false)
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchGenerations()
+    }
+  }, [isAuthenticated])
+
+  const fetchGenerations = async () => {
+    try {
+      setHistoryLoading(true)
+      const response = await fetch('/api/generations', {
+        credentials: 'include',
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setGenerations(data)
+      }
+    } catch (err) {
+      console.error('Failed to fetch generations:', err)
+    } finally {
+      setHistoryLoading(false)
+    }
+  }
+
+  const saveGeneration = async () => {
+    if (!isAuthenticated || !output) return
+    try {
+      const response = await fetch('/api/generations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          toolType: activeTab,
+          inputs: formData[activeTab],
+          output,
+        }),
+      })
+      if (response.ok) {
+        fetchGenerations()
+      }
+    } catch (err) {
+      console.error('Failed to save generation:', err)
+    }
+  }
+
+  const deleteGeneration = async (id: number) => {
+    try {
+      const response = await fetch(`/api/generations/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+      if (response.ok) {
+        setGenerations(generations.filter(g => g.id !== id))
+      }
+    } catch (err) {
+      console.error('Failed to delete generation:', err)
+    }
+  }
+
+  const loadGeneration = (generation: Generation) => {
+    setActiveTab(generation.toolType as Tool)
+    setFormData(prev => ({
+      ...prev,
+      [generation.toolType]: generation.inputs,
+    }))
+    setOutput(generation.output)
+    setShowHistory(false)
+  }
 
   const handleExportText = () => {
     if (!output) return
@@ -333,6 +409,266 @@ export default function Home() {
           fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
         }}
       >
+        {/* Navigation Bar */}
+        <nav
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '12px 24px',
+            backgroundColor: 'rgb(255, 255, 255)',
+            borderBottom: '1px solid rgb(226, 232, 240)',
+          }}
+        >
+          <div style={{ fontWeight: 600, fontSize: '1.125rem', color: 'rgb(15, 23, 42)' }}>
+            BizKit AI
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {authLoading ? (
+              <div style={{ fontSize: '0.875rem', color: 'rgb(148, 163, 184)' }}>Loading...</div>
+            ) : isAuthenticated && user ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setShowHistory(!showHistory)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 14px',
+                    fontSize: '0.8125rem',
+                    fontWeight: 500,
+                    color: 'rgb(71, 85, 105)',
+                    backgroundColor: 'rgb(241, 245, 249)',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                  }}
+                  data-testid="button-history"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 16 14" />
+                  </svg>
+                  History
+                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {user.profileImageUrl && (
+                    <img
+                      src={user.profileImageUrl}
+                      alt="Profile"
+                      style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                      }}
+                    />
+                  )}
+                  <span style={{ fontSize: '0.875rem', color: 'rgb(51, 65, 85)' }} data-testid="text-username">
+                    {user.firstName || user.email || 'User'}
+                  </span>
+                </div>
+                <a
+                  href="/api/logout"
+                  style={{
+                    padding: '8px 14px',
+                    fontSize: '0.8125rem',
+                    fontWeight: 500,
+                    color: 'rgb(239, 68, 68)',
+                    backgroundColor: 'rgb(254, 242, 242)',
+                    border: 'none',
+                    borderRadius: '6px',
+                    textDecoration: 'none',
+                    cursor: 'pointer',
+                  }}
+                  data-testid="button-logout"
+                >
+                  Log out
+                </a>
+              </>
+            ) : (
+              <a
+                href="/api/login"
+                style={{
+                  padding: '8px 16px',
+                  fontSize: '0.8125rem',
+                  fontWeight: 500,
+                  color: 'rgb(255, 255, 255)',
+                  backgroundColor: 'rgb(99, 102, 241)',
+                  border: 'none',
+                  borderRadius: '6px',
+                  textDecoration: 'none',
+                  cursor: 'pointer',
+                }}
+                data-testid="button-login"
+              >
+                Log in
+              </a>
+            )}
+          </div>
+        </nav>
+
+        {/* History Sidebar */}
+        {showHistory && isAuthenticated && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              right: 0,
+              width: '400px',
+              maxWidth: '100vw',
+              height: '100vh',
+              backgroundColor: 'rgb(255, 255, 255)',
+              borderLeft: '1px solid rgb(226, 232, 240)',
+              boxShadow: '-4px 0 12px rgba(0, 0, 0, 0.1)',
+              zIndex: 100,
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+            data-testid="panel-history"
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '16px 20px',
+                borderBottom: '1px solid rgb(226, 232, 240)',
+              }}
+            >
+              <h2 style={{ fontSize: '1rem', fontWeight: 600, color: 'rgb(15, 23, 42)', margin: 0 }}>
+                Generation History
+              </h2>
+              <button
+                type="button"
+                onClick={() => setShowHistory(false)}
+                style={{
+                  padding: '6px',
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'rgb(148, 163, 184)',
+                }}
+                data-testid="button-close-history"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+            <div
+              style={{
+                flex: 1,
+                overflowY: 'auto',
+                padding: '16px',
+              }}
+            >
+              {historyLoading ? (
+                <div style={{ textAlign: 'center', color: 'rgb(148, 163, 184)', padding: '40px 0' }}>
+                  Loading...
+                </div>
+              ) : generations.length === 0 ? (
+                <div style={{ textAlign: 'center', color: 'rgb(148, 163, 184)', padding: '40px 0' }}>
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ margin: '0 auto 12px' }}>
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 16 14" />
+                  </svg>
+                  <p style={{ fontSize: '0.875rem' }}>No saved generations yet</p>
+                  <p style={{ fontSize: '0.75rem', marginTop: '4px' }}>Generate content and save it to see your history</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {generations.map((gen) => (
+                    <div
+                      key={gen.id}
+                      style={{
+                        padding: '14px',
+                        backgroundColor: 'rgb(248, 250, 252)',
+                        borderRadius: '6px',
+                        border: '1px solid rgb(226, 232, 240)',
+                      }}
+                      data-testid={`history-item-${gen.id}`}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            padding: '4px 8px',
+                            fontSize: '0.6875rem',
+                            fontWeight: 500,
+                            backgroundColor: 'rgb(238, 242, 255)',
+                            color: 'rgb(99, 102, 241)',
+                            borderRadius: '4px',
+                            textTransform: 'uppercase',
+                          }}
+                        >
+                          {tabLabels[gen.toolType as Tool] || gen.toolType}
+                        </span>
+                        <span style={{ fontSize: '0.6875rem', color: 'rgb(148, 163, 184)' }}>
+                          {new Date(gen.createdAt!).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <p
+                        style={{
+                          fontSize: '0.8125rem',
+                          color: 'rgb(51, 65, 85)',
+                          lineHeight: 1.5,
+                          marginBottom: '12px',
+                          overflow: 'hidden',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 3,
+                          WebkitBoxOrient: 'vertical',
+                        }}
+                      >
+                        {gen.output.substring(0, 150)}...
+                      </p>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          type="button"
+                          onClick={() => loadGeneration(gen)}
+                          style={{
+                            flex: 1,
+                            padding: '6px 10px',
+                            fontSize: '0.75rem',
+                            fontWeight: 500,
+                            color: 'rgb(99, 102, 241)',
+                            backgroundColor: 'rgb(255, 255, 255)',
+                            border: '1px solid rgb(199, 210, 254)',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                          }}
+                          data-testid={`button-load-${gen.id}`}
+                        >
+                          Load
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteGeneration(gen.id)}
+                          style={{
+                            padding: '6px 10px',
+                            fontSize: '0.75rem',
+                            fontWeight: 500,
+                            color: 'rgb(239, 68, 68)',
+                            backgroundColor: 'rgb(255, 255, 255)',
+                            border: '1px solid rgb(254, 202, 202)',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                          }}
+                          data-testid={`button-delete-${gen.id}`}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Hero Section */}
         <header
           style={{
@@ -1484,6 +1820,43 @@ export default function Home() {
                       </div>
                     )}
                   </div>
+                  {isAuthenticated && (
+                    <button
+                      type="button"
+                      onClick={saveGeneration}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '8px 16px',
+                        fontSize: '0.8125rem',
+                        fontWeight: 500,
+                        color: 'rgb(255, 255, 255)',
+                        backgroundColor: 'rgb(99, 102, 241)',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                      }}
+                      data-testid="button-save"
+                    >
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                        <polyline points="17 21 17 13 7 13 7 21" />
+                        <polyline points="7 3 7 8 15 8" />
+                      </svg>
+                      Save
+                    </button>
+                  )}
                 </div>
               </div>
               <textarea
