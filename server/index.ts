@@ -27,6 +27,11 @@ app.prepare().then(async () => {
   const expressApp = express()
   expressApp.use(express.json())
   
+  // Health check endpoint for deployment
+  expressApp.get('/health', (req, res) => {
+    res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() })
+  })
+  
   // Setup auth routes (/api/login, /api/callback, /api/logout)
   await setupAuth(expressApp)
   
