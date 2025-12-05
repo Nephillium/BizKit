@@ -1,12 +1,15 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import OpenAI from 'openai'
 
-// This is using Replit's AI Integrations service, which provides OpenAI-compatible API access
-// without requiring your own OpenAI API key. Charges are billed to your Replit credits.
-// the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
-const MODEL = 'gpt-4o-mini' // Using gpt-4o-mini as specified in user requirements
-
+type ModelOption = 'gpt-4o-mini' | 'gpt-4o'
+type LengthOption = 'short' | 'standard' | 'detailed'
 type Tool = 'cold_email' | 'proposal' | 'contract' | 'social_pack'
+
+const MAX_TOKENS_MAP: Record<LengthOption, number> = {
+  short: 500,
+  standard: 1000,
+  detailed: 2000,
+}
 
 interface ColdEmailInputs {
   target: string
@@ -42,9 +45,17 @@ interface SocialPackInputs {
 
 type Inputs = ColdEmailInputs | ProposalInputs | ContractInputs | SocialPackInputs
 
+interface PremiumOptions {
+  model?: ModelOption
+  length?: LengthOption
+  creativity?: number // 0-100 maps to temperature 0-1
+  customInstructions?: string
+}
+
 interface RequestBody {
   tool: Tool
   inputs: Inputs
+  premiumOptions?: PremiumOptions
 }
 
 interface ApiResponse {
@@ -164,13 +175,28 @@ export default async function handler(
   }
 
   try {
-    const { tool, inputs } = req.body as RequestBody
+    const { tool, inputs, premiumOptions } = req.body as RequestBody
 
     if (!tool || !inputs) {
       return res.status(400).json({ ok: false, error: 'invalid_request' })
     }
 
+    // Premium options with defaults
+    const model: ModelOption = premiumOptions?.model || 'gpt-4o-mini'
+    const length: LengthOption = premiumOptions?.length || 'standard'
+    const creativity = premiumOptions?.creativity ?? 50 // 0-100 scale
+    const customInstructions = premiumOptions?.customInstructions || ''
+
+    // Convert creativity (0-100) to temperature (0-1)
+    const temperature = Math.min(Math.max(creativity / 100, 0), 1)
+    const maxTokens = MAX_TOKENS_MAP[length]
+
     const { systemPrompt, userPrompt } = buildPrompts(tool, inputs)
+
+    // Add custom instructions to system prompt if provided
+    const finalSystemPrompt = customInstructions
+      ? `${systemPrompt}\n\nAdditional Instructions from User:\n${customInstructions}`
+      : systemPrompt
 
     const openai = new OpenAI({
       baseURL,
@@ -178,13 +204,13 @@ export default async function handler(
     })
 
     const response = await openai.chat.completions.create({
-      model: MODEL,
+      model,
       messages: [
-        { role: 'system', content: systemPrompt },
+        { role: 'system', content: finalSystemPrompt },
         { role: 'user', content: userPrompt },
       ],
-      max_tokens: 1000,
-      temperature: 0.7,
+      max_tokens: maxTokens,
+      temperature,
     })
 
     const content = response.choices[0]?.message?.content || ''
