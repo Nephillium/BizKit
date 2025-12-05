@@ -2,6 +2,7 @@ import { useState, FormEvent } from 'react'
 import Head from 'next/head'
 
 type Tool = 'cold_email' | 'proposal' | 'contract' | 'social_pack'
+type CopyState = 'idle' | 'copied' | 'error'
 
 interface FormData {
   cold_email: {
@@ -78,6 +79,61 @@ export default function Home() {
   const [output, setOutput] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string>('')
+  const [copyState, setCopyState] = useState<CopyState>('idle')
+
+  const handleCopyToClipboard = async () => {
+    if (!output) return
+    
+    try {
+      await navigator.clipboard.writeText(output)
+      setCopyState('copied')
+      setTimeout(() => setCopyState('idle'), 2000)
+    } catch (err) {
+      setCopyState('error')
+      setTimeout(() => setCopyState('idle'), 2000)
+    }
+  }
+
+  const handleRegenerate = async () => {
+    if (isLoading) return
+    
+    setIsLoading(true)
+    setError('')
+    const previousOutput = output
+    
+    try {
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tool: activeTab,
+          inputs: formData[activeTab],
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.ok) {
+        setOutput(data.output)
+      } else {
+        setOutput(previousOutput)
+        setError(
+          data.error === 'missing_openai_key'
+            ? 'OpenAI API key is not configured. Please add your API key.'
+            : data.error === 'openai_error'
+            ? 'An error occurred while generating content. Please try again.'
+            : data.error || 'An unexpected error occurred.'
+        )
+      }
+    } catch (err) {
+      setOutput(previousOutput)
+      setError('Network error. Please check your connection and try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const updateFormField = (
     tool: Tool,
@@ -1019,17 +1075,154 @@ export default function Home() {
           {/* Output Display */}
           {output && (
             <div style={{ marginTop: '32px' }}>
-              <label
+              <div
                 style={{
-                  display: 'block',
-                  fontSize: '0.875rem',
-                  fontWeight: 600,
-                  color: 'rgb(51, 65, 85)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
                   marginBottom: '12px',
+                  gap: '12px',
+                  flexWrap: 'wrap',
                 }}
               >
-                Generated Content
-              </label>
+                <label
+                  style={{
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    color: 'rgb(51, 65, 85)',
+                  }}
+                >
+                  Generated Content
+                </label>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={handleRegenerate}
+                    disabled={isLoading}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '8px 16px',
+                      fontSize: '0.8125rem',
+                      fontWeight: 500,
+                      color: isLoading ? 'rgb(148, 163, 184)' : 'rgb(71, 85, 105)',
+                      backgroundColor: 'rgb(255, 255, 255)',
+                      border: '1px solid rgb(226, 232, 240)',
+                      borderRadius: '6px',
+                      cursor: isLoading ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s ease',
+                    }}
+                    data-testid="button-regenerate"
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      style={{
+                        animation: isLoading ? 'spin 1s linear infinite' : 'none',
+                      }}
+                    >
+                      <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                      <path d="M21 3v5h-5" />
+                    </svg>
+                    {isLoading ? 'Regenerating...' : 'Regenerate'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCopyToClipboard}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '8px 16px',
+                      fontSize: '0.8125rem',
+                      fontWeight: 500,
+                      color:
+                        copyState === 'copied'
+                          ? 'rgb(22, 163, 74)'
+                          : copyState === 'error'
+                          ? 'rgb(220, 38, 38)'
+                          : 'rgb(71, 85, 105)',
+                      backgroundColor:
+                        copyState === 'copied'
+                          ? 'rgb(240, 253, 244)'
+                          : copyState === 'error'
+                          ? 'rgb(254, 242, 242)'
+                          : 'rgb(255, 255, 255)',
+                      border: `1px solid ${
+                        copyState === 'copied'
+                          ? 'rgb(187, 247, 208)'
+                          : copyState === 'error'
+                          ? 'rgb(254, 202, 202)'
+                          : 'rgb(226, 232, 240)'
+                      }`,
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                    }}
+                    data-testid="button-copy"
+                  >
+                    {copyState === 'copied' ? (
+                      <>
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        Copied!
+                      </>
+                    ) : copyState === 'error' ? (
+                      <>
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <circle cx="12" cy="12" r="10" />
+                          <line x1="15" y1="9" x2="9" y2="15" />
+                          <line x1="9" y1="9" x2="15" y2="15" />
+                        </svg>
+                        Failed
+                      </>
+                    ) : (
+                      <>
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                        </svg>
+                        Copy
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
               <textarea
                 readOnly
                 value={output}

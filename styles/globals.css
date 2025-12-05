@@ -78,3 +78,12 @@ input:focus, textarea:focus, select:focus {
 .mono {
   font-family: var(--font-mono);
 }
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
