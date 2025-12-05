@@ -142,9 +142,15 @@ async function handler(req, res) {
             error: 'method_not_allowed'
         });
     }
-    const baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
-    const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
-    if (!baseURL || !apiKey) {
+    // Support both Replit AI Integrations and standard OpenAI API key
+    const replitBaseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
+    const replitApiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
+    const standardApiKey = process.env.OPENAI_API_KEY;
+    // Use Replit AI Integrations if available, otherwise fall back to standard OpenAI
+    const useReplitIntegrations = replitBaseURL && replitApiKey;
+    const apiKey = useReplitIntegrations ? replitApiKey : standardApiKey;
+    const baseURL = useReplitIntegrations ? replitBaseURL : undefined;
+    if (!apiKey) {
         return res.status(500).json({
             ok: false,
             error: 'missing_openai_key'
@@ -171,7 +177,9 @@ async function handler(req, res) {
         // Add custom instructions to system prompt if provided
         const finalSystemPrompt = customInstructions ? `${systemPrompt}\n\nAdditional Instructions from User:\n${customInstructions}` : systemPrompt;
         const openai = new __TURBOPACK__imported__module__$5b$externals$5d2f$openai__$5b$external$5d$__$28$openai$2c$__esm_import$29$__["default"]({
-            baseURL,
+            ...baseURL && {
+                baseURL
+            },
             apiKey
         });
         const response = await openai.chat.completions.create({
