@@ -1,8 +1,11 @@
-import { useState, FormEvent } from 'react'
+import { useState, FormEvent, useRef } from 'react'
 import Head from 'next/head'
+import { jsPDF } from 'jspdf'
+import { Document, Packer, Paragraph, TextRun } from 'docx'
 
 type Tool = 'cold_email' | 'proposal' | 'contract' | 'social_pack'
 type CopyState = 'idle' | 'copied' | 'error'
+type ExportState = 'idle' | 'exporting'
 
 interface FormData {
   cold_email: {
@@ -80,6 +83,117 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string>('')
   const [copyState, setCopyState] = useState<CopyState>('idle')
+  const [exportState, setExportState] = useState<ExportState>('idle')
+  const [showExportMenu, setShowExportMenu] = useState(false)
+  const exportMenuRef = useRef<HTMLDivElement>(null)
+
+  const handleExportText = () => {
+    if (!output) return
+    
+    const blob = new Blob([output], { type: 'text/plain;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `bizkit-${activeTab}-${Date.now()}.txt`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+    setShowExportMenu(false)
+  }
+
+  const handleExportPDF = () => {
+    if (!output) return
+    setExportState('exporting')
+    
+    try {
+      const doc = new jsPDF()
+      const title = tabLabels[activeTab]
+      const pageWidth = doc.internal.pageSize.getWidth()
+      const margin = 20
+      const maxWidth = pageWidth - (margin * 2)
+      
+      doc.setFontSize(18)
+      doc.setFont('helvetica', 'bold')
+      doc.text(`BizKit AI - ${title}`, margin, margin)
+      
+      doc.setFontSize(10)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(100)
+      doc.text(`Generated on ${new Date().toLocaleDateString()}`, margin, margin + 8)
+      
+      doc.setFontSize(11)
+      doc.setTextColor(0)
+      const lines = doc.splitTextToSize(output, maxWidth)
+      doc.text(lines, margin, margin + 20)
+      
+      doc.save(`bizkit-${activeTab}-${Date.now()}.pdf`)
+    } catch (err) {
+      console.error('PDF export error:', err)
+    } finally {
+      setExportState('idle')
+      setShowExportMenu(false)
+    }
+  }
+
+  const handleExportWord = async () => {
+    if (!output) return
+    setExportState('exporting')
+    
+    try {
+      const title = tabLabels[activeTab]
+      const paragraphs = output.split('\n').filter(line => line.trim()).map(line => 
+        new Paragraph({
+          children: [new TextRun(line)],
+          spacing: { after: 200 },
+        })
+      )
+      
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: [
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `BizKit AI - ${title}`,
+                  bold: true,
+                  size: 32,
+                }),
+              ],
+              spacing: { after: 200 },
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `Generated on ${new Date().toLocaleDateString()}`,
+                  color: '666666',
+                  size: 20,
+                }),
+              ],
+              spacing: { after: 400 },
+            }),
+            ...paragraphs,
+          ],
+        }],
+      })
+      
+      const blob = await Packer.toBlob(doc)
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `bizkit-${activeTab}-${Date.now()}.docx`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('Word export error:', err)
+    } finally {
+      setExportState('idle')
+      setShowExportMenu(false)
+    }
+  }
 
   const handleCopyToClipboard = async () => {
     if (!output) return
@@ -1221,6 +1335,155 @@ export default function Home() {
                       </>
                     )}
                   </button>
+                  <div style={{ position: 'relative' }} ref={exportMenuRef}>
+                    <button
+                      type="button"
+                      onClick={() => setShowExportMenu(!showExportMenu)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '8px 16px',
+                        fontSize: '0.8125rem',
+                        fontWeight: 500,
+                        color: 'rgb(71, 85, 105)',
+                        backgroundColor: 'rgb(255, 255, 255)',
+                        border: '1px solid rgb(226, 232, 240)',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                      }}
+                      data-testid="button-export"
+                    >
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                      </svg>
+                      Export
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        style={{
+                          transform: showExportMenu ? 'rotate(180deg)' : 'rotate(0deg)',
+                          transition: 'transform 0.2s ease',
+                        }}
+                      >
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    </button>
+                    {showExportMenu && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: 'calc(100% + 4px)',
+                          right: 0,
+                          backgroundColor: 'rgb(255, 255, 255)',
+                          border: '1px solid rgb(226, 232, 240)',
+                          borderRadius: '6px',
+                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                          zIndex: 50,
+                          minWidth: '160px',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        <button
+                          type="button"
+                          onClick={handleExportText}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            width: '100%',
+                            padding: '10px 14px',
+                            fontSize: '0.8125rem',
+                            fontWeight: 500,
+                            color: 'rgb(51, 65, 85)',
+                            backgroundColor: 'transparent',
+                            border: 'none',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                          }}
+                          data-testid="button-export-txt"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                            <line x1="16" y1="13" x2="8" y2="13" />
+                            <line x1="16" y1="17" x2="8" y2="17" />
+                          </svg>
+                          Plain Text (.txt)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleExportPDF}
+                          disabled={exportState === 'exporting'}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            width: '100%',
+                            padding: '10px 14px',
+                            fontSize: '0.8125rem',
+                            fontWeight: 500,
+                            color: exportState === 'exporting' ? 'rgb(148, 163, 184)' : 'rgb(51, 65, 85)',
+                            backgroundColor: 'transparent',
+                            border: 'none',
+                            cursor: exportState === 'exporting' ? 'not-allowed' : 'pointer',
+                            textAlign: 'left',
+                          }}
+                          data-testid="button-export-pdf"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgb(239, 68, 68)" strokeWidth="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                          </svg>
+                          PDF Document (.pdf)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleExportWord}
+                          disabled={exportState === 'exporting'}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            width: '100%',
+                            padding: '10px 14px',
+                            fontSize: '0.8125rem',
+                            fontWeight: 500,
+                            color: exportState === 'exporting' ? 'rgb(148, 163, 184)' : 'rgb(51, 65, 85)',
+                            backgroundColor: 'transparent',
+                            border: 'none',
+                            cursor: exportState === 'exporting' ? 'not-allowed' : 'pointer',
+                            textAlign: 'left',
+                          }}
+                          data-testid="button-export-docx"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgb(37, 99, 235)" strokeWidth="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                          </svg>
+                          Word Document (.docx)
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
               <textarea
