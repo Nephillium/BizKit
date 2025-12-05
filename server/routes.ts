@@ -2,9 +2,11 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import OpenAI from "openai";
 
-// the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
-// For this application, we use gpt-4o-mini as specified in requirements
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// Use Replit AI Integrations for OpenAI
+const openai = new OpenAI({
+  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+});
 
 interface GenerateRequest {
   tool: "cold_email" | "proposal" | "contract" | "social_pack";
@@ -104,7 +106,7 @@ export async function registerRoutes(
         return res.status(400).json({ ok: false, error: "Invalid tool" });
       }
 
-      if (!process.env.OPENAI_API_KEY) {
+      if (!process.env.AI_INTEGRATIONS_OPENAI_API_KEY) {
         return res.status(500).json({ ok: false, error: "missing_openai_key" });
       }
 
