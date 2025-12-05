@@ -8,6 +8,15 @@ import type { Generation } from '../shared/schema'
 type Tool = 'cold_email' | 'proposal' | 'contract' | 'social_pack'
 type CopyState = 'idle' | 'copied' | 'error'
 type ExportState = 'idle' | 'exporting'
+type ModelOption = 'gpt-4o-mini' | 'gpt-4o'
+type LengthOption = 'short' | 'standard' | 'detailed'
+
+interface PremiumOptions {
+  model: ModelOption
+  length: LengthOption
+  creativity: number
+  customInstructions: string
+}
 
 interface FormData {
   cold_email: {
@@ -92,6 +101,13 @@ export default function Home() {
   const [generations, setGenerations] = useState<Generation[]>([])
   const [showHistory, setShowHistory] = useState(false)
   const [historyLoading, setHistoryLoading] = useState(false)
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false)
+  const [premiumOptions, setPremiumOptions] = useState<PremiumOptions>({
+    model: 'gpt-4o-mini',
+    length: 'standard',
+    creativity: 50,
+    customInstructions: '',
+  })
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -300,6 +316,7 @@ export default function Home() {
         body: JSON.stringify({
           tool: activeTab,
           inputs: formData[activeTab],
+          premiumOptions: showAdvancedOptions ? premiumOptions : undefined,
         }),
       })
 
@@ -354,6 +371,7 @@ export default function Home() {
         body: JSON.stringify({
           tool: activeTab,
           inputs: formData[activeTab],
+          premiumOptions: showAdvancedOptions ? premiumOptions : undefined,
         }),
       })
 
@@ -1477,12 +1495,272 @@ export default function Home() {
               )}
             </div>
 
+            {/* Advanced Options Toggle */}
+            <div style={{ marginTop: '24px' }}>
+              <button
+                type="button"
+                onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '10px 16px',
+                  width: '100%',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  color: 'rgb(71, 85, 105)',
+                  backgroundColor: 'rgb(248, 250, 252)',
+                  border: '1px solid rgb(226, 232, 240)',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+                data-testid="button-toggle-advanced"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{
+                    transform: showAdvancedOptions ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.2s ease',
+                  }}
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
+                Advanced Options
+                {showAdvancedOptions && (
+                  <span
+                    style={{
+                      marginLeft: 'auto',
+                      fontSize: '0.75rem',
+                      color: 'rgb(99, 102, 241)',
+                      fontWeight: 400,
+                    }}
+                  >
+                    Customize AI behavior
+                  </span>
+                )}
+              </button>
+
+              {/* Advanced Options Panel */}
+              {showAdvancedOptions && (
+                <div
+                  style={{
+                    marginTop: '12px',
+                    padding: '20px',
+                    backgroundColor: 'rgb(248, 250, 252)',
+                    border: '1px solid rgb(226, 232, 240)',
+                    borderRadius: '8px',
+                  }}
+                  data-testid="panel-advanced-options"
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    {/* AI Model Selection */}
+                    <div>
+                      <label
+                        style={{
+                          display: 'block',
+                          fontSize: '0.875rem',
+                          fontWeight: 500,
+                          color: 'rgb(51, 65, 85)',
+                          marginBottom: '8px',
+                        }}
+                      >
+                        AI Model
+                      </label>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          type="button"
+                          onClick={() => setPremiumOptions(prev => ({ ...prev, model: 'gpt-4o-mini' }))}
+                          style={{
+                            flex: 1,
+                            padding: '10px 16px',
+                            fontSize: '0.8125rem',
+                            fontWeight: 500,
+                            color: premiumOptions.model === 'gpt-4o-mini' ? 'rgb(99, 102, 241)' : 'rgb(71, 85, 105)',
+                            backgroundColor: premiumOptions.model === 'gpt-4o-mini' ? 'rgb(238, 242, 255)' : 'rgb(255, 255, 255)',
+                            border: premiumOptions.model === 'gpt-4o-mini' ? '2px solid rgb(99, 102, 241)' : '1px solid rgb(226, 232, 240)',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                          }}
+                          data-testid="button-model-mini"
+                        >
+                          <div style={{ fontWeight: 600 }}>GPT-4o Mini</div>
+                          <div style={{ fontSize: '0.6875rem', color: 'rgb(100, 116, 139)', marginTop: '4px' }}>
+                            Fast & efficient
+                          </div>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPremiumOptions(prev => ({ ...prev, model: 'gpt-4o' }))}
+                          style={{
+                            flex: 1,
+                            padding: '10px 16px',
+                            fontSize: '0.8125rem',
+                            fontWeight: 500,
+                            color: premiumOptions.model === 'gpt-4o' ? 'rgb(99, 102, 241)' : 'rgb(71, 85, 105)',
+                            backgroundColor: premiumOptions.model === 'gpt-4o' ? 'rgb(238, 242, 255)' : 'rgb(255, 255, 255)',
+                            border: premiumOptions.model === 'gpt-4o' ? '2px solid rgb(99, 102, 241)' : '1px solid rgb(226, 232, 240)',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                          }}
+                          data-testid="button-model-full"
+                        >
+                          <div style={{ fontWeight: 600 }}>GPT-4o</div>
+                          <div style={{ fontSize: '0.6875rem', color: 'rgb(100, 116, 139)', marginTop: '4px' }}>
+                            Higher quality
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Output Length */}
+                    <div>
+                      <label
+                        style={{
+                          display: 'block',
+                          fontSize: '0.875rem',
+                          fontWeight: 500,
+                          color: 'rgb(51, 65, 85)',
+                          marginBottom: '8px',
+                        }}
+                      >
+                        Output Length
+                      </label>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        {(['short', 'standard', 'detailed'] as LengthOption[]).map((length) => (
+                          <button
+                            key={length}
+                            type="button"
+                            onClick={() => setPremiumOptions(prev => ({ ...prev, length }))}
+                            style={{
+                              flex: 1,
+                              padding: '10px 16px',
+                              fontSize: '0.8125rem',
+                              fontWeight: 500,
+                              color: premiumOptions.length === length ? 'rgb(99, 102, 241)' : 'rgb(71, 85, 105)',
+                              backgroundColor: premiumOptions.length === length ? 'rgb(238, 242, 255)' : 'rgb(255, 255, 255)',
+                              border: premiumOptions.length === length ? '2px solid rgb(99, 102, 241)' : '1px solid rgb(226, 232, 240)',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease',
+                              textTransform: 'capitalize',
+                            }}
+                            data-testid={`button-length-${length}`}
+                          >
+                            {length}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Creativity Slider */}
+                    <div>
+                      <label
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          fontSize: '0.875rem',
+                          fontWeight: 500,
+                          color: 'rgb(51, 65, 85)',
+                          marginBottom: '8px',
+                        }}
+                      >
+                        <span>Creativity Level</span>
+                        <span style={{ fontSize: '0.75rem', color: 'rgb(100, 116, 139)' }}>
+                          {premiumOptions.creativity}%
+                        </span>
+                      </label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'rgb(100, 116, 139)' }}>Precise</span>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={premiumOptions.creativity}
+                          onChange={(e) => setPremiumOptions(prev => ({ ...prev, creativity: parseInt(e.target.value) }))}
+                          style={{
+                            flex: 1,
+                            height: '6px',
+                            borderRadius: '3px',
+                            appearance: 'none',
+                            backgroundColor: 'rgb(226, 232, 240)',
+                            cursor: 'pointer',
+                          }}
+                          data-testid="slider-creativity"
+                        />
+                        <span style={{ fontSize: '0.75rem', color: 'rgb(100, 116, 139)' }}>Creative</span>
+                      </div>
+                    </div>
+
+                    {/* Custom Instructions */}
+                    <div>
+                      <label
+                        htmlFor="customInstructions"
+                        style={{
+                          display: 'block',
+                          fontSize: '0.875rem',
+                          fontWeight: 500,
+                          color: 'rgb(51, 65, 85)',
+                          marginBottom: '8px',
+                        }}
+                      >
+                        Custom Instructions
+                      </label>
+                      <textarea
+                        id="customInstructions"
+                        placeholder="Add any specific instructions for the AI (e.g., 'Use formal British English', 'Include a call-to-action', 'Keep paragraphs short')..."
+                        value={premiumOptions.customInstructions}
+                        onChange={(e) => setPremiumOptions(prev => ({ ...prev, customInstructions: e.target.value }))}
+                        rows={3}
+                        style={{
+                          width: '100%',
+                          padding: '12px 16px',
+                          fontSize: '0.875rem',
+                          backgroundColor: 'rgb(255, 255, 255)',
+                          border: '1px solid rgb(226, 232, 240)',
+                          borderRadius: '6px',
+                          color: 'rgb(15, 23, 42)',
+                          resize: 'vertical',
+                          minHeight: '80px',
+                        }}
+                        data-testid="input-custom-instructions"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Generate Button */}
             <button
               type="submit"
               disabled={isLoading}
               style={{
                 width: '100%',
+                marginTop: '24px',
                 padding: '14px 32px',
                 fontSize: '1rem',
                 fontWeight: 600,
