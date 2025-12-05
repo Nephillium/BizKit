@@ -1,10 +1,8 @@
-# BizKit AI - Client-Winning Content Generator
+# BizKit AI
 
 ## Overview
 
-BizKit AI is a SaaS productivity tool designed for freelancers and agencies to rapidly generate professional business content. The application provides four core content generation tools: cold emails, proposals, contracts, and social media packs. Built with a focus on professional efficiency and clarity, the platform leverages AI to help users create client-winning content in seconds.
-
-The application uses a modern full-stack architecture with Next.js, React, TypeScript, and Express, backed by PostgreSQL database storage. The design philosophy emphasizes clean, distraction-free interfaces with progressive disclosure through tab-based navigation.
+BizKit AI is a SaaS application designed for freelancers and agencies to generate client-winning content using AI. The platform provides tools to create cold emails, proposals, contracts, and social media content through a clean, modern interface. Built with a focus on efficiency and professional polish, the application streamlines content generation from input to output with minimal steps.
 
 ## User Preferences
 
@@ -14,107 +12,114 @@ Preferred communication style: Simple, everyday language.
 
 ### Frontend Architecture
 
-**Framework Choice: Next.js with React**
-- Next.js provides server-side rendering capabilities and optimized routing
-- React components built with TypeScript for type safety
-- Client-side routing managed through wouter library for lightweight navigation
-- Vite used as development build tool for faster hot module replacement
+**Framework & Build System**
+- **React 18** with TypeScript for type-safe component development
+- **Vite** as the build tool and development server, providing fast HMR and optimized production builds
+- **Wouter** for lightweight client-side routing
+- **TanStack Query v5** for server state management, data fetching, and caching
 
-**UI Component System: shadcn/ui with Radix UI**
-- Component library built on Radix UI primitives for accessibility
-- Tailwind CSS for utility-first styling with custom design tokens
-- "New York" style variant selected for professional aesthetic
-- Comprehensive component set including forms, dialogs, tabs, and tooltips
+**UI Component System**
+- **shadcn/ui** component library built on Radix UI primitives for accessible, unstyled components
+- **Tailwind CSS** for utility-first styling with custom design tokens
+- **class-variance-authority** for managing component variants
+- Typography: Inter (UI elements) and JetBrains Mono (code/output display)
 
-**Design System Implementation**
-- Custom CSS variables for theming (light/dark mode support)
-- Typography system using Inter font for interface and JetBrains Mono for code
-- Spacing primitives following Tailwind's 4px base scale
-- Consistent border radius system (9px/6px/3px)
-- Professional color palette with HSL-based color tokens
+**Design Approach**
+- Reference-based design inspired by Linear, Notion, and Stripe
+- Core principles: Clarity first, efficiency, professional polish
+- Spacing system based on Tailwind's 4/6/8/12/16/24 units
+- Max-width containers (max-w-4xl) with responsive padding
 
 **State Management**
-- TanStack Query (React Query) for server state management
 - React hooks for local component state
-- Form state managed through React Hook Form with Zod validation
+- TanStack Query for server state and API caching
+- Form state managed through react-hook-form with zod validation
 
 ### Backend Architecture
 
-**Server Framework: Express with Next.js Integration**
-- Express.js server integrated with Next.js for API routes
-- Custom HTTP server setup allowing full control over middleware
-- Development mode uses Vite middleware for client hot reloading
-- Production mode serves static Next.js build output
+**Server Framework**
+- **Express.js** running on Node.js with TypeScript
+- HTTP server with middleware for JSON parsing, logging, and error handling
+- Custom logging system with timestamp formatting for request tracking
 
-**API Design Pattern**
-- RESTful API structure with `/api` prefix convention
-- Type-safe request/response handling using TypeScript
-- Centralized route registration through `registerRoutes` function
-- Storage abstraction layer for database operations
+**API Design**
+- RESTful endpoints under `/api` prefix
+- Single POST endpoint `/api/generate` for AI content generation
+- Request/response logging middleware for monitoring and debugging
+- Error handling with status codes and descriptive messages
 
-**Build System**
-- esbuild for server-side code bundling (production)
-- Dependency bundling strategy with allowlist for specific packages
-- Reduces cold start times by minimizing file system calls
-- Separate client and server build processes
+**Development vs Production**
+- Development: Vite middleware integration for HMR and hot reload
+- Production: Static file serving from pre-built `dist/public` directory
+- Build script uses esbuild for server bundling with selective dependency bundling to optimize cold start times
+
+### AI Integration
+
+**OpenAI Integration**
+- Uses `gpt-4o-mini` model for cost-effective content generation
+- Structured prompt engineering for each content type:
+  - **Cold Email**: 3 variant generation with subject lines
+  - **Proposal**: Multi-section professional proposals
+  - **Contract**: Plain-language service agreements
+  - **Social Pack**: Multi-platform social media content
+
+**Prompt Architecture**
+- Separate system and user prompts for each tool type
+- Parameterized inputs (target audience, tone, language, etc.)
+- Consistent output formatting across all content types
 
 ### Data Storage
 
-**Database: PostgreSQL with Drizzle ORM**
-- Drizzle ORM chosen for type-safe database operations
-- Schema-first approach with TypeScript type inference
-- Migration system for database version control
-- Zod integration for runtime validation matching database schema
+**Current Implementation**
+- In-memory storage using `MemStorage` class for user data
+- No persistent database in current implementation
+- User schema defined with Drizzle ORM for future database integration
 
-**Data Models**
-- User authentication model with username/password
-- Schema defined in `shared/schema.ts` for code sharing between client/server
-- UUID-based primary keys using PostgreSQL's `gen_random_uuid()`
+**Database Schema (Prepared)**
+- PostgreSQL dialect configured via Drizzle
+- Users table with UUID primary keys, unique usernames, and password fields
+- Schema location: `shared/schema.ts` with Zod validation schemas
+- Migration directory configured at `./migrations`
 
-**Storage Interface Pattern**
-- Abstract storage interface (`IStorage`) for flexibility
-- In-memory implementation (`MemStorage`) for development/testing
-- Designed to swap implementations without changing application code
-- CRUD operations abstracted behind consistent API
+**Future Database Integration**
+- Drizzle ORM configured for PostgreSQL with connection via `DATABASE_URL`
+- `connect-pg-simple` for session storage (when sessions are implemented)
+- Schema push command available via `npm run db:push`
+
+### Authentication & Authorization
+
+**Not Currently Implemented**
+- User schema exists but authentication is not active
+- Passport.js and passport-local dependencies installed for future use
+- JWT and session management libraries (express-session, jsonwebtoken) ready for integration
 
 ### External Dependencies
 
-**AI Integration: OpenAI API**
-- Content generation powered by GPT-4o-mini model
-- API route at `/api/generate` handles AI requests
-- Replit AI Integrations service provides OpenAI-compatible access
-- Billing through Replit credits rather than direct OpenAI API keys
+**AI Services**
+- **OpenAI API** (gpt-4o-mini model) - Primary AI content generation
+- Requires `OPENAI_API_KEY` environment variable
+
+**Database** (Configured, Not Active)
+- **PostgreSQL** - Configured via Drizzle ORM
+- Requires `DATABASE_URL` environment variable when enabled
 
 **UI Component Libraries**
-- @radix-ui/* packages for accessible component primitives
-- shadcn/ui configuration for pre-built component templates
-- lucide-react for consistent iconography
-- class-variance-authority for component variant management
-
-**Development Tools**
-- Replit-specific plugins for development experience
-- Runtime error modal overlay in development
-- Development banner for Replit environment
-- Cartographer plugin for enhanced debugging
+- **Radix UI** - Accessible component primitives (accordion, dialog, dropdown, tabs, etc.)
+- **Tailwind CSS** - Utility-first CSS framework
+- **Lucide React** - Icon library
 
 **Form Handling & Validation**
-- React Hook Form for performant form state management
-- @hookform/resolvers for Zod schema integration
-- Zod for runtime type validation and schema definition
-- drizzle-zod for seamless database-to-validation schema conversion
+- **react-hook-form** - Form state management
+- **zod** - Schema validation
+- **@hookform/resolvers** - Integration between react-hook-form and zod
 
-**Styling & CSS**
-- Tailwind CSS for utility-first styling approach
-- PostCSS with autoprefixer for browser compatibility
-- Custom CSS properties for dynamic theming
-- clsx and tailwind-merge (via cn utility) for conditional classes
-
-**Session Management**
-- express-session for server-side session handling
-- connect-pg-simple for PostgreSQL session storage (configured but may need setup)
-- In-memory session store available as fallback
+**Development Tools**
+- **Replit plugins** - Development banner, cartographer, runtime error overlay
+- **TypeScript** - Type safety across frontend and backend
+- **ESBuild** - Server bundling for production
+- **Vite** - Frontend build tool and dev server
 
 **Utilities**
-- date-fns for date manipulation and formatting
-- nanoid for generating unique identifiers
-- wouter for client-side routing
+- **date-fns** - Date manipulation
+- **nanoid** - ID generation
+- **clsx** & **tailwind-merge** - Conditional class composition
