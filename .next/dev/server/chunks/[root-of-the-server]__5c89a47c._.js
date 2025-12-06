@@ -69,6 +69,8 @@ __turbopack_async_result__();
 return __turbopack_context__.a(async (__turbopack_handle_async_dependencies__, __turbopack_async_result__) => { try {
 
 __turbopack_context__.s([
+    "anonymousUsage",
+    ()=>anonymousUsage,
     "generations",
     ()=>generations,
     "insertGenerationSchema",
@@ -103,8 +105,19 @@ const users = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$drizzle$2d$o
     firstName: (0, __TURBOPACK__imported__module__$5b$externals$5d2f$drizzle$2d$orm$2f$pg$2d$core__$5b$external$5d$__$28$drizzle$2d$orm$2f$pg$2d$core$2c$__esm_import$29$__["varchar"])("first_name"),
     lastName: (0, __TURBOPACK__imported__module__$5b$externals$5d2f$drizzle$2d$orm$2f$pg$2d$core__$5b$external$5d$__$28$drizzle$2d$orm$2f$pg$2d$core$2c$__esm_import$29$__["varchar"])("last_name"),
     profileImageUrl: (0, __TURBOPACK__imported__module__$5b$externals$5d2f$drizzle$2d$orm$2f$pg$2d$core__$5b$external$5d$__$28$drizzle$2d$orm$2f$pg$2d$core$2c$__esm_import$29$__["varchar"])("profile_image_url"),
+    isAdmin: (0, __TURBOPACK__imported__module__$5b$externals$5d2f$drizzle$2d$orm$2f$pg$2d$core__$5b$external$5d$__$28$drizzle$2d$orm$2f$pg$2d$core$2c$__esm_import$29$__["boolean"])("is_admin").default(false),
+    isSubscribed: (0, __TURBOPACK__imported__module__$5b$externals$5d2f$drizzle$2d$orm$2f$pg$2d$core__$5b$external$5d$__$28$drizzle$2d$orm$2f$pg$2d$core$2c$__esm_import$29$__["boolean"])("is_subscribed").default(false),
+    stripeCustomerId: (0, __TURBOPACK__imported__module__$5b$externals$5d2f$drizzle$2d$orm$2f$pg$2d$core__$5b$external$5d$__$28$drizzle$2d$orm$2f$pg$2d$core$2c$__esm_import$29$__["varchar"])("stripe_customer_id"),
+    stripeSubscriptionId: (0, __TURBOPACK__imported__module__$5b$externals$5d2f$drizzle$2d$orm$2f$pg$2d$core__$5b$external$5d$__$28$drizzle$2d$orm$2f$pg$2d$core$2c$__esm_import$29$__["varchar"])("stripe_subscription_id"),
+    usageCount: (0, __TURBOPACK__imported__module__$5b$externals$5d2f$drizzle$2d$orm$2f$pg$2d$core__$5b$external$5d$__$28$drizzle$2d$orm$2f$pg$2d$core$2c$__esm_import$29$__["integer"])("usage_count").default(0),
     createdAt: (0, __TURBOPACK__imported__module__$5b$externals$5d2f$drizzle$2d$orm$2f$pg$2d$core__$5b$external$5d$__$28$drizzle$2d$orm$2f$pg$2d$core$2c$__esm_import$29$__["timestamp"])("created_at").defaultNow(),
     updatedAt: (0, __TURBOPACK__imported__module__$5b$externals$5d2f$drizzle$2d$orm$2f$pg$2d$core__$5b$external$5d$__$28$drizzle$2d$orm$2f$pg$2d$core$2c$__esm_import$29$__["timestamp"])("updated_at").defaultNow()
+});
+const anonymousUsage = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$drizzle$2d$orm$2f$pg$2d$core__$5b$external$5d$__$28$drizzle$2d$orm$2f$pg$2d$core$2c$__esm_import$29$__["pgTable"])("anonymous_usage", {
+    id: (0, __TURBOPACK__imported__module__$5b$externals$5d2f$drizzle$2d$orm$2f$pg$2d$core__$5b$external$5d$__$28$drizzle$2d$orm$2f$pg$2d$core$2c$__esm_import$29$__["serial"])("id").primaryKey(),
+    fingerprint: (0, __TURBOPACK__imported__module__$5b$externals$5d2f$drizzle$2d$orm$2f$pg$2d$core__$5b$external$5d$__$28$drizzle$2d$orm$2f$pg$2d$core$2c$__esm_import$29$__["varchar"])("fingerprint").notNull().unique(),
+    usageCount: (0, __TURBOPACK__imported__module__$5b$externals$5d2f$drizzle$2d$orm$2f$pg$2d$core__$5b$external$5d$__$28$drizzle$2d$orm$2f$pg$2d$core$2c$__esm_import$29$__["integer"])("usage_count").default(0),
+    createdAt: (0, __TURBOPACK__imported__module__$5b$externals$5d2f$drizzle$2d$orm$2f$pg$2d$core__$5b$external$5d$__$28$drizzle$2d$orm$2f$pg$2d$core$2c$__esm_import$29$__["timestamp"])("created_at").defaultNow()
 });
 const generations = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$drizzle$2d$orm$2f$pg$2d$core__$5b$external$5d$__$28$drizzle$2d$orm$2f$pg$2d$core$2c$__esm_import$29$__["pgTable"])("generations", {
     id: (0, __TURBOPACK__imported__module__$5b$externals$5d2f$drizzle$2d$orm$2f$pg$2d$core__$5b$external$5d$__$28$drizzle$2d$orm$2f$pg$2d$core$2c$__esm_import$29$__["serial"])("id").primaryKey(),
@@ -215,6 +228,39 @@ class DatabaseStorage {
             }
         }).returning();
         return user;
+    }
+    async incrementUserUsage(id) {
+        const [updated] = await __TURBOPACK__imported__module__$5b$project$5d2f$server$2f$db$2e$ts__$5b$api$5d$__$28$ecmascript$29$__["db"].update(__TURBOPACK__imported__module__$5b$project$5d2f$shared$2f$schema$2e$ts__$5b$api$5d$__$28$ecmascript$29$__["users"]).set({
+            usageCount: __TURBOPACK__imported__module__$5b$externals$5d2f$drizzle$2d$orm__$5b$external$5d$__$28$drizzle$2d$orm$2c$__esm_import$29$__["sql"]`${__TURBOPACK__imported__module__$5b$project$5d2f$shared$2f$schema$2e$ts__$5b$api$5d$__$28$ecmascript$29$__["users"].usageCount} + 1`,
+            updatedAt: new Date()
+        }).where((0, __TURBOPACK__imported__module__$5b$externals$5d2f$drizzle$2d$orm__$5b$external$5d$__$28$drizzle$2d$orm$2c$__esm_import$29$__["eq"])(__TURBOPACK__imported__module__$5b$project$5d2f$shared$2f$schema$2e$ts__$5b$api$5d$__$28$ecmascript$29$__["users"].id, id)).returning();
+        return updated?.usageCount ?? 0;
+    }
+    async updateUserSubscription(id, isSubscribed, stripeCustomerId, stripeSubscriptionId) {
+        const [updated] = await __TURBOPACK__imported__module__$5b$project$5d2f$server$2f$db$2e$ts__$5b$api$5d$__$28$ecmascript$29$__["db"].update(__TURBOPACK__imported__module__$5b$project$5d2f$shared$2f$schema$2e$ts__$5b$api$5d$__$28$ecmascript$29$__["users"]).set({
+            isSubscribed,
+            stripeCustomerId,
+            stripeSubscriptionId,
+            updatedAt: new Date()
+        }).where((0, __TURBOPACK__imported__module__$5b$externals$5d2f$drizzle$2d$orm__$5b$external$5d$__$28$drizzle$2d$orm$2c$__esm_import$29$__["eq"])(__TURBOPACK__imported__module__$5b$project$5d2f$shared$2f$schema$2e$ts__$5b$api$5d$__$28$ecmascript$29$__["users"].id, id)).returning();
+        return updated;
+    }
+    // Anonymous usage operations
+    async getAnonymousUsage(fingerprint) {
+        const [usage] = await __TURBOPACK__imported__module__$5b$project$5d2f$server$2f$db$2e$ts__$5b$api$5d$__$28$ecmascript$29$__["db"].select().from(__TURBOPACK__imported__module__$5b$project$5d2f$shared$2f$schema$2e$ts__$5b$api$5d$__$28$ecmascript$29$__["anonymousUsage"]).where((0, __TURBOPACK__imported__module__$5b$externals$5d2f$drizzle$2d$orm__$5b$external$5d$__$28$drizzle$2d$orm$2c$__esm_import$29$__["eq"])(__TURBOPACK__imported__module__$5b$project$5d2f$shared$2f$schema$2e$ts__$5b$api$5d$__$28$ecmascript$29$__["anonymousUsage"].fingerprint, fingerprint));
+        return usage;
+    }
+    async incrementAnonymousUsage(fingerprint) {
+        const [result] = await __TURBOPACK__imported__module__$5b$project$5d2f$server$2f$db$2e$ts__$5b$api$5d$__$28$ecmascript$29$__["db"].insert(__TURBOPACK__imported__module__$5b$project$5d2f$shared$2f$schema$2e$ts__$5b$api$5d$__$28$ecmascript$29$__["anonymousUsage"]).values({
+            fingerprint,
+            usageCount: 1
+        }).onConflictDoUpdate({
+            target: __TURBOPACK__imported__module__$5b$project$5d2f$shared$2f$schema$2e$ts__$5b$api$5d$__$28$ecmascript$29$__["anonymousUsage"].fingerprint,
+            set: {
+                usageCount: __TURBOPACK__imported__module__$5b$externals$5d2f$drizzle$2d$orm__$5b$external$5d$__$28$drizzle$2d$orm$2c$__esm_import$29$__["sql"]`${__TURBOPACK__imported__module__$5b$project$5d2f$shared$2f$schema$2e$ts__$5b$api$5d$__$28$ecmascript$29$__["anonymousUsage"].usageCount} + 1`
+            }
+        }).returning();
+        return result?.usageCount ?? 0;
     }
     // Generation operations
     async createGeneration(generation) {

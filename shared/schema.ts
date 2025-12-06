@@ -7,6 +7,8 @@ import {
   varchar,
   text,
   serial,
+  boolean,
+  integer,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -31,12 +33,27 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  isAdmin: boolean("is_admin").default(false),
+  isSubscribed: boolean("is_subscribed").default(false),
+  stripeCustomerId: varchar("stripe_customer_id"),
+  stripeSubscriptionId: varchar("stripe_subscription_id"),
+  usageCount: integer("usage_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
+
+// Anonymous usage tracking (by fingerprint/IP)
+export const anonymousUsage = pgTable("anonymous_usage", {
+  id: serial("id").primaryKey(),
+  fingerprint: varchar("fingerprint").notNull().unique(),
+  usageCount: integer("usage_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type AnonymousUsage = typeof anonymousUsage.$inferSelect;
 
 // Generation history table for storing user's past generations
 export const generations = pgTable("generations", {
