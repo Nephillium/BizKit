@@ -1,5 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import OpenAI from 'openai'
+import { parse, serialize } from 'cookie'
+import { getSessionFromCookie, validateSession } from '../../lib/session'
+import { storage } from '../../server/storage'
+import { randomUUID } from 'crypto'
+
+const FREE_USAGE_LIMIT = 1
 
 type ModelOption = 'gpt-4o-mini' | 'gpt-4o'
 type LengthOption = 'short' | 'standard' | 'detailed'
@@ -62,6 +68,9 @@ interface ApiResponse {
   ok: boolean
   output?: string
   error?: string
+  usageCount?: number
+  usageLimit?: number
+  requiresSubscription?: boolean
 }
 
 function buildPrompts(tool: Tool, inputs: Inputs): { systemPrompt: string; userPrompt: string } {
@@ -181,6 +190,61 @@ export default async function handler(
     return res.status(500).json({ ok: false, error: 'missing_openai_key' })
   }
 
+  // Check usage limits
+  let userId: string | null = null
+  let isAdmin = false
+  let isSubscribed = false
+  let currentUsage = 0
+
+  // Check if user is logged in
+  const session = getSessionFromCookie(req)
+  if (session) {
+    const isValid = await validateSession(session)
+    if (isValid && session.claims?.sub) {
+      userId = session.claims.sub as string
+      const user = await storage.getUser(userId)
+      if (user) {
+        isAdmin = user.isAdmin ?? false
+        isSubscribed = user.isSubscribed ?? false
+        currentUsage = user.usageCount ?? 0
+      }
+    }
+  }
+
+  // Get or create anonymous fingerprint for non-logged-in users
+  let anonFingerprint: string | null = null
+  if (!userId) {
+    const cookies = parse(req.headers.cookie || '')
+    anonFingerprint = cookies.anon_id || null
+    
+    if (!anonFingerprint) {
+      anonFingerprint = randomUUID()
+      res.setHeader('Set-Cookie', serialize('anon_id', anonFingerprint, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 365, // 1 year
+        path: '/',
+      }))
+    }
+    
+    const anonUsage = await storage.getAnonymousUsage(anonFingerprint)
+    currentUsage = anonUsage?.usageCount ?? 0
+  }
+
+  // Check if user can generate (admins and subscribers bypass limits)
+  const canGenerate = isAdmin || isSubscribed || currentUsage < FREE_USAGE_LIMIT
+
+  if (!canGenerate) {
+    return res.status(403).json({ 
+      ok: false, 
+      error: 'usage_limit_exceeded',
+      usageCount: currentUsage,
+      usageLimit: FREE_USAGE_LIMIT,
+      requiresSubscription: true,
+    })
+  }
+
   try {
     const { tool, inputs, premiumOptions } = req.body as RequestBody
 
@@ -222,7 +286,22 @@ export default async function handler(
 
     const content = response.choices[0]?.message?.content || ''
 
-    return res.status(200).json({ ok: true, output: content })
+    // Increment usage count after successful generation
+    let newUsageCount = currentUsage
+    if (!isAdmin && !isSubscribed) {
+      if (userId) {
+        newUsageCount = await storage.incrementUserUsage(userId)
+      } else if (anonFingerprint) {
+        newUsageCount = await storage.incrementAnonymousUsage(anonFingerprint)
+      }
+    }
+
+    return res.status(200).json({ 
+      ok: true, 
+      output: content,
+      usageCount: newUsageCount,
+      usageLimit: FREE_USAGE_LIMIT,
+    })
   } catch (error: any) {
     console.error('OpenAI API Error:', error)
 

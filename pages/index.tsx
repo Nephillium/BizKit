@@ -416,6 +416,8 @@ export default function Home() {
   const [showHistory, setShowHistory] = useState(false)
   const [historyLoading, setHistoryLoading] = useState(false)
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false)
+  const [showSubscriptionPrompt, setShowSubscriptionPrompt] = useState(false)
+  const [usageInfo, setUsageInfo] = useState<{ count: number; limit: number } | null>(null)
   const [premiumOptions, setPremiumOptions] = useState<PremiumOptions>({
     model: 'gpt-4o-mini',
     length: 'standard',
@@ -638,15 +640,24 @@ export default function Home() {
 
       if (data.ok) {
         setOutput(data.output)
+        if (data.usageCount !== undefined && data.usageLimit !== undefined) {
+          setUsageInfo({ count: data.usageCount, limit: data.usageLimit })
+        }
       } else {
         setOutput(previousOutput)
-        setError(
-          data.error === 'missing_openai_key'
-            ? 'OpenAI API key is not configured. Please add your API key.'
-            : data.error === 'openai_error'
-            ? 'An error occurred while generating content. Please try again.'
-            : data.error || 'An unexpected error occurred.'
-        )
+        if (data.error === 'usage_limit_exceeded') {
+          setUsageInfo({ count: data.usageCount, limit: data.usageLimit })
+          setShowSubscriptionPrompt(true)
+          setError('')
+        } else {
+          setError(
+            data.error === 'missing_openai_key'
+              ? 'OpenAI API key is not configured. Please add your API key.'
+              : data.error === 'openai_error'
+              ? 'An error occurred while generating content. Please try again.'
+              : data.error || 'An unexpected error occurred.'
+          )
+        }
       }
     } catch (err) {
       setOutput(previousOutput)
@@ -693,14 +704,23 @@ export default function Home() {
 
       if (data.ok) {
         setOutput(data.output)
+        if (data.usageCount !== undefined && data.usageLimit !== undefined) {
+          setUsageInfo({ count: data.usageCount, limit: data.usageLimit })
+        }
       } else {
-        setError(
-          data.error === 'missing_openai_key'
-            ? 'OpenAI API key is not configured. Please add your API key.'
-            : data.error === 'openai_error'
-            ? 'An error occurred while generating content. Please try again.'
-            : data.error || 'An unexpected error occurred.'
-        )
+        if (data.error === 'usage_limit_exceeded') {
+          setUsageInfo({ count: data.usageCount, limit: data.usageLimit })
+          setShowSubscriptionPrompt(true)
+          setError('')
+        } else {
+          setError(
+            data.error === 'missing_openai_key'
+              ? 'OpenAI API key is not configured. Please add your API key.'
+              : data.error === 'openai_error'
+              ? 'An error occurred while generating content. Please try again.'
+              : data.error || 'An unexpected error occurred.'
+          )
+        }
       }
     } catch (err) {
       setError('Network error. Please check your connection and try again.')
@@ -2432,6 +2452,168 @@ export default function Home() {
             BizKit AI – Beta v1.0
           </p>
         </footer>
+
+        {/* Subscription Prompt Modal */}
+        {showSubscriptionPrompt && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1000,
+            }}
+            onClick={() => setShowSubscriptionPrompt(false)}
+            data-testid="modal-subscription-backdrop"
+          >
+            <div
+              style={{
+                backgroundColor: 'white',
+                borderRadius: '12px',
+                padding: '32px',
+                maxWidth: '480px',
+                width: '90%',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              }}
+              onClick={(e) => e.stopPropagation()}
+              data-testid="modal-subscription-content"
+            >
+              <div style={{ textAlign: 'center' }}>
+                <div
+                  style={{
+                    width: '64px',
+                    height: '64px',
+                    borderRadius: '50%',
+                    backgroundColor: 'rgb(238, 242, 255)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 16px',
+                  }}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="32"
+                    height="32"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="rgb(99, 102, 241)"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                  </svg>
+                </div>
+                <h2
+                  style={{
+                    fontSize: '1.5rem',
+                    fontWeight: 600,
+                    color: 'rgb(15, 23, 42)',
+                    marginBottom: '8px',
+                  }}
+                  data-testid="text-subscription-title"
+                >
+                  Free Trial Used
+                </h2>
+                <p
+                  style={{
+                    fontSize: '1rem',
+                    color: 'rgb(100, 116, 139)',
+                    marginBottom: '24px',
+                    lineHeight: 1.6,
+                  }}
+                  data-testid="text-subscription-message"
+                >
+                  You've used your free generation. Subscribe to unlock unlimited access to all content generation tools.
+                </p>
+
+                {!isAuthenticated && (
+                  <div style={{ marginBottom: '16px' }}>
+                    <p style={{ fontSize: '0.875rem', color: 'rgb(100, 116, 139)', marginBottom: '12px' }}>
+                      Please sign in first to subscribe:
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowSubscriptionPrompt(false)
+                        window.location.href = '/api/login'
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '14px 24px',
+                        fontSize: '1rem',
+                        fontWeight: 600,
+                        color: 'white',
+                        backgroundColor: 'rgb(99, 102, 241)',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        marginBottom: '8px',
+                      }}
+                      data-testid="button-login-from-modal"
+                    >
+                      Sign In with Replit
+                    </button>
+                  </div>
+                )}
+
+                {isAuthenticated && (
+                  <div style={{ marginBottom: '16px' }}>
+                    <p style={{ fontSize: '0.875rem', color: 'rgb(100, 116, 139)', marginBottom: '12px' }}>
+                      Contact us to subscribe and get unlimited access:
+                    </p>
+                    <a
+                      href="mailto:support@bizkit.ai?subject=BizKit AI Subscription"
+                      style={{
+                        display: 'block',
+                        width: '100%',
+                        padding: '14px 24px',
+                        fontSize: '1rem',
+                        fontWeight: 600,
+                        color: 'white',
+                        backgroundColor: 'rgb(99, 102, 241)',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        textDecoration: 'none',
+                        textAlign: 'center',
+                        boxSizing: 'border-box',
+                      }}
+                      data-testid="button-contact-subscribe"
+                    >
+                      Contact to Subscribe
+                    </a>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setShowSubscriptionPrompt(false)}
+                  style={{
+                    width: '100%',
+                    padding: '12px 24px',
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                    color: 'rgb(100, 116, 139)',
+                    backgroundColor: 'transparent',
+                    border: '1px solid rgb(226, 232, 240)',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                  }}
+                  data-testid="button-close-subscription-modal"
+                >
+                  Maybe Later
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   )
