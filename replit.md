@@ -4,16 +4,14 @@
 
 BizKit AI is a SaaS productivity tool designed for freelancers and agencies to rapidly generate professional business content. The application provides four core content generation tools: cold emails, proposals, contracts, and social media packs. Built with a focus on professional efficiency and clarity, the platform leverages AI to help users create client-winning content in seconds.
 
-The application uses a pure Next.js architecture with React, TypeScript, and **PostgreSQL** for persistent user data and credits. The design philosophy emphasizes clean, distraction-free interfaces with progressive disclosure through tab-based navigation.
+The application uses a pure Next.js architecture with React, TypeScript, and **in-memory user storage** (no database required). The design philosophy emphasizes clean, distraction-free interfaces with progressive disclosure through tab-based navigation.
 
 ## Recent Changes (Dec 2024)
 
-- **Migrated to PostgreSQL** - Real database with persistent user data and credits
-- **Credits system** - Users have a credits field; each generation costs 1 credit
-- **Credit transactions table** - Audit trail for all credit changes
-- **JWT-based authentication** - Email/password registration and login with PostgreSQL backend
+- **Removed PostgreSQL/Database dependency** - App now works without any database
+- **In-memory user store** - Users stored in memory (resets on server restart)
+- **JWT-based authentication** - Email/password registration and login
 - **Super user support** - Via SUPER_USER_EMAIL env var (any registered user with this email becomes admin)
-- **Admin unlimited access** - Admins bypass credit checks
 - **1 free use limit** - Anonymous users get 1 generation, then must register
 - **Turkish language support** - Full UI translation with language selector
 - **Dual OpenAI support** - Works with Replit AI Integrations or standard OPENAI_API_KEY
@@ -38,7 +36,7 @@ Preferred communication style: Simple, everyday language.
 
 **State Management**
 - React hooks for local component state
-- useAuth hook for authentication state (includes credits)
+- useAuth hook for authentication state
 
 **Internationalization**
 - Full Turkish and English language support
@@ -53,54 +51,28 @@ Preferred communication style: Simple, everyday language.
 - Type-safe request/response handling
 - JWT-based authentication via cookies
 
-**Authentication System (PostgreSQL)**
+**Authentication System (In-Memory)**
 - User registration: POST /api/auth/register
 - User login: POST /api/auth/login  
-- User info: GET /api/auth/me (includes credits)
+- User info: GET /api/auth/me
 - Logout: POST /api/auth/logout
 
 **Super User / Admin**
 - Set SUPER_USER_EMAIL env var to an email address
 - When a registered user with that email logs in, they get "admin" role
-- Admins have unlimited generations (bypass credit check)
+- Admins have unlimited generations
 
 **Usage Limits**
 - Anonymous users: 1 free generation (tracked via bizkit_free_used cookie)
-- Registered users: Credit-based (1 credit = 1 generation)
+- Registered users: Unlimited generations
 - Admin users: Unlimited generations
 
 ### Data Storage
 
-**PostgreSQL Database**
-- Users table with credits field
-- Credit transactions table for audit trail
-- Connection via DATABASE_URL environment variable
-- See schema.sql for full table definitions
-
-**Database Schema:**
-```sql
--- Users table
-CREATE TABLE users (
-  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
-  email VARCHAR UNIQUE,
-  password_hash TEXT,
-  role TEXT DEFAULT 'user',
-  credits INTEGER DEFAULT 0,
-  is_admin BOOLEAN DEFAULT FALSE,
-  stripe_customer_id VARCHAR,
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW()
-);
-
--- Credit transactions table
-CREATE TABLE credit_transactions (
-  id SERIAL PRIMARY KEY,
-  user_id VARCHAR REFERENCES users(id),
-  amount INTEGER NOT NULL,
-  reason TEXT NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-```
+**In-Memory Storage (No Database)**
+- Users stored in Map<email, User>
+- Data resets on server restart
+- Suitable for early testing and demos
 
 ### External Dependencies
 
@@ -121,29 +93,30 @@ pages/
   _document.tsx     # Document configuration
   index.tsx         # Home page with all content generation tools
   api/
-    generate.ts     # AI content generation (checks credits)
+    generate.ts     # AI content generation
     health.ts       # Health check endpoint
     auth/
-      register.ts   # User registration (PostgreSQL)
-      login.ts      # User login (PostgreSQL)
-      me.ts         # Get current user with credits
+      register.ts   # User registration
+      login.ts      # User login
+      me.ts         # Get current user
       logout.ts     # User logout
 
 lib/
-  db.ts             # PostgreSQL connection pool
-  users.ts          # Database user functions with credits
+  auth.ts           # Auth utilities
+  session.ts        # Session management
+  usersStore.ts     # In-memory user storage with JWT
   translations.ts   # Turkish/English translations
 
 hooks/
-  useAuth.ts        # React hook for authentication (includes credits)
+  useAuth.ts        # React hook for authentication
 
-schema.sql          # Database migration SQL
+shared/
+  schema.ts         # Type definitions
 ```
 
 ## Environment Variables
 
 **Required:**
-- `DATABASE_URL` - PostgreSQL connection string
 - `SESSION_SECRET` or `JWT_SECRET` - For signing JWT tokens
 
 **Optional:**
@@ -158,38 +131,14 @@ schema.sql          # Database migration SQL
 - `npm run build` - Build for production
 - `npm run start` - Start production server
 
-## How /api/generate Works
-
-1. Checks for valid JWT token
-2. If no token (anonymous):
-   - Checks bizkit_free_used cookie
-   - If not used: allows generation, sets cookie
-   - If used: returns error, requires login
-3. If valid token (logged in):
-   - Fetches user from database
-   - If admin: allows unlimited generations
-   - If regular user: checks credits
-     - If credits <= 0: returns no_credits error
-     - If credits > 0: decrements credit, proceeds with generation
-4. Calls OpenAI API and returns content
-
-## Adding Credits
-
-To add credits to a user, use the addCredits function:
-```typescript
-import { addCredits } from './lib/users';
-await addCredits(userId, 10, 'purchased_pack_10');
-```
-
-This creates a transaction record and updates the user's credit balance atomically.
-
 ## Deployment
 
 **Vercel Deployment:**
 1. Push to GitHub
 2. Connect to Vercel
 3. Add environment variables:
-   - DATABASE_URL (required - use Neon, Supabase, or similar)
    - OPENAI_API_KEY (required)
    - SESSION_SECRET (required)
    - SUPER_USER_EMAIL (optional)
+
+No DATABASE_URL needed - app works without database.
