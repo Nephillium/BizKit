@@ -1,0 +1,3 @@
+{
+  "/api/generations/[id]": "pages/api/generations/[id].js"
+}
