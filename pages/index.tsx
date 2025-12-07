@@ -896,13 +896,45 @@ export default function Home() {
                   >
                     {user.email?.charAt(0).toUpperCase() || 'U'}
                   </div>
-                  <span style={{ fontSize: '0.875rem', color: 'rgb(51, 65, 85)' }} data-testid="text-username">
-                    {user.email || 'User'}
-                    {user.role === 'admin' && (
-                      <span style={{ marginLeft: '4px', fontSize: '0.75rem', color: 'rgb(99, 102, 241)' }}>({t.admin})</span>
-                    )}
-                  </span>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                    <span style={{ fontSize: '0.875rem', color: 'rgb(51, 65, 85)' }} data-testid="text-username">
+                      {user.email || 'User'}
+                      {user.role === 'admin' && (
+                        <span style={{ marginLeft: '4px', fontSize: '0.75rem', color: 'rgb(99, 102, 241)' }}>({t.admin})</span>
+                      )}
+                    </span>
+                    <span style={{ fontSize: '0.75rem', color: 'rgb(100, 116, 139)' }} data-testid="text-credits">
+                      {user.role === 'admin' ? t.unlimitedCredits : `${user.credits ?? 0} ${t.creditsLeft}`}
+                    </span>
+                  </div>
                 </div>
+                {user.role !== 'admin' && (
+                  <button
+                    type="button"
+                    onClick={() => window.location.href = '/buy-credits'}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '8px 14px',
+                      fontSize: '0.8125rem',
+                      fontWeight: 500,
+                      color: 'rgb(255, 255, 255)',
+                      backgroundColor: 'rgb(16, 185, 129)',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                    }}
+                    data-testid="button-buy-credits"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8" />
+                      <path d="M12 18V6" />
+                    </svg>
+                    {t.buyCredits}
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => logout()}

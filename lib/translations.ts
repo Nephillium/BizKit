@@ -104,6 +104,12 @@ export const translations = {
     load: 'Load',
     delete: 'Delete',
     
+    // Credits
+    credits: 'Credits',
+    creditsLeft: 'credits left',
+    buyCredits: 'Buy Credits',
+    unlimitedCredits: 'Unlimited',
+    
     // Beta badge
     betaBadge: 'Free beta – Pro plans coming soon',
     
@@ -217,6 +223,12 @@ export const translations = {
     noHistory: 'Henüz içerik yok. İlk içeriğinizi oluşturun!',
     load: 'Yükle',
     delete: 'Sil',
+    
+    // Credits
+    credits: 'Kredi',
+    creditsLeft: 'kredi kaldı',
+    buyCredits: 'Kredi Satın Al',
+    unlimitedCredits: 'Sınırsız',
     
     // Beta badge
     betaBadge: 'Ücretsiz beta – Pro planlar yakında',

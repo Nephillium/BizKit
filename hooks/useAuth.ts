@@ -4,6 +4,7 @@ export interface User {
   id: string
   email: string
   role: 'user' | 'admin'
+  credits: number
   usageCount?: number
 }
 
