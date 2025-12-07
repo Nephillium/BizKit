@@ -104,6 +104,9 @@ export const translations = {
     load: 'Load',
     delete: 'Delete',
     
+    // Beta badge
+    betaBadge: 'Free beta – Pro plans coming soon',
+    
     // Footer
     footer: 'BizKit AI – Beta v1.0',
     
@@ -214,6 +217,9 @@ export const translations = {
     noHistory: 'Henüz içerik yok. İlk içeriğinizi oluşturun!',
     load: 'Yükle',
     delete: 'Sil',
+    
+    // Beta badge
+    betaBadge: 'Ücretsiz beta – Pro planlar yakında',
     
     // Footer
     footer: 'BizKit AI – Beta v1.0',
