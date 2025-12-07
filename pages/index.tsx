@@ -629,6 +629,7 @@ export default function Home() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           tool: activeTab,
           inputs: formData[activeTab],
@@ -693,6 +694,7 @@ export default function Home() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           tool: activeTab,
           inputs: formData[activeTab],
