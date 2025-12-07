@@ -22,6 +22,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       )
     `);
     
+    // Add missing columns if they don't exist (for migrations)
+    await client.query(`
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='usage_count') THEN
+          ALTER TABLE users ADD COLUMN usage_count INTEGER DEFAULT 0;
+        END IF;
+      END $$;
+    `);
+    
     await client.query(`
       CREATE TABLE IF NOT EXISTS credit_transactions (
         id SERIAL PRIMARY KEY,
