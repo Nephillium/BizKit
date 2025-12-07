@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { loginUser } from '../../../lib/users';
+import { loginUser } from '../../../lib/usersStore';
 import { serialize } from 'cookie';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -13,27 +13,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ ok: false, error: 'Email and password are required' });
   }
 
-  try {
-    const result = await loginUser(email, password);
+  const result = loginUser(email, password);
 
-    if ('error' in result) {
-      return res.status(401).json({ ok: false, error: result.error });
-    }
-
-    res.setHeader('Set-Cookie', serialize('bizkit_token', result.token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7,
-      path: '/',
-    }));
-
-    return res.status(200).json({ 
-      ok: true, 
-      user: result.user,
-    });
-  } catch (error) {
-    console.error('Login error:', error);
-    return res.status(500).json({ ok: false, error: 'Internal server error' });
+  if ('error' in result) {
+    return res.status(401).json({ ok: false, error: result.error });
   }
+
+  res.setHeader('Set-Cookie', serialize('bizkit_token', result.token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 60 * 60 * 24 * 7,
+    path: '/',
+  }));
+
+  return res.status(200).json({ 
+    ok: true, 
+    user: result.user,
+  });
 }
