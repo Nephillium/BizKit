@@ -1,38 +1,34 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getUserFromRequest, getUserWithCredits } from '../../../lib/users';
+import { getUserFromRequest, findUserById } from '../../../lib/usersStore';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
     return res.status(405).json({ ok: false, error: 'Method not allowed' });
   }
 
-  try {
-    const jwtPayload = getUserFromRequest(req.headers.cookie);
+  const jwtPayload = getUserFromRequest(req.headers.cookie);
 
-    if (!jwtPayload) {
-      return res.status(200).json({ ok: true, user: null });
-    }
+  if (!jwtPayload) {
+    return res.status(200).json({ ok: true, user: null });
+  }
 
-    const user = await getUserWithCredits(jwtPayload.userId);
+  const user = findUserById(jwtPayload.id);
 
-    if (!user) {
-      return res.status(200).json({ 
-        ok: true, 
-        user: {
-          id: jwtPayload.userId,
-          email: jwtPayload.email,
-          role: jwtPayload.role,
-          credits: 0,
-        }
-      });
-    }
-
+  if (!user) {
     return res.status(200).json({ 
       ok: true, 
-      user,
+      user: {
+        id: jwtPayload.id,
+        email: jwtPayload.email,
+        role: jwtPayload.role,
+      }
     });
-  } catch (error) {
-    console.error('Get user error:', error);
-    return res.status(500).json({ ok: false, error: 'Internal server error' });
   }
+
+  const { passwordHash, ...userWithoutPassword } = user;
+  
+  return res.status(200).json({ 
+    ok: true, 
+    user: userWithoutPassword,
+  });
 }

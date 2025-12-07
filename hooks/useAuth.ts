@@ -4,9 +4,7 @@ export interface User {
   id: string
   email: string
   role: 'user' | 'admin'
-  credits: number
-  is_admin?: boolean
-  usage_count?: number
+  usageCount?: number
 }
 
 interface AuthState {
