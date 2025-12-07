@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { registerUser, generateToken } from '../../../lib/usersStore';
+import { registerUser, generateToken } from '../../../lib/users';
 import { serialize } from 'cookie';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -17,7 +17,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ ok: false, error: 'Password must be at least 4 characters' });
   }
 
-  const result = registerUser(email, password, 'user');
+  const result = await registerUser(email, password);
 
   if ('error' in result) {
     return res.status(400).json({ ok: false, error: result.error });
@@ -33,7 +33,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     path: '/',
   }));
 
-  const { passwordHash, ...userWithoutPassword } = result;
+  const { password_hash, ...userWithoutPassword } = result;
   
   return res.status(200).json({ 
     ok: true, 

@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import OpenAI from 'openai'
 import { parse, serialize } from 'cookie'
-import { getUserFromRequest, findUserByEmail, incrementUserUsage } from '../../lib/usersStore'
+import { getUserFromRequest, getUserCredits, addCredits, incrementUserUsage } from '../../lib/users'
 
 type ModelOption = 'gpt-4o-mini' | 'gpt-4o'
 type LengthOption = 'short' | 'standard' | 'detailed'
@@ -64,6 +64,7 @@ interface ApiResponse {
   ok: boolean
   output?: string
   error?: string
+  message?: string
   requiresLogin?: boolean
   freeUsed?: boolean
 }
@@ -187,6 +188,7 @@ export default async function handler(
   
   const isLoggedIn = !!jwtPayload
   const isAdmin = jwtPayload?.role === 'admin'
+  const userId = jwtPayload?.id
 
   if (!isLoggedIn) {
     const cookies = parse(req.headers.cookie || '')
@@ -200,6 +202,16 @@ export default async function handler(
         freeUsed: true,
       })
     }
+  }
+
+  const userCredits = isLoggedIn && userId ? await getUserCredits(userId) : 0
+
+  if (isLoggedIn && !isAdmin && userCredits <= 0) {
+    return res.status(403).json({
+      ok: false,
+      error: 'no_credits',
+      message: 'You have no credits left. Please buy a pack.',
+    })
   }
 
   try {
@@ -252,8 +264,15 @@ export default async function handler(
       }))
     }
 
-    if (isLoggedIn && jwtPayload) {
-      incrementUserUsage(jwtPayload.email)
+    if (isLoggedIn && userId) {
+      await incrementUserUsage(userId)
+      
+      if (!isAdmin) {
+        const success = await addCredits(userId, -1, 'generation')
+        if (!success) {
+          console.error('Failed to decrement credits for user:', userId)
+        }
+      }
     }
 
     if (headers.length > 0) {

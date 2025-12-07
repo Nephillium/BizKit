@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { loginUser } from '../../../lib/usersStore';
+import { loginUser } from '../../../lib/users';
 import { serialize } from 'cookie';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -13,7 +13,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ ok: false, error: 'Email and password are required' });
   }
 
-  const result = loginUser(email, password);
+  const result = await loginUser(email, password);
 
   if ('error' in result) {
     return res.status(401).json({ ok: false, error: result.error });

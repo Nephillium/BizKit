@@ -1,0 +1,3 @@
+{
+  "/api/init-db": "pages/api/init-db.js"
+}
