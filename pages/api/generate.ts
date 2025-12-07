@@ -195,45 +195,56 @@ export default async function handler(
   let isAdmin = false
   let isSubscribed = false
   let currentUsage = 0
+  let anonFingerprint: string | null = null
+  let dbAvailable = true
 
-  // Check if user is logged in
-  const session = getSessionFromCookie(req)
-  if (session) {
-    const isValid = await validateSession(session)
-    if (isValid && session.claims?.sub) {
-      userId = session.claims.sub as string
-      const user = await storage.getUser(userId)
-      if (user) {
-        isAdmin = user.isAdmin ?? false
-        isSubscribed = user.isSubscribed ?? false
-        currentUsage = user.usageCount ?? 0
+  // Check if database is available
+  const hasDatabaseUrl = !!process.env.DATABASE_URL
+
+  try {
+    // Check if user is logged in
+    const session = getSessionFromCookie(req)
+    if (session && hasDatabaseUrl) {
+      const isValid = await validateSession(session)
+      if (isValid && session.claims?.sub) {
+        userId = session.claims.sub as string
+        const user = await storage.getUser(userId)
+        if (user) {
+          isAdmin = user.isAdmin ?? false
+          isSubscribed = user.isSubscribed ?? false
+          currentUsage = user.usageCount ?? 0
+        }
       }
     }
-  }
 
-  // Get or create anonymous fingerprint for non-logged-in users
-  let anonFingerprint: string | null = null
-  if (!userId) {
-    const cookies = parse(req.headers.cookie || '')
-    anonFingerprint = cookies.anon_id || null
-    
-    if (!anonFingerprint) {
-      anonFingerprint = randomUUID()
-      res.setHeader('Set-Cookie', serialize('anon_id', anonFingerprint, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 365, // 1 year
-        path: '/',
-      }))
+    // Get or create anonymous fingerprint for non-logged-in users
+    if (!userId && hasDatabaseUrl) {
+      const cookies = parse(req.headers.cookie || '')
+      anonFingerprint = cookies.anon_id || null
+      
+      if (!anonFingerprint) {
+        anonFingerprint = randomUUID()
+        res.setHeader('Set-Cookie', serialize('anon_id', anonFingerprint, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 60 * 60 * 24 * 365, // 1 year
+          path: '/',
+        }))
+      }
+      
+      const anonUsage = await storage.getAnonymousUsage(anonFingerprint)
+      currentUsage = anonUsage?.usageCount ?? 0
     }
-    
-    const anonUsage = await storage.getAnonymousUsage(anonFingerprint)
-    currentUsage = anonUsage?.usageCount ?? 0
+  } catch (dbError) {
+    console.error('Database error during usage check:', dbError)
+    dbAvailable = false
+    // Continue without usage tracking if database is unavailable
   }
 
   // Check if user can generate (admins and subscribers bypass limits)
-  const canGenerate = isAdmin || isSubscribed || currentUsage < FREE_USAGE_LIMIT
+  // If database is unavailable, allow generation (no usage tracking)
+  const canGenerate = !dbAvailable || isAdmin || isSubscribed || currentUsage < FREE_USAGE_LIMIT
 
   if (!canGenerate) {
     return res.status(403).json({ 
@@ -286,13 +297,18 @@ export default async function handler(
 
     const content = response.choices[0]?.message?.content || ''
 
-    // Increment usage count after successful generation
+    // Increment usage count after successful generation (only if database is available)
     let newUsageCount = currentUsage
-    if (!isAdmin && !isSubscribed) {
-      if (userId) {
-        newUsageCount = await storage.incrementUserUsage(userId)
-      } else if (anonFingerprint) {
-        newUsageCount = await storage.incrementAnonymousUsage(anonFingerprint)
+    if (dbAvailable && hasDatabaseUrl && !isAdmin && !isSubscribed) {
+      try {
+        if (userId) {
+          newUsageCount = await storage.incrementUserUsage(userId)
+        } else if (anonFingerprint) {
+          newUsageCount = await storage.incrementAnonymousUsage(anonFingerprint)
+        }
+      } catch (dbError) {
+        console.error('Database error during usage increment:', dbError)
+        // Continue without updating usage if database fails
       }
     }
 
