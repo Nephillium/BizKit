@@ -17,6 +17,9 @@ self.__BUILD_MANIFEST = {
     "/api/auth/register",
     "/api/generate",
     "/api/health",
-    "/api/init-db"
+    "/api/init-db",
+    "/api/stripe/create-checkout",
+    "/api/stripe/webhook",
+    "/buy-credits"
   ]
 };self.__BUILD_MANIFEST_CB && self.__BUILD_MANIFEST_CB()

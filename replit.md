@@ -10,6 +10,9 @@ The application uses a Next.js architecture with React, TypeScript, and **Postgr
 
 - **PostgreSQL database integration** - Users stored persistently in Neon PostgreSQL
 - **Credits system** - Users start with 0 credits, admins bypass credit checks
+- **Stripe payments** - Users can purchase credits via Stripe checkout
+- **Credits display** - Shows credits remaining next to username in navbar
+- **Buy Credits page** - /buy-credits with three credit packages ($5, $20, $35)
 - **Bcrypt password hashing** - Secure password storage with salts
 - **JWT-based authentication** - Email/password registration and login
 - **Super user support** - Via SUPER_USER_EMAIL env var (any registered user with this email becomes admin)
@@ -94,6 +97,7 @@ pages/
   _app.tsx          # App wrapper
   _document.tsx     # Document configuration
   index.tsx         # Home page with all content generation tools
+  buy-credits.tsx   # Credit purchasing page with Stripe
   api/
     generate.ts     # AI content generation with credit checking
     init-db.ts      # Database initialization endpoint
@@ -103,10 +107,14 @@ pages/
       login.ts      # User login
       me.ts         # Get current user
       logout.ts     # User logout
+    stripe/
+      create-checkout.ts  # Create Stripe checkout session
+      webhook.ts          # Handle Stripe webhooks
 
 lib/
   db.ts             # PostgreSQL connection pool
   users.ts          # Database user functions with bcrypt
+  stripeClient.ts   # Stripe API client
   auth.ts           # Auth utilities
   session.ts        # Session management
   translations.ts   # Turkish/English translations
