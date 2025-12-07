@@ -1,0 +1,81 @@
+You are Replit Agent.
+
+Context:
+This is a BizKit AI Next.js project. I asked earlier for registration, login, 1 free use if not logged in, and a super user. As a result, the code now expects a PostgreSQL database and Replit is asking me for a DB connection. I do NOT want any real database for now.
+
+Goal:
+Keep registration/login + free-use limit + super user behavior, but REMOVE all PostgreSQL and DATABASE_URL requirements. Everything should work without any DB. This is for early BD tests, not production.
+
+Please do the following:
+
+1. REMOVE POSTGRES / DATABASE DEPENDENCY
+   - Search the entire repo for:
+     - imports from "pg", "pg-promise", "prisma", "drizzle" or any Postgres client.
+     - references to `DATABASE_URL`.
+   - Remove these imports and any code that tries to open a DB connection (client, pool, connect, query, etc.).
+   - If there are any user models or DB-based auth helpers, replace them with a simple in-memory store or file-based store as described in the next step.
+
+2. SIMPLE IN-MEMORY USER STORE
+   - Implement a minimal user store in a shared module that can be imported in API routes, for example `lib/usersStore.ts`:
+     - Store users in an in-memory array or map:
+       - `{ email: string; passwordHash: string; role: "user" | "admin" }[]`
+     - For now, this can live purely in memory. It will reset when the server restarts, which is acceptable for early tests.
+   - Provide helper functions:
+     - `registerUser(email: string, password: string, role: "user" | "admin" = "user")`
+     - `findUserByEmail(email: string)`
+   - You can hash the password with a simple library if already present, or just store plain text (this is only for internal testing; no real data).
+
+3. AUTH API ROUTES (NO DB)
+   - Ensure there are Next.js API routes for auth, e.g. under `pages/api/auth`:
+     - `register.ts` → POST `{ email, password }`
+       - If user already exists in memory, return an error.
+       - Otherwise, create a new user with role `"user"`.
+     - `login.ts` → POST `{ email, password }`
+       - Look up user from the in-memory store.
+       - If match, issue a JWT and set it as a cookie.
+   - Use `jsonwebtoken` and `process.env.JWT_SECRET` to sign tokens.
+   - Store role (`"user"` or `"admin"`) inside the JWT payload.
+
+   - For cookies:
+     - Set `Set-Cookie` header with the JWT token, e.g. `bizkit_token=...; HttpOnly; Path=/; SameSite=Lax`.
+
+4. SUPER USER IMPLEMENTATION
+   - Add env vars, for example:
+     - `ADMIN_EMAIL`
+     - `ADMIN_PASSWORD`
+   - On server startup or in the auth logic, if a login request comes in with these credentials, treat that user as role `"admin"`.
+     - You can either auto-register this user in the in-memory store, or bypass registration and just issue an `"admin"` JWT directly.
+   - Admin should have no generation limit (see next step).
+
+5. 1 FREE USE LIMIT FOR ANONYMOUS USERS
+   - In the `/api/generate` route:
+     - First, try to read the JWT from the `bizkit_token` cookie.
+       - If valid and role is `"user"` or `"admin"`, allow unlimited generations (no 1-free-use limit).
+       - If no token (anonymous), enforce “1 free use”:
+         - Read a cookie like `bizkit_free_used`.
+         - If `bizkit_free_used=1`, then return a response indicating the free quota is used and that the user should register/login.
+         - If the cookie is missing, allow the generation, and in the response set a `Set-Cookie` header: `bizkit_free_used=1; Path=/; Max-Age=31536000; SameSite=Lax`.
+   - This way, anonymous visitors get exactly 1 successful generation per browser, and logged-in users/super user get unlimited.
+
+6. FRONTEND CHANGES
+   - Add a very simple login/register UI at the top or in a small modal:
+     - Email + password inputs.
+     - “Register” and “Login” buttons that call `/api/auth/register` and `/api/auth/login`.
+   - When login succeeds, you do NOT need to store the token on the client; the cookie is enough.
+   - Optionally, you can store a simple “isLoggedIn” state in React just to show a small “Logged in as [email] (role)” message.
+
+7. CLEANUP & VERIFICATION
+   - After this refactor:
+     - There must be NO references to PostgreSQL, `pg`, or `DATABASE_URL`.
+     - `npm run dev` and `npm run build` must work without any DB connection.
+     - Replit should no longer ask me to configure PostgreSQL for the app to run.
+   - The BizKit AI core behavior must remain:
+     - 4 tabs (Cold Email, Proposal, Contract, Social Pack).
+     - `POST /api/generate` uses OpenAI.
+   - Only auth and usage-limit logic should be changed as described (in-memory users + cookies + JWT).
+
+At the end, please summarize:
+- Which files you modified or created.
+- What auth flow exists now.
+- How admin / super user login works.
+- How the 1-free-use limit is enforced.

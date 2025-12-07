@@ -4,6 +4,7 @@ import { jsPDF } from 'jspdf'
 import { Document, Packer, Paragraph, TextRun } from 'docx'
 import { useAuth } from '../hooks/useAuth'
 import type { Generation } from '../shared/schema'
+import { translations, type Language } from '../lib/translations'
 
 type Tool = 'cold_email' | 'proposal' | 'contract' | 'social_pack'
 type CopyState = 'idle' | 'copied' | 'error'
@@ -402,7 +403,9 @@ function LanguagePicker({ value, onChange, testId }: LanguagePickerProps) {
 }
 
 export default function Home() {
-  const { user, isLoading: authLoading, isAuthenticated } = useAuth()
+  const { user, isLoading: authLoading, isAuthenticated, login, register, logout } = useAuth()
+  const [lang, setLang] = useState<Language>('en')
+  const t = translations[lang]
   const [activeTab, setActiveTab] = useState<Tool>('cold_email')
   const [formData, setFormData] = useState<FormData>(initialFormData)
   const [output, setOutput] = useState<string>('')
@@ -418,6 +421,12 @@ export default function Home() {
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false)
   const [showSubscriptionPrompt, setShowSubscriptionPrompt] = useState(false)
   const [usageInfo, setUsageInfo] = useState<{ count: number; limit: number } | null>(null)
+  const [showAuthModal, setShowAuthModal] = useState(false)
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login')
+  const [authEmail, setAuthEmail] = useState('')
+  const [authPassword, setAuthPassword] = useState('')
+  const [authError, setAuthError] = useState('')
+  const [authLoading2, setAuthLoading2] = useState(false)
   const [premiumOptions, setPremiumOptions] = useState<PremiumOptions>({
     model: 'gpt-4o-mini',
     length: 'standard',
@@ -426,10 +435,48 @@ export default function Home() {
   })
 
   useEffect(() => {
+    const savedLang = localStorage.getItem('bizkit_lang') as Language
+    if (savedLang && (savedLang === 'en' || savedLang === 'tr')) {
+      setLang(savedLang)
+    }
+  }, [])
+
+  const toggleLanguage = () => {
+    const newLang = lang === 'en' ? 'tr' : 'en'
+    setLang(newLang)
+    localStorage.setItem('bizkit_lang', newLang)
+  }
+
+  useEffect(() => {
     if (isAuthenticated) {
       fetchGenerations()
     }
   }, [isAuthenticated])
+
+  const handleAuthSubmit = async (e: FormEvent) => {
+    e.preventDefault()
+    setAuthError('')
+    setAuthLoading2(true)
+    
+    try {
+      const result = authMode === 'login' 
+        ? await login(authEmail, authPassword)
+        : await register(authEmail, authPassword)
+      
+      if (result.ok) {
+        setShowAuthModal(false)
+        setAuthEmail('')
+        setAuthPassword('')
+        setShowSubscriptionPrompt(false)
+      } else {
+        setAuthError(result.error || 'Authentication failed')
+      }
+    } catch {
+      setAuthError('Network error. Please try again.')
+    } finally {
+      setAuthLoading2(false)
+    }
+  }
 
   const fetchGenerations = async () => {
     try {
@@ -706,14 +753,11 @@ export default function Home() {
 
       if (data.ok) {
         setOutput(data.output)
-        if (data.usageCount !== undefined && data.usageLimit !== undefined) {
-          setUsageInfo({ count: data.usageCount, limit: data.usageLimit })
-        }
       } else {
-        if (data.error === 'usage_limit_exceeded') {
-          setUsageInfo({ count: data.usageCount, limit: data.usageLimit })
-          setShowSubscriptionPrompt(true)
-          setError('')
+        if (data.requiresLogin || data.freeUsed) {
+          setShowAuthModal(true)
+          setAuthMode('register')
+          setError('Your free trial is used. Register or log in for unlimited access.')
         } else {
           setError(
             data.error === 'missing_openai_key'
@@ -778,8 +822,33 @@ export default function Home() {
             BizKit AI
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {/* Language Selector */}
+            <button
+              type="button"
+              onClick={toggleLanguage}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 12px',
+                fontSize: '0.8125rem',
+                fontWeight: 500,
+                color: 'rgb(71, 85, 105)',
+                backgroundColor: 'rgb(241, 245, 249)',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+              }}
+              data-testid="button-language"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+              </svg>
+              {lang === 'en' ? 'TR' : 'EN'}
+            </button>
             {authLoading ? (
-              <div style={{ fontSize: '0.875rem', color: 'rgb(148, 163, 184)' }}>Loading...</div>
+              <div style={{ fontSize: '0.875rem', color: 'rgb(148, 163, 184)' }}>{t.loading}</div>
             ) : isAuthenticated && user ? (
               <>
                 <button
@@ -804,27 +873,35 @@ export default function Home() {
                     <circle cx="12" cy="12" r="10" />
                     <polyline points="12 6 12 12 16 14" />
                   </svg>
-                  History
+                  {t.history}
                 </button>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  {user.profileImageUrl && (
-                    <img
-                      src={user.profileImageUrl}
-                      alt="Profile"
-                      style={{
-                        width: '28px',
-                        height: '28px',
-                        borderRadius: '50%',
-                        objectFit: 'cover',
-                      }}
-                    />
-                  )}
+                  <div
+                    style={{
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '50%',
+                      backgroundColor: user.role === 'admin' ? 'rgb(99, 102, 241)' : 'rgb(148, 163, 184)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {user.email?.charAt(0).toUpperCase() || 'U'}
+                  </div>
                   <span style={{ fontSize: '0.875rem', color: 'rgb(51, 65, 85)' }} data-testid="text-username">
-                    {user.firstName || user.email || 'User'}
+                    {user.email || 'User'}
+                    {user.role === 'admin' && (
+                      <span style={{ marginLeft: '4px', fontSize: '0.75rem', color: 'rgb(99, 102, 241)' }}>({t.admin})</span>
+                    )}
                   </span>
                 </div>
-                <a
-                  href="/api/logout"
+                <button
+                  type="button"
+                  onClick={() => logout()}
                   style={{
                     padding: '8px 14px',
                     fontSize: '0.8125rem',
@@ -833,17 +910,21 @@ export default function Home() {
                     backgroundColor: 'rgb(254, 242, 242)',
                     border: 'none',
                     borderRadius: '6px',
-                    textDecoration: 'none',
                     cursor: 'pointer',
                   }}
                   data-testid="button-logout"
                 >
-                  Log out
-                </a>
+                  {t.logout}
+                </button>
               </>
             ) : (
-              <a
-                href="/api/login"
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthMode('login')
+                  setShowAuthModal(true)
+                  setAuthError('')
+                }}
                 style={{
                   padding: '8px 16px',
                   fontSize: '0.8125rem',
@@ -852,13 +933,12 @@ export default function Home() {
                   backgroundColor: 'rgb(99, 102, 241)',
                   border: 'none',
                   borderRadius: '6px',
-                  textDecoration: 'none',
                   cursor: 'pointer',
                 }}
                 data-testid="button-login"
               >
-                Log in
-              </a>
+                {t.login}
+              </button>
             )}
           </div>
         </nav>
@@ -2613,6 +2693,204 @@ export default function Home() {
                   Maybe Later
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Auth Modal */}
+        {showAuthModal && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1000,
+            }}
+            onClick={() => setShowAuthModal(false)}
+            data-testid="modal-auth-backdrop"
+          >
+            <div
+              style={{
+                backgroundColor: 'white',
+                borderRadius: '12px',
+                padding: '32px',
+                maxWidth: '400px',
+                width: '90%',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              }}
+              onClick={(e) => e.stopPropagation()}
+              data-testid="modal-auth-content"
+            >
+              <h2
+                style={{
+                  fontSize: '1.5rem',
+                  fontWeight: 600,
+                  color: 'rgb(15, 23, 42)',
+                  marginBottom: '8px',
+                  textAlign: 'center',
+                }}
+              >
+                {authMode === 'login' ? t.welcomeBack : t.createAccount}
+              </h2>
+              <p
+                style={{
+                  fontSize: '0.875rem',
+                  color: 'rgb(100, 116, 139)',
+                  marginBottom: '24px',
+                  textAlign: 'center',
+                }}
+              >
+                {authMode === 'login' ? t.loginAccess : t.registerAccess}
+              </p>
+
+              {authError && (
+                <div
+                  style={{
+                    padding: '12px',
+                    backgroundColor: 'rgb(254, 242, 242)',
+                    color: 'rgb(185, 28, 28)',
+                    borderRadius: '8px',
+                    fontSize: '0.875rem',
+                    marginBottom: '16px',
+                    textAlign: 'center',
+                  }}
+                  data-testid="text-auth-error"
+                >
+                  {authError}
+                </div>
+              )}
+
+              <form onSubmit={handleAuthSubmit}>
+                <div style={{ marginBottom: '16px' }}>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.875rem',
+                      fontWeight: 500,
+                      color: 'rgb(51, 65, 85)',
+                      marginBottom: '6px',
+                    }}
+                  >
+                    {t.email}
+                  </label>
+                  <input
+                    type="email"
+                    value={authEmail}
+                    onChange={(e) => setAuthEmail(e.target.value)}
+                    placeholder={t.emailPlaceholder}
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      fontSize: '0.875rem',
+                      border: '1px solid rgb(226, 232, 240)',
+                      borderRadius: '8px',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                    data-testid="input-auth-email"
+                  />
+                </div>
+
+                <div style={{ marginBottom: '24px' }}>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.875rem',
+                      fontWeight: 500,
+                      color: 'rgb(51, 65, 85)',
+                      marginBottom: '6px',
+                    }}
+                  >
+                    {t.password}
+                  </label>
+                  <input
+                    type="password"
+                    value={authPassword}
+                    onChange={(e) => setAuthPassword(e.target.value)}
+                    placeholder={t.passwordPlaceholder}
+                    required
+                    minLength={4}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      fontSize: '0.875rem',
+                      border: '1px solid rgb(226, 232, 240)',
+                      borderRadius: '8px',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                    data-testid="input-auth-password"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={authLoading2}
+                  style={{
+                    width: '100%',
+                    padding: '14px 24px',
+                    fontSize: '1rem',
+                    fontWeight: 600,
+                    color: 'white',
+                    backgroundColor: authLoading2 ? 'rgb(148, 163, 184)' : 'rgb(99, 102, 241)',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: authLoading2 ? 'not-allowed' : 'pointer',
+                    marginBottom: '12px',
+                  }}
+                  data-testid="button-auth-submit"
+                >
+                  {authLoading2 ? t.pleaseWait : authMode === 'login' ? t.login : t.createAccount}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode(authMode === 'login' ? 'register' : 'login')
+                    setAuthError('')
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '12px 24px',
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                    color: 'rgb(99, 102, 241)',
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
+                  data-testid="button-auth-switch"
+                >
+                  {authMode === 'login' ? t.noAccount : t.hasAccount}
+                </button>
+              </form>
+
+              <button
+                type="button"
+                onClick={() => setShowAuthModal(false)}
+                style={{
+                  width: '100%',
+                  padding: '12px 24px',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  color: 'rgb(100, 116, 139)',
+                  backgroundColor: 'transparent',
+                  border: '1px solid rgb(226, 232, 240)',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  marginTop: '8px',
+                }}
+                data-testid="button-auth-close"
+              >
+                {t.cancel}
+              </button>
             </div>
           </div>
         )}
