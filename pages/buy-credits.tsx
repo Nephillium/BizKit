@@ -51,19 +51,34 @@ export default function BuyCredits() {
     try {
       const response = await fetch('/api/stripe/create-checkout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+        },
         credentials: 'include',
+        cache: 'no-store',
         body: JSON.stringify({ packageId }),
       })
 
+      if (!response.ok) {
+        const text = await response.text().catch(() => '')
+        console.error('Checkout error:', response.status, text)
+        setMessage({ type: 'error', text: 'Failed to create checkout session' })
+        return
+      }
+
       const data = await response.json()
 
-      if (data.url) {
-        window.location.href = data.url
-      } else {
+      if (!data || !data.url) {
+        console.error('No checkout URL returned:', data)
         setMessage({ type: 'error', text: data.error || 'Failed to create checkout session' })
+        return
       }
+
+      window.location.href = data.url
     } catch (error) {
+      console.error('Checkout request failed:', error)
       setMessage({ type: 'error', text: 'Network error. Please try again.' })
     } finally {
       setPurchasing(null)

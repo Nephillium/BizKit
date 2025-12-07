@@ -1,0 +1,55 @@
+You are Replit Agent.
+
+This is my BizKit AI Next.js app. Stripe checkout for buying credits works in the Replit dev environment, but on the deployed / live version I get “Failed to create checkout session” and sometimes see a 304 Not Modified response for /api/billing/create-checkout-session.
+
+I want you to fix the checkout flow so that:
+
+- The frontend always makes a proper POST request with a JSON body and disables caching.
+- The API route for creating the checkout session:
+  - Only accepts POST
+  - Sets appropriate Cache-Control headers so nothing is cached
+  - Returns clear JSON on success and on error
+
+Please do the following steps:
+
+1. FRONTEND: UPDATE THE CHECKOUT CALL
+
+- Find the React/Next.js code that triggers Stripe checkout for buying credits.
+  - It likely calls fetch("/api/billing/create-checkout-session", ...) or similar when the user clicks "Buy 10 credits" / "Buy 50 credits" / "Buy 100 credits".
+- Replace the current logic with a helper function like this (adjust import/typing as needed):
+
+  ```ts
+  async function startCheckout(pack: "10" | "50" | "100") {
+    try {
+      const res = await fetch("/api/billing/create-checkout-session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-cache",
+          "Pragma": "no-cache",
+        },
+        // You can also add `cache: "no-store"` here if needed:
+        cache: "no-store",
+        body: JSON.stringify({ pack }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        console.error("Checkout error:", res.status, text);
+        alert("Failed to create checkout session");
+        return;
+      }
+
+      const data = await res.json();
+      if (!data || !data.url) {
+        console.error("No checkout URL returned:", data);
+        alert("Failed to create checkout session");
+        return;
+      }
+
+      window.location.href = data.url;
+    } catch (err) {
+      console.error("Checkout request failed:", err);
+      alert("Failed to create checkout session");
+    }
+  }

@@ -9,6 +9,11 @@ const CREDIT_PACKAGES = [
 ];
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Set cache headers to prevent caching
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }

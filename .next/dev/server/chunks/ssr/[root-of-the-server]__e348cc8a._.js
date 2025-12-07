@@ -444,23 +444,37 @@ function BuyCredits() {
             const response = await fetch('/api/stripe/create-checkout', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
                 },
                 credentials: 'include',
+                cache: 'no-store',
                 body: JSON.stringify({
                     packageId
                 })
             });
+            if (!response.ok) {
+                const text = await response.text().catch(()=>'');
+                console.error('Checkout error:', response.status, text);
+                setMessage({
+                    type: 'error',
+                    text: 'Failed to create checkout session'
+                });
+                return;
+            }
             const data = await response.json();
-            if (data.url) {
-                window.location.href = data.url;
-            } else {
+            if (!data || !data.url) {
+                console.error('No checkout URL returned:', data);
                 setMessage({
                     type: 'error',
                     text: data.error || 'Failed to create checkout session'
                 });
+                return;
             }
+            window.location.href = data.url;
         } catch (error) {
+            console.error('Checkout request failed:', error);
             setMessage({
                 type: 'error',
                 text: 'Network error. Please try again.'
@@ -485,12 +499,12 @@ function BuyCredits() {
                 children: t.loading
             }, void 0, false, {
                 fileName: "[project]/pages/buy-credits.tsx",
-                lineNumber: 76,
+                lineNumber: 91,
                 columnNumber: 9
             }, this)
         }, void 0, false, {
             fileName: "[project]/pages/buy-credits.tsx",
-            lineNumber: 75,
+            lineNumber: 90,
             columnNumber: 7
         }, this);
     }
@@ -510,12 +524,12 @@ function BuyCredits() {
                         children: "Buy Credits - BizKit AI"
                     }, void 0, false, {
                         fileName: "[project]/pages/buy-credits.tsx",
-                        lineNumber: 85,
+                        lineNumber: 100,
                         columnNumber: 11
                     }, this)
                 }, void 0, false, {
                     fileName: "[project]/pages/buy-credits.tsx",
-                    lineNumber: 84,
+                    lineNumber: 99,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("h1", {
@@ -528,7 +542,7 @@ function BuyCredits() {
                     children: lang === 'tr' ? 'Giris Yapmaniz Gerekiyor' : 'Please Log In'
                 }, void 0, false, {
                     fileName: "[project]/pages/buy-credits.tsx",
-                    lineNumber: 87,
+                    lineNumber: 102,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("p", {
@@ -540,7 +554,7 @@ function BuyCredits() {
                     children: lang === 'tr' ? 'Kredi satin almak icin giris yapmaniz gerekiyor.' : 'You need to log in to purchase credits.'
                 }, void 0, false, {
                     fileName: "[project]/pages/buy-credits.tsx",
-                    lineNumber: 90,
+                    lineNumber: 105,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("button", {
@@ -559,13 +573,13 @@ function BuyCredits() {
                     children: lang === 'tr' ? 'Ana Sayfaya Don' : 'Go to Home'
                 }, void 0, false, {
                     fileName: "[project]/pages/buy-credits.tsx",
-                    lineNumber: 93,
+                    lineNumber: 108,
                     columnNumber: 9
                 }, this)
             ]
         }, void 0, true, {
             fileName: "[project]/pages/buy-credits.tsx",
-            lineNumber: 83,
+            lineNumber: 98,
             columnNumber: 7
         }, this);
     }
@@ -581,7 +595,7 @@ function BuyCredits() {
                         children: "Buy Credits - BizKit AI"
                     }, void 0, false, {
                         fileName: "[project]/pages/buy-credits.tsx",
-                        lineNumber: 116,
+                        lineNumber: 131,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("meta", {
@@ -589,13 +603,13 @@ function BuyCredits() {
                         content: "Purchase credits for BizKit AI content generation"
                     }, void 0, false, {
                         fileName: "[project]/pages/buy-credits.tsx",
-                        lineNumber: 117,
+                        lineNumber: 132,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/pages/buy-credits.tsx",
-                lineNumber: 115,
+                lineNumber: 130,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("nav", {
@@ -619,7 +633,7 @@ function BuyCredits() {
                         children: "BizKit AI"
                     }, void 0, false, {
                         fileName: "[project]/pages/buy-credits.tsx",
-                        lineNumber: 130,
+                        lineNumber: 145,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -637,7 +651,7 @@ function BuyCredits() {
                                 children: user?.email
                             }, void 0, false, {
                                 fileName: "[project]/pages/buy-credits.tsx",
-                                lineNumber: 134,
+                                lineNumber: 149,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("span", {
@@ -655,19 +669,19 @@ function BuyCredits() {
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/pages/buy-credits.tsx",
-                                lineNumber: 137,
+                                lineNumber: 152,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/pages/buy-credits.tsx",
-                        lineNumber: 133,
+                        lineNumber: 148,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/pages/buy-credits.tsx",
-                lineNumber: 120,
+                lineNumber: 135,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("main", {
@@ -693,7 +707,7 @@ function BuyCredits() {
                                 children: t.buyCredits
                             }, void 0, false, {
                                 fileName: "[project]/pages/buy-credits.tsx",
-                                lineNumber: 145,
+                                lineNumber: 160,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("p", {
@@ -704,13 +718,13 @@ function BuyCredits() {
                                 children: lang === 'tr' ? 'Icerlik olusturmak icin kredi satin alin' : 'Purchase credits to generate content'
                             }, void 0, false, {
                                 fileName: "[project]/pages/buy-credits.tsx",
-                                lineNumber: 148,
+                                lineNumber: 163,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/pages/buy-credits.tsx",
-                        lineNumber: 144,
+                        lineNumber: 159,
                         columnNumber: 9
                     }, this),
                     message && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -726,7 +740,7 @@ function BuyCredits() {
                         children: message.text
                     }, void 0, false, {
                         fileName: "[project]/pages/buy-credits.tsx",
-                        lineNumber: 154,
+                        lineNumber: 169,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -763,7 +777,7 @@ function BuyCredits() {
                                         children: lang === 'tr' ? 'En Populer' : 'Most Popular'
                                     }, void 0, false, {
                                         fileName: "[project]/pages/buy-credits.tsx",
-                                        lineNumber: 185,
+                                        lineNumber: 200,
                                         columnNumber: 17
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("h3", {
@@ -776,7 +790,7 @@ function BuyCredits() {
                                         children: pkg.name
                                     }, void 0, false, {
                                         fileName: "[project]/pages/buy-credits.tsx",
-                                        lineNumber: 203,
+                                        lineNumber: 218,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -792,7 +806,7 @@ function BuyCredits() {
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/pages/buy-credits.tsx",
-                                        lineNumber: 207,
+                                        lineNumber: 222,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("p", {
@@ -809,7 +823,7 @@ function BuyCredits() {
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/pages/buy-credits.tsx",
-                                        lineNumber: 211,
+                                        lineNumber: 226,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("button", {
@@ -831,18 +845,18 @@ function BuyCredits() {
                                         children: purchasing === pkg.id ? lang === 'tr' ? 'Yukleniyor...' : 'Loading...' : lang === 'tr' ? 'Satin Al' : 'Buy Now'
                                     }, void 0, false, {
                                         fileName: "[project]/pages/buy-credits.tsx",
-                                        lineNumber: 215,
+                                        lineNumber: 230,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, pkg.id, true, {
                                 fileName: "[project]/pages/buy-credits.tsx",
-                                lineNumber: 171,
+                                lineNumber: 186,
                                 columnNumber: 13
                             }, this))
                     }, void 0, false, {
                         fileName: "[project]/pages/buy-credits.tsx",
-                        lineNumber: 169,
+                        lineNumber: 184,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -861,24 +875,24 @@ function BuyCredits() {
                             children: lang === 'tr' ? 'Ana Sayfaya Don' : 'Back to Home'
                         }, void 0, false, {
                             fileName: "[project]/pages/buy-credits.tsx",
-                            lineNumber: 239,
+                            lineNumber: 254,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/pages/buy-credits.tsx",
-                        lineNumber: 238,
+                        lineNumber: 253,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/pages/buy-credits.tsx",
-                lineNumber: 143,
+                lineNumber: 158,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/pages/buy-credits.tsx",
-        lineNumber: 114,
+        lineNumber: 129,
         columnNumber: 5
     }, this);
 }
