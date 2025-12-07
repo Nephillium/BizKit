@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import OpenAI from 'openai'
 import { parse, serialize } from 'cookie'
-import { getUserFromRequest, findUserByEmail, incrementUserUsage } from '../../lib/usersStore'
+import { getUserFromRequest, getUserWithCredits, addCredits, incrementUserUsage } from '../../lib/users'
 
 type ModelOption = 'gpt-4o-mini' | 'gpt-4o'
 type LengthOption = 'short' | 'standard' | 'detailed'
@@ -64,8 +64,10 @@ interface ApiResponse {
   ok: boolean
   output?: string
   error?: string
+  errorCode?: string
   requiresLogin?: boolean
   freeUsed?: boolean
+  message?: string
 }
 
 function buildPrompts(tool: Tool, inputs: Inputs): { systemPrompt: string; userPrompt: string } {
@@ -183,26 +185,44 @@ export default async function handler(
     return res.status(500).json({ ok: false, error: 'missing_openai_key' })
   }
 
-  const jwtPayload = getUserFromRequest(req.headers.cookie)
-  
-  const isLoggedIn = !!jwtPayload
-  const isAdmin = jwtPayload?.role === 'admin'
-
-  if (!isLoggedIn) {
-    const cookies = parse(req.headers.cookie || '')
-    const freeUsed = cookies.bizkit_free_used === '1'
+  try {
+    const jwtPayload = getUserFromRequest(req.headers.cookie)
     
-    if (freeUsed) {
+    const isLoggedIn = !!jwtPayload
+    let isAdmin = jwtPayload?.role === 'admin'
+    let userCredits = 0
+    let userId: string | null = null
+
+    if (isLoggedIn && jwtPayload) {
+      userId = jwtPayload.userId
+      const user = await getUserWithCredits(userId)
+      
+      if (user) {
+        isAdmin = user.role === 'admin' || user.is_admin
+        userCredits = user.credits || 0
+      }
+    }
+
+    if (!isLoggedIn) {
+      const cookies = parse(req.headers.cookie || '')
+      const freeUsed = cookies.bizkit_free_used === '1'
+      
+      if (freeUsed) {
+        return res.status(403).json({
+          ok: false,
+          error: 'Free quota used. Please register or login for unlimited access.',
+          requiresLogin: true,
+          freeUsed: true,
+        })
+      }
+    } else if (!isAdmin && userCredits <= 0) {
       return res.status(403).json({
         ok: false,
-        error: 'Free quota used. Please register or login for unlimited access.',
-        requiresLogin: true,
-        freeUsed: true,
+        error: 'no_credits',
+        message: 'You have no credits left. Please buy a pack.',
       })
     }
-  }
 
-  try {
     const { tool, inputs, premiumOptions } = req.body as RequestBody
 
     if (!tool || !inputs) {
@@ -252,8 +272,15 @@ export default async function handler(
       }))
     }
 
-    if (isLoggedIn && jwtPayload) {
-      incrementUserUsage(jwtPayload.email)
+    if (isLoggedIn && userId && !isAdmin) {
+      const success = await addCredits(userId, -1, 'generation')
+      if (!success) {
+        console.error('Failed to decrement credits for user:', userId)
+      }
+    }
+
+    if (isLoggedIn && userId) {
+      await incrementUserUsage(userId)
     }
 
     if (headers.length > 0) {
