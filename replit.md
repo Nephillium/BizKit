@@ -4,12 +4,13 @@
 
 BizKit AI is a SaaS productivity tool designed for freelancers and agencies to rapidly generate professional business content. The application provides four core content generation tools: cold emails, proposals, contracts, and social media packs. Built with a focus on professional efficiency and clarity, the platform leverages AI to help users create client-winning content in seconds.
 
-The application uses a pure Next.js architecture with React, TypeScript, and **in-memory user storage** (no database required). The design philosophy emphasizes clean, distraction-free interfaces with progressive disclosure through tab-based navigation.
+The application uses a Next.js architecture with React, TypeScript, and **PostgreSQL database** (Neon) for persistent user storage. The design philosophy emphasizes clean, distraction-free interfaces with progressive disclosure through tab-based navigation.
 
 ## Recent Changes (Dec 2024)
 
-- **Removed PostgreSQL/Database dependency** - App now works without any database
-- **In-memory user store** - Users stored in memory (resets on server restart)
+- **PostgreSQL database integration** - Users stored persistently in Neon PostgreSQL
+- **Credits system** - Users start with 0 credits, admins bypass credit checks
+- **Bcrypt password hashing** - Secure password storage with salts
 - **JWT-based authentication** - Email/password registration and login
 - **Super user support** - Via SUPER_USER_EMAIL env var (any registered user with this email becomes admin)
 - **1 free use limit** - Anonymous users get 1 generation, then must register
@@ -51,7 +52,7 @@ Preferred communication style: Simple, everyday language.
 - Type-safe request/response handling
 - JWT-based authentication via cookies
 
-**Authentication System (In-Memory)**
+**Authentication System (PostgreSQL-backed)**
 - User registration: POST /api/auth/register
 - User login: POST /api/auth/login  
 - User info: GET /api/auth/me
@@ -60,19 +61,20 @@ Preferred communication style: Simple, everyday language.
 **Super User / Admin**
 - Set SUPER_USER_EMAIL env var to an email address
 - When a registered user with that email logs in, they get "admin" role
-- Admins have unlimited generations
+- Admins have unlimited generations (bypass credit checks)
 
 **Usage Limits**
 - Anonymous users: 1 free generation (tracked via bizkit_free_used cookie)
-- Registered users: Unlimited generations
+- Registered users: Require credits to generate (start with 0)
 - Admin users: Unlimited generations
 
 ### Data Storage
 
-**In-Memory Storage (No Database)**
-- Users stored in Map<email, User>
-- Data resets on server restart
-- Suitable for early testing and demos
+**PostgreSQL Database (Neon)**
+- Users table with credits, role, password_hash
+- Credit transactions table for audit trail
+- Database connection via lib/db.ts
+- Initialize tables: POST /api/init-db
 
 ### External Dependencies
 
@@ -93,7 +95,8 @@ pages/
   _document.tsx     # Document configuration
   index.tsx         # Home page with all content generation tools
   api/
-    generate.ts     # AI content generation
+    generate.ts     # AI content generation with credit checking
+    init-db.ts      # Database initialization endpoint
     health.ts       # Health check endpoint
     auth/
       register.ts   # User registration
@@ -102,21 +105,22 @@ pages/
       logout.ts     # User logout
 
 lib/
+  db.ts             # PostgreSQL connection pool
+  users.ts          # Database user functions with bcrypt
   auth.ts           # Auth utilities
   session.ts        # Session management
-  usersStore.ts     # In-memory user storage with JWT
   translations.ts   # Turkish/English translations
 
 hooks/
   useAuth.ts        # React hook for authentication
 
-shared/
-  schema.ts         # Type definitions
+schema.sql          # Database schema documentation
 ```
 
 ## Environment Variables
 
 **Required:**
+- `DATABASE_URL` - PostgreSQL connection string (Neon)
 - `SESSION_SECRET` or `JWT_SECRET` - For signing JWT tokens
 
 **Optional:**
@@ -131,14 +135,19 @@ shared/
 - `npm run build` - Build for production
 - `npm run start` - Start production server
 
+## Database Setup
+
+1. Add DATABASE_URL secret with Neon PostgreSQL connection string
+2. Call POST /api/init-db to create tables
+3. Tables created: users, credit_transactions
+
 ## Deployment
 
 **Vercel Deployment:**
 1. Push to GitHub
 2. Connect to Vercel
 3. Add environment variables:
+   - DATABASE_URL (required)
    - OPENAI_API_KEY (required)
    - SESSION_SECRET (required)
    - SUPER_USER_EMAIL (optional)
-
-No DATABASE_URL needed - app works without database.

@@ -16,6 +16,7 @@ self.__BUILD_MANIFEST = {
     "/api/auth/me",
     "/api/auth/register",
     "/api/generate",
-    "/api/health"
+    "/api/health",
+    "/api/init-db"
   ]
 };self.__BUILD_MANIFEST_CB && self.__BUILD_MANIFEST_CB()

@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getUserFromRequest, type JWTPayload } from './usersStore';
+import { getUserFromRequest, type JWTPayload } from './users';
 
 export function getSessionFromRequest(req: NextApiRequest): JWTPayload | null {
   return getUserFromRequest(req.headers.cookie);

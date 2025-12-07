@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getUserFromRequest, findUserById } from '../../../lib/usersStore';
+import { getUserFromRequest, findUserById } from '../../../lib/users';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -12,7 +12,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({ ok: true, user: null });
   }
 
-  const user = findUserById(jwtPayload.id);
+  const user = await findUserById(jwtPayload.id);
 
   if (!user) {
     return res.status(200).json({ 
@@ -25,7 +25,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-  const { passwordHash, ...userWithoutPassword } = user;
+  const { password_hash, ...userWithoutPassword } = user;
   
   return res.status(200).json({ 
     ok: true, 
