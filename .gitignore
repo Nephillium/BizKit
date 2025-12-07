@@ -3,9 +3,4 @@ dist
 .DS_Store
 server/public
 vite.config.ts.*
-*.tar.gz.next/
-.vercel/
-prerender-manifest.json
-server-reference-manifest.js
-server-reference-manifest.json
-trace
+*.tar.gz
