@@ -4,7 +4,7 @@ import { jsPDF } from 'jspdf'
 import { Document, Packer, Paragraph, TextRun } from 'docx'
 import { useAuth } from '../hooks/useAuth'
 import type { Generation } from '../shared/schema'
-import { translations, type Language } from '../lib/translations'
+import { translations, getTranslation, type Language } from '../lib/translations'
 
 type Tool = 'cold_email' | 'proposal' | 'contract' | 'social_pack'
 type CopyState = 'idle' | 'copied' | 'error'
@@ -81,11 +81,13 @@ const initialFormData: FormData = {
   },
 }
 
-const tabLabels: Record<Tool, string> = {
-  cold_email: 'Cold Email',
-  proposal: 'Proposal',
-  contract: 'Contract',
-  social_pack: 'Social Pack',
+function getTabLabels(t: ReturnType<typeof getTranslation>): Record<Tool, string> {
+  return {
+    cold_email: t.coldEmail,
+    proposal: t.proposal,
+    contract: t.contract,
+    social_pack: t.socialPack,
+  }
 }
 
 const LANGUAGES = [
@@ -563,6 +565,7 @@ export default function Home() {
     
     try {
       const doc = new jsPDF()
+      const tabLabels = getTabLabels(t)
       const title = tabLabels[activeTab]
       const pageWidth = doc.internal.pageSize.getWidth()
       const margin = 20
@@ -596,6 +599,7 @@ export default function Home() {
     setExportState('exporting')
     
     try {
+      const tabLabels = getTabLabels(t)
       const title = tabLabels[activeTab]
       const paragraphs = output.split('\n').filter(line => line.trim()).map(line => 
         new Paragraph({
@@ -1038,7 +1042,7 @@ export default function Home() {
                             textTransform: 'uppercase',
                           }}
                         >
-                          {tabLabels[gen.toolType as Tool] || gen.toolType}
+                          {getTabLabels(t)[gen.toolType as Tool] || gen.toolType}
                         </span>
                         <span style={{ fontSize: '0.6875rem', color: 'rgb(148, 163, 184)' }}>
                           {new Date(gen.createdAt!).toLocaleDateString()}
@@ -1150,7 +1154,7 @@ export default function Home() {
               }}
               data-testid="badge-beta"
             >
-              Free beta – Pro plans coming soon
+              {t.betaBadge}
             </span>
           </div>
         </header>
@@ -1173,7 +1177,7 @@ export default function Home() {
             }}
             data-testid="tabs-container"
           >
-            {(Object.keys(tabLabels) as Tool[]).map((tool) => (
+            {(['cold_email', 'proposal', 'contract', 'social_pack'] as Tool[]).map((tool) => (
               <button
                 key={tool}
                 onClick={() => {
@@ -1204,7 +1208,7 @@ export default function Home() {
                 }}
                 data-testid={`tab-${tool}`}
               >
-                {tabLabels[tool]}
+                {getTabLabels(t)[tool]}
               </button>
             ))}
           </div>
@@ -1234,12 +1238,12 @@ export default function Home() {
                         marginBottom: '8px',
                       }}
                     >
-                      Target Audience
+                      {t.targetAudience}
                     </label>
                     <input
                       id="target"
                       type="text"
-                      placeholder="e.g. clinic owners in Istanbul"
+                      placeholder={t.targetPlaceholder}
                       value={formData.cold_email.target}
                       onChange={(e) =>
                         updateFormField('cold_email', 'target', e.target.value)
@@ -1267,12 +1271,12 @@ export default function Home() {
                         marginBottom: '8px',
                       }}
                     >
-                      Service
+                      {t.serviceOffered}
                     </label>
                     <input
                       id="service"
                       type="text"
-                      placeholder="e.g. Google Ads management"
+                      placeholder={t.servicePlaceholder}
                       value={formData.cold_email.service}
                       onChange={(e) =>
                         updateFormField('cold_email', 'service', e.target.value)
@@ -1300,12 +1304,12 @@ export default function Home() {
                         marginBottom: '8px',
                       }}
                     >
-                      Tone
+                      {t.tone}
                     </label>
                     <input
                       id="tone"
                       type="text"
-                      placeholder="friendly, professional, casual"
+                      placeholder={t.tonePlaceholder}
                       value={formData.cold_email.tone}
                       onChange={(e) =>
                         updateFormField('cold_email', 'tone', e.target.value)
@@ -1332,7 +1336,7 @@ export default function Home() {
                         marginBottom: '8px',
                       }}
                     >
-                      Language
+                      {t.language}
                     </label>
                     <LanguagePicker
                       value={formData.cold_email.language}
@@ -1357,12 +1361,12 @@ export default function Home() {
                         marginBottom: '8px',
                       }}
                     >
-                      Client Type
+                      {t.clientType}
                     </label>
                     <input
                       id="clientType"
                       type="text"
-                      placeholder="e-commerce brand, SaaS founder, etc."
+                      placeholder={t.clientTypePlaceholder}
                       value={formData.proposal.clientType}
                       onChange={(e) =>
                         updateFormField('proposal', 'clientType', e.target.value)
@@ -1390,11 +1394,11 @@ export default function Home() {
                         marginBottom: '8px',
                       }}
                     >
-                      Project Scope
+                      {t.projectScope}
                     </label>
                     <textarea
                       id="projectScope"
-                      placeholder="Describe the project scope..."
+                      placeholder={t.projectScopePlaceholder}
                       value={formData.proposal.projectScope}
                       onChange={(e) =>
                         updateFormField('proposal', 'projectScope', e.target.value)
@@ -1425,11 +1429,11 @@ export default function Home() {
                         marginBottom: '8px',
                       }}
                     >
-                      Deliverables
+                      {t.deliverables}
                     </label>
                     <textarea
                       id="deliverables"
-                      placeholder="List the deliverables..."
+                      placeholder={t.deliverablesPlaceholder}
                       value={formData.proposal.deliverables}
                       onChange={(e) =>
                         updateFormField('proposal', 'deliverables', e.target.value)
@@ -1460,12 +1464,12 @@ export default function Home() {
                         marginBottom: '8px',
                       }}
                     >
-                      Budget Range
+                      {t.budgetRange}
                     </label>
                     <input
                       id="budgetRange"
                       type="text"
-                      placeholder="$2,000 - $5,000"
+                      placeholder={t.budgetPlaceholder}
                       value={formData.proposal.budgetRange}
                       onChange={(e) =>
                         updateFormField('proposal', 'budgetRange', e.target.value)
@@ -1492,7 +1496,7 @@ export default function Home() {
                         marginBottom: '8px',
                       }}
                     >
-                      Language
+                      {t.language}
                     </label>
                     <LanguagePicker
                       value={formData.proposal.language}
@@ -1517,12 +1521,12 @@ export default function Home() {
                         marginBottom: '8px',
                       }}
                     >
-                      Client Name
+                      {t.clientName}
                     </label>
                     <input
                       id="clientName"
                       type="text"
-                      placeholder="Client's full name or company name"
+                      placeholder={t.clientNamePlaceholder}
                       value={formData.contract.clientName}
                       onChange={(e) =>
                         updateFormField('contract', 'clientName', e.target.value)
@@ -1550,12 +1554,12 @@ export default function Home() {
                         marginBottom: '8px',
                       }}
                     >
-                      Provider Name
+                      {t.providerName}
                     </label>
                     <input
                       id="providerName"
                       type="text"
-                      placeholder="Your name or company name"
+                      placeholder={t.providerPlaceholder}
                       value={formData.contract.providerName}
                       onChange={(e) =>
                         updateFormField('contract', 'providerName', e.target.value)
@@ -1583,11 +1587,11 @@ export default function Home() {
                         marginBottom: '8px',
                       }}
                     >
-                      Service Description
+                      {t.serviceDescription}
                     </label>
                     <textarea
                       id="serviceDescription"
-                      placeholder="Describe the services to be provided..."
+                      placeholder={t.serviceDescPlaceholder}
                       value={formData.contract.serviceDescription}
                       onChange={(e) =>
                         updateFormField('contract', 'serviceDescription', e.target.value)
@@ -1618,12 +1622,12 @@ export default function Home() {
                         marginBottom: '8px',
                       }}
                     >
-                      Payment Terms
+                      {t.paymentTerms}
                     </label>
                     <input
                       id="paymentTerms"
                       type="text"
-                      placeholder="e.g. 50% upfront, 50% on delivery"
+                      placeholder={t.paymentPlaceholder}
                       value={formData.contract.paymentTerms}
                       onChange={(e) =>
                         updateFormField('contract', 'paymentTerms', e.target.value)
@@ -1651,12 +1655,12 @@ export default function Home() {
                         marginBottom: '8px',
                       }}
                     >
-                      Jurisdiction
+                      {t.jurisdiction}
                     </label>
                     <input
                       id="jurisdiction"
                       type="text"
-                      placeholder="e.g. Turkey"
+                      placeholder={t.jurisdictionPlaceholder}
                       value={formData.contract.jurisdiction}
                       onChange={(e) =>
                         updateFormField('contract', 'jurisdiction', e.target.value)
@@ -1683,7 +1687,7 @@ export default function Home() {
                         marginBottom: '8px',
                       }}
                     >
-                      Language
+                      {t.language}
                     </label>
                     <LanguagePicker
                       value={formData.contract.language}
@@ -1708,12 +1712,12 @@ export default function Home() {
                         marginBottom: '8px',
                       }}
                     >
-                      Business Type
+                      {t.businessType}
                     </label>
                     <input
                       id="businessType"
                       type="text"
-                      placeholder="e.g. coffee shop, agency"
+                      placeholder={t.businessPlaceholder}
                       value={formData.social_pack.businessType}
                       onChange={(e) =>
                         updateFormField('social_pack', 'businessType', e.target.value)
@@ -1741,12 +1745,12 @@ export default function Home() {
                         marginBottom: '8px',
                       }}
                     >
-                      Niche
+                      {t.niche}
                     </label>
                     <input
                       id="niche"
                       type="text"
-                      placeholder="Your specific niche or industry"
+                      placeholder={t.nichePlaceholder}
                       value={formData.social_pack.niche}
                       onChange={(e) =>
                         updateFormField('social_pack', 'niche', e.target.value)
@@ -1774,12 +1778,12 @@ export default function Home() {
                         marginBottom: '8px',
                       }}
                     >
-                      Tone
+                      {t.tone}
                     </label>
                     <input
                       id="socialTone"
                       type="text"
-                      placeholder="friendly, playful, educational"
+                      placeholder={t.tonePlaceholder}
                       value={formData.social_pack.tone}
                       onChange={(e) =>
                         updateFormField('social_pack', 'tone', e.target.value)
@@ -1807,12 +1811,12 @@ export default function Home() {
                         marginBottom: '8px',
                       }}
                     >
-                      Platform
+                      {t.platform}
                     </label>
                     <input
                       id="platform"
                       type="text"
-                      placeholder="Instagram, LinkedIn, X"
+                      placeholder={t.platformPlaceholder}
                       value={formData.social_pack.platform}
                       onChange={(e) =>
                         updateFormField('social_pack', 'platform', e.target.value)
@@ -1839,7 +1843,7 @@ export default function Home() {
                         marginBottom: '8px',
                       }}
                     >
-                      Language
+                      {t.language}
                     </label>
                     <LanguagePicker
                       value={formData.social_pack.language}
