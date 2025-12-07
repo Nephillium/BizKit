@@ -1,11 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import OpenAI from 'openai'
 import { parse, serialize } from 'cookie'
-import { getSessionFromCookie, validateSession } from '../../lib/session'
-import { storage } from '../../server/storage'
-import { randomUUID } from 'crypto'
-
-const FREE_USAGE_LIMIT = 1
+import { getUserFromRequest, findUserByEmail, incrementUserUsage } from '../../lib/usersStore'
 
 type ModelOption = 'gpt-4o-mini' | 'gpt-4o'
 type LengthOption = 'short' | 'standard' | 'detailed'
@@ -54,7 +50,7 @@ type Inputs = ColdEmailInputs | ProposalInputs | ContractInputs | SocialPackInpu
 interface PremiumOptions {
   model?: ModelOption
   length?: LengthOption
-  creativity?: number // 0-100 maps to temperature 0-1
+  creativity?: number
   customInstructions?: string
 }
 
@@ -68,9 +64,8 @@ interface ApiResponse {
   ok: boolean
   output?: string
   error?: string
-  usageCount?: number
-  usageLimit?: number
-  requiresSubscription?: boolean
+  requiresLogin?: boolean
+  freeUsed?: boolean
 }
 
 function buildPrompts(tool: Tool, inputs: Inputs): { systemPrompt: string; userPrompt: string } {
@@ -176,12 +171,10 @@ export default async function handler(
     return res.status(405).json({ ok: false, error: 'method_not_allowed' })
   }
 
-  // Support both Replit AI Integrations and standard OpenAI API key
   const replitBaseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL
   const replitApiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY
   const standardApiKey = process.env.OPENAI_API_KEY
 
-  // Use Replit AI Integrations if available, otherwise fall back to standard OpenAI
   const useReplitIntegrations = replitBaseURL && replitApiKey
   const apiKey = useReplitIntegrations ? replitApiKey : standardApiKey
   const baseURL = useReplitIntegrations ? replitBaseURL : undefined
@@ -190,70 +183,23 @@ export default async function handler(
     return res.status(500).json({ ok: false, error: 'missing_openai_key' })
   }
 
-  // Check usage limits
-  let userId: string | null = null
-  let isAdmin = false
-  let isSubscribed = false
-  let currentUsage = 0
-  let anonFingerprint: string | null = null
-  let dbAvailable = true
+  const jwtPayload = getUserFromRequest(req.headers.cookie)
+  
+  const isLoggedIn = !!jwtPayload
+  const isAdmin = jwtPayload?.role === 'admin'
 
-  // Check if database is available
-  const hasDatabaseUrl = !!process.env.DATABASE_URL
-
-  try {
-    // Check if user is logged in
-    const session = getSessionFromCookie(req)
-    if (session && hasDatabaseUrl) {
-      const isValid = await validateSession(session)
-      if (isValid && session.claims?.sub) {
-        userId = session.claims.sub as string
-        const user = await storage.getUser(userId)
-        if (user) {
-          isAdmin = user.isAdmin ?? false
-          isSubscribed = user.isSubscribed ?? false
-          currentUsage = user.usageCount ?? 0
-        }
-      }
+  if (!isLoggedIn) {
+    const cookies = parse(req.headers.cookie || '')
+    const freeUsed = cookies.bizkit_free_used === '1'
+    
+    if (freeUsed) {
+      return res.status(403).json({
+        ok: false,
+        error: 'Free quota used. Please register or login for unlimited access.',
+        requiresLogin: true,
+        freeUsed: true,
+      })
     }
-
-    // Get or create anonymous fingerprint for non-logged-in users
-    if (!userId && hasDatabaseUrl) {
-      const cookies = parse(req.headers.cookie || '')
-      anonFingerprint = cookies.anon_id || null
-      
-      if (!anonFingerprint) {
-        anonFingerprint = randomUUID()
-        res.setHeader('Set-Cookie', serialize('anon_id', anonFingerprint, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          maxAge: 60 * 60 * 24 * 365, // 1 year
-          path: '/',
-        }))
-      }
-      
-      const anonUsage = await storage.getAnonymousUsage(anonFingerprint)
-      currentUsage = anonUsage?.usageCount ?? 0
-    }
-  } catch (dbError) {
-    console.error('Database error during usage check:', dbError)
-    dbAvailable = false
-    // Continue without usage tracking if database is unavailable
-  }
-
-  // Check if user can generate (admins and subscribers bypass limits)
-  // If database is unavailable, allow generation (no usage tracking)
-  const canGenerate = !dbAvailable || isAdmin || isSubscribed || currentUsage < FREE_USAGE_LIMIT
-
-  if (!canGenerate) {
-    return res.status(403).json({ 
-      ok: false, 
-      error: 'usage_limit_exceeded',
-      usageCount: currentUsage,
-      usageLimit: FREE_USAGE_LIMIT,
-      requiresSubscription: true,
-    })
   }
 
   try {
@@ -263,19 +209,16 @@ export default async function handler(
       return res.status(400).json({ ok: false, error: 'invalid_request' })
     }
 
-    // Premium options with defaults
     const model: ModelOption = premiumOptions?.model || 'gpt-4o-mini'
     const length: LengthOption = premiumOptions?.length || 'standard'
-    const creativity = premiumOptions?.creativity ?? 50 // 0-100 scale
+    const creativity = premiumOptions?.creativity ?? 50
     const customInstructions = premiumOptions?.customInstructions || ''
 
-    // Convert creativity (0-100) to temperature (0-1)
     const temperature = Math.min(Math.max(creativity / 100, 0), 1)
     const maxTokens = MAX_TOKENS_MAP[length]
 
     const { systemPrompt, userPrompt } = buildPrompts(tool, inputs)
 
-    // Add custom instructions to system prompt if provided
     const finalSystemPrompt = customInstructions
       ? `${systemPrompt}\n\nAdditional Instructions from User:\n${customInstructions}`
       : systemPrompt
@@ -297,26 +240,29 @@ export default async function handler(
 
     const content = response.choices[0]?.message?.content || ''
 
-    // Increment usage count after successful generation (only if database is available)
-    let newUsageCount = currentUsage
-    if (dbAvailable && hasDatabaseUrl && !isAdmin && !isSubscribed) {
-      try {
-        if (userId) {
-          newUsageCount = await storage.incrementUserUsage(userId)
-        } else if (anonFingerprint) {
-          newUsageCount = await storage.incrementAnonymousUsage(anonFingerprint)
-        }
-      } catch (dbError) {
-        console.error('Database error during usage increment:', dbError)
-        // Continue without updating usage if database fails
-      }
+    const headers: string[] = []
+
+    if (!isLoggedIn) {
+      headers.push(serialize('bizkit_free_used', '1', {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 365,
+        path: '/',
+      }))
     }
 
-    return res.status(200).json({ 
-      ok: true, 
+    if (isLoggedIn && jwtPayload) {
+      incrementUserUsage(jwtPayload.email)
+    }
+
+    if (headers.length > 0) {
+      res.setHeader('Set-Cookie', headers)
+    }
+
+    return res.status(200).json({
+      ok: true,
       output: content,
-      usageCount: newUsageCount,
-      usageLimit: FREE_USAGE_LIMIT,
     })
   } catch (error: any) {
     console.error('OpenAI API Error:', error)

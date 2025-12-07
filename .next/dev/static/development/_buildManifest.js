@@ -11,14 +11,11 @@ self.__BUILD_MANIFEST = {
     "/",
     "/_app",
     "/_error",
-    "/api/admin/make-admin",
-    "/api/auth/user",
-    "/api/callback",
+    "/api/auth/login",
+    "/api/auth/logout",
+    "/api/auth/me",
+    "/api/auth/register",
     "/api/generate",
-    "/api/generations",
-    "/api/generations/[id]",
-    "/api/health",
-    "/api/login",
-    "/api/logout"
+    "/api/health"
   ]
 };self.__BUILD_MANIFEST_CB && self.__BUILD_MANIFEST_CB()

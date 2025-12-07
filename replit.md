@@ -4,7 +4,17 @@
 
 BizKit AI is a SaaS productivity tool designed for freelancers and agencies to rapidly generate professional business content. The application provides four core content generation tools: cold emails, proposals, contracts, and social media packs. Built with a focus on professional efficiency and clarity, the platform leverages AI to help users create client-winning content in seconds.
 
-The application uses a pure Next.js architecture with React, TypeScript, and PostgreSQL database storage. The design philosophy emphasizes clean, distraction-free interfaces with progressive disclosure through tab-based navigation.
+The application uses a pure Next.js architecture with React, TypeScript, and **in-memory user storage** (no database required). The design philosophy emphasizes clean, distraction-free interfaces with progressive disclosure through tab-based navigation.
+
+## Recent Changes (Dec 2024)
+
+- **Removed PostgreSQL/Database dependency** - App now works without any database
+- **In-memory user store** - Users stored in memory (resets on server restart)
+- **JWT-based authentication** - Email/password registration and login
+- **Super user support** - Via SUPER_USER_EMAIL env var (any registered user with this email becomes admin)
+- **1 free use limit** - Anonymous users get 1 generation, then must register
+- **Turkish language support** - Full UI translation with language selector
+- **Dual OpenAI support** - Works with Replit AI Integrations or standard OPENAI_API_KEY
 
 ## User Preferences
 
@@ -15,94 +25,65 @@ Preferred communication style: Simple, everyday language.
 ### Frontend Architecture
 
 **Framework Choice: Next.js with React**
-- Next.js provides server-side rendering capabilities and optimized routing
-- React components built with TypeScript for type safety
 - Next.js Pages Router for file-based routing
-- Standard Next.js development server
+- React components built with TypeScript
+- Standard Next.js development server on port 5000
 
-**UI Component System: shadcn/ui with Radix UI**
-- Component library built on Radix UI primitives for accessibility
-- Tailwind CSS for utility-first styling with custom design tokens
-- "New York" style variant selected for professional aesthetic
-- Comprehensive component set including forms, dialogs, tabs, and tooltips
-
-**Design System Implementation**
-- Custom CSS variables for theming (light/dark mode support)
-- Typography system using Inter font for interface and JetBrains Mono for code
-- Spacing primitives following Tailwind's 4px base scale
-- Consistent border radius system (9px/6px/3px)
-- Professional color palette with HSL-based color tokens
+**UI Component System**
+- Custom inline styles for rapid development
+- Responsive design with mobile support
+- Professional color palette
 
 **State Management**
-- TanStack Query (React Query) for server state management
 - React hooks for local component state
-- Form state managed through React Hook Form with Zod validation
+- useAuth hook for authentication state
+
+**Internationalization**
+- Full Turkish and English language support
+- Language selector button in navbar
+- Translations stored in lib/translations.ts
+- Language preference saved to localStorage
 
 ### Backend Architecture
 
 **API Routes: Next.js API Routes**
-- RESTful API structure with `/api` prefix convention
-- Type-safe request/response handling using TypeScript
-- API routes located in `pages/api/` directory
-- Storage abstraction layer for database operations
+- RESTful API structure with `/api` prefix
+- Type-safe request/response handling
+- JWT-based authentication via cookies
 
-**Build System**
-- Standard Next.js build process
-- `next build` for production builds
-- `next dev` for development server
-- Deployable to Vercel without custom configuration
+**Authentication System (In-Memory)**
+- User registration: POST /api/auth/register
+- User login: POST /api/auth/login  
+- User info: GET /api/auth/me
+- Logout: POST /api/auth/logout
+
+**Super User / Admin**
+- Set SUPER_USER_EMAIL env var to an email address
+- When a registered user with that email logs in, they get "admin" role
+- Admins have unlimited generations
+
+**Usage Limits**
+- Anonymous users: 1 free generation (tracked via bizkit_free_used cookie)
+- Registered users: Unlimited generations
+- Admin users: Unlimited generations
 
 ### Data Storage
 
-**Database: PostgreSQL with Drizzle ORM**
-- Drizzle ORM chosen for type-safe database operations
-- Schema-first approach with TypeScript type inference
-- Schema defined in `shared/schema.ts` for code sharing
-- UUID-based primary keys for users
-
-**Data Models**
-- User model with Replit Auth integration
-- Generation model for storing AI-generated content
-- Schema defined in `shared/schema.ts`
-
-**Storage Interface Pattern**
-- Abstract storage interface (`IStorage`) for flexibility
-- PostgreSQL implementation (`DatabaseStorage`)
-- CRUD operations abstracted behind consistent API
-
-### Authentication
-
-**Replit Auth with OIDC**
-- OpenID Connect integration with Replit
-- Cookie-based session management
-- API routes: `/api/login`, `/api/callback`, `/api/logout`
-- User data stored in PostgreSQL
+**In-Memory Storage (No Database)**
+- Users stored in Map<email, User>
+- Data resets on server restart
+- Suitable for early testing and demos
 
 ### External Dependencies
 
 **AI Integration: OpenAI API**
 - Content generation powered by GPT-4o-mini model
 - API route at `/api/generate` handles AI requests
-- Replit AI Integrations service provides OpenAI-compatible access
-- Environment variables: `AI_INTEGRATIONS_OPENAI_BASE_URL`, `AI_INTEGRATIONS_OPENAI_API_KEY`
-
-**UI Component Libraries**
-- @radix-ui/* packages for accessible component primitives
-- shadcn/ui configuration for pre-built component templates
-- lucide-react for consistent iconography
-- class-variance-authority for component variant management
-
-**Form Handling & Validation**
-- React Hook Form for performant form state management
-- @hookform/resolvers for Zod schema integration
-- Zod for runtime type validation and schema definition
-- drizzle-zod for seamless database-to-validation schema conversion
-
-**Styling & CSS**
-- Tailwind CSS for utility-first styling approach
-- PostCSS with autoprefixer for browser compatibility
-- Custom CSS properties for dynamic theming
-- clsx and tailwind-merge (via cn utility) for conditional classes
+- Supports both Replit AI Integrations and standard OpenAI API key
+- Environment variables:
+  - AI_INTEGRATIONS_OPENAI_BASE_URL (Replit)
+  - AI_INTEGRATIONS_OPENAI_API_KEY (Replit)
+  - OPENAI_API_KEY (standard, for Vercel deployment)
 
 ## Project Structure
 
@@ -110,38 +91,54 @@ Preferred communication style: Simple, everyday language.
 pages/
   _app.tsx          # App wrapper
   _document.tsx     # Document configuration
-  index.tsx         # Home page
+  index.tsx         # Home page with all content generation tools
   api/
     generate.ts     # AI content generation
-    login.ts        # Replit Auth login
-    callback.ts     # Auth callback
-    logout.ts       # Auth logout
     health.ts       # Health check endpoint
     auth/
-      user.ts       # Get current user
-    generations/
-      index.ts      # List/create generations
-      [id].ts       # Delete generation
+      register.ts   # User registration
+      login.ts      # User login
+      me.ts         # Get current user
+      logout.ts     # User logout
 
 lib/
   auth.ts           # Auth utilities
   session.ts        # Session management
+  usersStore.ts     # In-memory user storage with JWT
+  translations.ts   # Turkish/English translations
 
-server/
-  storage.ts        # Database storage interface
-  db.ts             # Database connection
-  replitAuth.ts     # Legacy auth (to be removed)
+hooks/
+  useAuth.ts        # React hook for authentication
 
 shared/
-  schema.ts         # Database schema
-
-components/
-  ui/               # shadcn/ui components
+  schema.ts         # Type definitions
 ```
+
+## Environment Variables
+
+**Required:**
+- `SESSION_SECRET` or `JWT_SECRET` - For signing JWT tokens
+
+**Optional:**
+- `OPENAI_API_KEY` - Standard OpenAI API key (for Vercel)
+- `AI_INTEGRATIONS_OPENAI_BASE_URL` - Replit AI Integrations URL
+- `AI_INTEGRATIONS_OPENAI_API_KEY` - Replit AI Integrations key
+- `SUPER_USER_EMAIL` - Email address for super user/admin access
 
 ## Scripts
 
 - `npm run dev` - Start development server on port 5000
 - `npm run build` - Build for production
 - `npm run start` - Start production server
-- `npm run db:push` - Push database schema changes
+
+## Deployment
+
+**Vercel Deployment:**
+1. Push to GitHub
+2. Connect to Vercel
+3. Add environment variables:
+   - OPENAI_API_KEY (required)
+   - SESSION_SECRET (required)
+   - SUPER_USER_EMAIL (optional)
+
+No DATABASE_URL needed - app works without database.
