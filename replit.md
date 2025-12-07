@@ -131,11 +131,18 @@ schema.sql          # Database schema documentation
 - `DATABASE_URL` - PostgreSQL connection string (Neon)
 - `SESSION_SECRET` or `JWT_SECRET` - For signing JWT tokens
 
+**For Vercel deployment (required):**
+- `STRIPE_SECRET_KEY` - Stripe secret key (sk_live_... or sk_test_...)
+- `STRIPE_PUBLISHABLE_KEY` - Stripe publishable key (pk_live_... or pk_test_...)
+- `STRIPE_WEBHOOK_SECRET` - Stripe webhook signing secret (whsec_...)
+- `OPENAI_API_KEY` - Standard OpenAI API key
+
 **Optional:**
-- `OPENAI_API_KEY` - Standard OpenAI API key (for Vercel)
-- `AI_INTEGRATIONS_OPENAI_BASE_URL` - Replit AI Integrations URL
-- `AI_INTEGRATIONS_OPENAI_API_KEY` - Replit AI Integrations key
+- `AI_INTEGRATIONS_OPENAI_BASE_URL` - Replit AI Integrations URL (Replit only)
+- `AI_INTEGRATIONS_OPENAI_API_KEY` - Replit AI Integrations key (Replit only)
 - `SUPER_USER_EMAIL` - Email address for super user/admin access
+
+Note: On Replit, Stripe credentials are automatically provided via the Stripe connector integration. On Vercel or other platforms, you must set the STRIPE_* environment variables manually.
 
 ## Scripts
 

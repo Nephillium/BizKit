@@ -5,6 +5,5 @@
   "/_error": "pages/_error.js",
   "/api/auth/login": "pages/api/auth/login.js",
   "/api/auth/me": "pages/api/auth/me.js",
-  "/api/stripe/create-checkout": "pages/api/stripe/create-checkout.js",
-  "/buy-credits": "pages/buy-credits.js"
+  "/api/stripe/create-checkout": "pages/api/stripe/create-checkout.js"
 }

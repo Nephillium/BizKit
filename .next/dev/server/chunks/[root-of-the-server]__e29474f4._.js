@@ -41,33 +41,55 @@ var __turbopack_async_dependencies__ = __turbopack_handle_async_dependencies__([
 [__TURBOPACK__imported__module__$5b$externals$5d2f$stripe__$5b$external$5d$__$28$stripe$2c$__esm_import$29$__] = __turbopack_async_dependencies__.then ? (await __turbopack_async_dependencies__)() : __turbopack_async_dependencies__;
 ;
 let connectionSettings;
-async function getCredentials() {
+async function getReplitCredentials() {
     const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
     const xReplitToken = process.env.REPL_IDENTITY ? 'repl ' + process.env.REPL_IDENTITY : process.env.WEB_REPL_RENEWAL ? 'depl ' + process.env.WEB_REPL_RENEWAL : null;
-    if (!xReplitToken) {
-        throw new Error('X_REPLIT_TOKEN not found for repl/depl');
+    if (!xReplitToken || !hostname) {
+        return null;
     }
-    const connectorName = 'stripe';
-    const isProduction = process.env.REPLIT_DEPLOYMENT === '1';
-    const targetEnvironment = isProduction ? 'production' : 'development';
-    const url = new URL(`https://${hostname}/api/v2/connection`);
-    url.searchParams.set('include_secrets', 'true');
-    url.searchParams.set('connector_names', connectorName);
-    url.searchParams.set('environment', targetEnvironment);
-    const response = await fetch(url.toString(), {
-        headers: {
-            'Accept': 'application/json',
-            'X_REPLIT_TOKEN': xReplitToken
+    try {
+        const connectorName = 'stripe';
+        const isProduction = process.env.REPLIT_DEPLOYMENT === '1';
+        const targetEnvironment = isProduction ? 'production' : 'development';
+        const url = new URL(`https://${hostname}/api/v2/connection`);
+        url.searchParams.set('include_secrets', 'true');
+        url.searchParams.set('connector_names', connectorName);
+        url.searchParams.set('environment', targetEnvironment);
+        const response = await fetch(url.toString(), {
+            headers: {
+                'Accept': 'application/json',
+                'X_REPLIT_TOKEN': xReplitToken
+            }
+        });
+        const data = await response.json();
+        connectionSettings = data.items?.[0];
+        if (!connectionSettings || !connectionSettings.settings.publishable || !connectionSettings.settings.secret) {
+            return null;
         }
-    });
-    const data = await response.json();
-    connectionSettings = data.items?.[0];
-    if (!connectionSettings || !connectionSettings.settings.publishable || !connectionSettings.settings.secret) {
-        throw new Error(`Stripe ${targetEnvironment} connection not found`);
+        return {
+            publishableKey: connectionSettings.settings.publishable,
+            secretKey: connectionSettings.settings.secret
+        };
+    } catch (error) {
+        console.error('Failed to get Replit Stripe credentials:', error);
+        return null;
+    }
+}
+async function getCredentials() {
+    // First try Replit connector
+    const replitCreds = await getReplitCredentials();
+    if (replitCreds) {
+        return replitCreds;
+    }
+    // Fallback to environment variables (for Vercel/other deployments)
+    const secretKey = process.env.STRIPE_SECRET_KEY;
+    const publishableKey = process.env.STRIPE_PUBLISHABLE_KEY;
+    if (!secretKey) {
+        throw new Error('Stripe not configured: STRIPE_SECRET_KEY missing');
     }
     return {
-        publishableKey: connectionSettings.settings.publishable,
-        secretKey: connectionSettings.settings.secret
+        publishableKey: publishableKey || '',
+        secretKey
     };
 }
 async function getUncachableStripeClient() {
@@ -380,57 +402,65 @@ var __turbopack_async_dependencies__ = __turbopack_handle_async_dependencies__([
 [__TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$stripeClient$2e$ts__$5b$api$5d$__$28$ecmascript$29$__, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$users$2e$ts__$5b$api$5d$__$28$ecmascript$29$__] = __turbopack_async_dependencies__.then ? (await __turbopack_async_dependencies__)() : __turbopack_async_dependencies__;
 ;
 ;
-const CREDIT_PACKAGES = [
-    {
-        id: 'credits_10',
+const PACKS = {
+    'credits_10': {
         credits: 10,
-        price: 500,
-        name: '10 Credits'
+        amount: 500,
+        name: 'BizKit AI - 10 Credit Pack'
     },
-    {
-        id: 'credits_50',
+    'credits_50': {
         credits: 50,
-        price: 2000,
-        name: '50 Credits'
+        amount: 2000,
+        name: 'BizKit AI - 50 Credit Pack'
     },
-    {
-        id: 'credits_100',
+    'credits_100': {
         credits: 100,
-        price: 3500,
-        name: '100 Credits'
+        amount: 3500,
+        name: 'BizKit AI - 100 Credit Pack'
     }
-];
+};
 async function handler(req, res) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     if (req.method !== 'POST') {
         return res.status(405).json({
-            error: 'Method not allowed'
-        });
-    }
-    const jwtPayload = (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$users$2e$ts__$5b$api$5d$__$28$ecmascript$29$__["getUserFromRequest"])(req.headers.cookie);
-    if (!jwtPayload) {
-        return res.status(401).json({
-            error: 'Not authenticated'
-        });
-    }
-    const user = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$users$2e$ts__$5b$api$5d$__$28$ecmascript$29$__["findUserById"])(jwtPayload.id);
-    if (!user) {
-        return res.status(401).json({
-            error: 'User not found'
-        });
-    }
-    const { packageId } = req.body;
-    const creditPackage = CREDIT_PACKAGES.find((p)=>p.id === packageId);
-    if (!creditPackage) {
-        return res.status(400).json({
-            error: 'Invalid package'
+            error: 'method_not_allowed'
         });
     }
     try {
-        const stripe = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$stripeClient$2e$ts__$5b$api$5d$__$28$ecmascript$29$__["getUncachableStripeClient"])();
-        const host = req.headers.host || 'localhost:5000';
-        const protocol = host.includes('localhost') ? 'http' : 'https';
-        const baseUrl = `${protocol}://${host}`;
+        const jwtPayload = (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$users$2e$ts__$5b$api$5d$__$28$ecmascript$29$__["getUserFromRequest"])(req.headers.cookie);
+        if (!jwtPayload) {
+            return res.status(401).json({
+                error: 'not_authenticated'
+            });
+        }
+        const user = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$users$2e$ts__$5b$api$5d$__$28$ecmascript$29$__["findUserById"])(jwtPayload.id);
+        if (!user) {
+            return res.status(401).json({
+                error: 'user_not_found'
+            });
+        }
+        const { packageId } = req.body;
+        const pack = packageId ? PACKS[packageId] : undefined;
+        if (!pack) {
+            return res.status(400).json({
+                error: 'invalid_package'
+            });
+        }
+        let stripe;
+        try {
+            stripe = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$stripeClient$2e$ts__$5b$api$5d$__$28$ecmascript$29$__["getUncachableStripeClient"])();
+        } catch (stripeError) {
+            console.error('Stripe client error:', stripeError?.message);
+            return res.status(500).json({
+                error: 'stripe_not_configured',
+                message: stripeError?.message || 'Stripe is not properly configured'
+            });
+        }
+        const origin = req.headers.origin || `${req.headers['x-forwarded-proto'] || 'https'}://${req.headers.host}`;
         const session = await stripe.checkout.sessions.create({
+            mode: 'payment',
             payment_method_types: [
                 'card'
             ],
@@ -438,31 +468,32 @@ async function handler(req, res) {
                 {
                     price_data: {
                         currency: 'usd',
+                        unit_amount: pack.amount,
                         product_data: {
-                            name: creditPackage.name,
-                            description: `${creditPackage.credits} AI generation credits for BizKit AI`
-                        },
-                        unit_amount: creditPackage.price
+                            name: pack.name,
+                            description: `${pack.credits} AI generation credits for BizKit AI`
+                        }
                     },
                     quantity: 1
                 }
             ],
-            mode: 'payment',
-            success_url: `${baseUrl}/buy-credits?success=true&session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${baseUrl}/buy-credits?canceled=true`,
+            customer_email: user.email,
+            success_url: `${origin}/buy-credits?success=true&packageId=${encodeURIComponent(packageId || '')}&session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${origin}/buy-credits?canceled=true`,
             metadata: {
                 userId: user.id.toString(),
-                credits: creditPackage.credits.toString(),
-                packageId: creditPackage.id
+                credits: pack.credits.toString(),
+                packageId: packageId || ''
             }
         });
         return res.status(200).json({
             url: session.url
         });
     } catch (error) {
-        console.error('Stripe checkout error:', error);
+        console.error('Stripe create-checkout error:', error);
         return res.status(500).json({
-            error: 'Failed to create checkout session'
+            error: 'stripe_error',
+            message: error?.message || 'Unknown error'
         });
     }
 }

@@ -1,0 +1,126 @@
+You are Replit Agent.
+
+In this BizKit AI project, the Buy Credits page (compiled chunk) calls:
+
+fetch("/api/stripe/create-checkout", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Cache-Control": "no-cache",
+    Pragma: "no-cache"
+  },
+  credentials: "include",
+  cache: "no-store",
+  body: JSON.stringify({ packageId })
+});
+
+and uses these packages:
+
+const PACKAGES = [
+  { id: "credits_10", credits: 10, price: 500, name: "10 Credits" },
+  { id: "credits_50", credits: 50, price: 2000, name: "50 Credits", popular: true },
+  { id: "credits_100", credits: 100, price: 3500, name: "100 Credits" }
+];
+
+On Replit (dev) everything works, but on the deployed Vercel URL I get a 500 error when trying to create a checkout session.
+
+I want you to:
+
+1. Find the API route that handles Stripe checkout for credits:
+   - It should be at `pages/api/stripe/create-checkout.ts` or a similar path, because the frontend calls `/api/stripe/create-checkout`.
+
+2. Refactor that route so that it:
+
+   - Only accepts POST.
+   - Disables caching.
+   - Validates required environment variables.
+   - Maps `packageId` from the request body to the correct pack:
+     - "credits_10" → 10 credits, 500 cents
+     - "credits_50" → 50 credits, 2000 cents
+     - "credits_100" → 100 credits, 3500 cents
+   - Creates a Stripe Checkout Session with:
+     - `mode: "payment"`
+     - `payment_method_types: ["card"]`
+     - `price_data` with `unit_amount` set to the pack price, `currency: "usd"` (or "try" if already configured), and `product_data.name` like `BizKit AI – 10 Credit Pack`.
+   - Returns JSON `{ url: stripeSession.url }` on success.
+   - Returns JSON errors on failure instead of throwing.
+
+Here is a template to adapt to the existing code and helpers (getUserFromRequest, etc.):
+
+```ts
+import type { NextApiRequest, NextApiResponse } from "next";
+import Stripe from "stripe";
+import { getUserFromRequest } from "../../../lib/session-or-usersStore"; // use the actual helper used in this project
+
+const STRIPE_KEY = process.env.STRIPE_SECRET_KEY;
+const PACKS: Record<string, { credits: number; amount: number; name: string }> = {
+  "credits_10": { credits: 10, amount: 500, name: "BizKit AI – 10 Credit Pack" },
+  "credits_50": { credits: 50, amount: 2000, name: "BizKit AI – 50 Credit Pack" },
+  "credits_100": { credits: 100, amount: 3500, name: "BizKit AI – 100 Credit Pack" },
+};
+
+const stripe = STRIPE_KEY
+  ? new Stripe(STRIPE_KEY, { apiVersion: "2024-06-20" })
+  : null;
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Prevent caching
+  res.setHeader("Cache-Control", "no-store");
+
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "method_not_allowed" });
+  }
+
+  if (!stripe || !STRIPE_KEY) {
+    console.error("Stripe not configured: STRIPE_SECRET_KEY missing");
+    return res.status(500).json({ error: "stripe_not_configured" });
+  }
+
+  try {
+    const user = getUserFromRequest(req.headers.cookie);
+    if (!user) {
+      return res.status(401).json({ error: "not_authenticated" });
+    }
+
+    const { packageId } = req.body as { packageId?: string };
+    const pack = packageId ? PACKS[packageId] : undefined;
+
+    if (!pack) {
+      return res.status(400).json({ error: "invalid_package" });
+    }
+
+    const origin =
+      (req.headers.origin as string) ||
+      `${req.headers["x-forwarded-proto"] || "https"}://${req.headers.host}`;
+
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          price_data: {
+            currency: "usd", // or "try" if the app is configured that way
+            unit_amount: pack.amount,
+            product_data: {
+              name: pack.name,
+            },
+          },
+          quantity: 1,
+        },
+      ],
+      customer_email: user.email,
+      success_url: `${origin}/buy-credits?success=true&packageId=${encodeURIComponent(
+        packageId || ""
+      )}&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/buy-credits?canceled=true`,
+    });
+
+    return res.status(200).json({ url: session.url });
+  } catch (err: any) {
+    console.error("Stripe create-checkout error:", err);
+    return res.status(500).json({
+      error: "stripe_error",
+      message: err?.message || "Unknown error",
+    });
+  }
+}
