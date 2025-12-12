@@ -30,19 +30,19 @@ export default function BuyCredits() {
     }
   }, [])
 
+  const t = translations[lang]
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     if (params.get('success') === 'true') {
-      setMessage({ type: 'success', text: lang === 'tr' ? 'Krediler hesabiniza eklendi!' : 'Credits have been added to your account!' })
+      setMessage({ type: 'success', text: t.creditsAdded })
       refresh()
       window.history.replaceState({}, '', '/buy-credits')
     } else if (params.get('canceled') === 'true') {
-      setMessage({ type: 'error', text: lang === 'tr' ? 'Odeme iptal edildi.' : 'Payment was canceled.' })
+      setMessage({ type: 'error', text: t.paymentCanceled })
       window.history.replaceState({}, '', '/buy-credits')
     }
-  }, [lang, refresh])
-
-  const t = translations[lang]
+  }, [lang, refresh, t.creditsAdded, t.paymentCanceled])
 
   const handlePurchase = async (packageId: string) => {
     setPurchasing(packageId)
@@ -97,13 +97,13 @@ export default function BuyCredits() {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', padding: '20px' }}>
         <Head>
-          <title>Buy Credits - BizKit AI</title>
+          <title>{t.buyCredits} - BizKit AI</title>
         </Head>
         <h1 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '16px', color: 'rgb(15, 23, 42)' }}>
-          {lang === 'tr' ? 'Giris Yapmaniz Gerekiyor' : 'Please Log In'}
+          {t.pleaseLogIn}
         </h1>
         <p style={{ fontSize: '1rem', color: 'rgb(100, 116, 139)', marginBottom: '24px' }}>
-          {lang === 'tr' ? 'Kredi satin almak icin giris yapmaniz gerekiyor.' : 'You need to log in to purchase credits.'}
+          {t.needToLogIn}
         </p>
         <button
           onClick={() => window.location.href = '/'}
@@ -119,7 +119,7 @@ export default function BuyCredits() {
           }}
           data-testid="button-go-home"
         >
-          {lang === 'tr' ? 'Ana Sayfaya Don' : 'Go to Home'}
+          {t.goHome}
         </button>
       </div>
     )
@@ -161,7 +161,7 @@ export default function BuyCredits() {
             {t.buyCredits}
           </h1>
           <p style={{ fontSize: '1.125rem', color: 'rgb(100, 116, 139)' }}>
-            {lang === 'tr' ? 'Icerlik olusturmak icin kredi satin alin' : 'Purchase credits to generate content'}
+            {t.purchaseCredits}
           </p>
         </div>
 
@@ -211,7 +211,7 @@ export default function BuyCredits() {
                     fontWeight: 600,
                   }}
                 >
-                  {lang === 'tr' ? 'En Populer' : 'Most Popular'}
+                  {t.mostPopular}
                 </div>
               )}
 
@@ -224,7 +224,7 @@ export default function BuyCredits() {
               </div>
 
               <p style={{ fontSize: '0.875rem', color: 'rgb(100, 116, 139)', marginBottom: '24px' }}>
-                ${((pkg.price / 100) / pkg.credits).toFixed(2)} {lang === 'tr' ? 'kredi basina' : 'per credit'}
+                ${((pkg.price / 100) / pkg.credits).toFixed(2)} {t.perCredit}
               </p>
 
               <button
@@ -244,7 +244,7 @@ export default function BuyCredits() {
                 }}
                 data-testid={`button-buy-${pkg.id}`}
               >
-                {purchasing === pkg.id ? (lang === 'tr' ? 'Yukleniyor...' : 'Loading...') : (lang === 'tr' ? 'Satin Al' : 'Buy Now')}
+                {purchasing === pkg.id ? t.loading : t.buyNow}
               </button>
             </div>
           ))}
@@ -260,7 +260,7 @@ export default function BuyCredits() {
             }}
             data-testid="link-back-home"
           >
-            {lang === 'tr' ? 'Ana Sayfaya Don' : 'Back to Home'}
+            {t.backToHome}
           </a>
         </div>
       </main>

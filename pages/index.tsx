@@ -124,9 +124,10 @@ interface LanguagePickerProps {
   value: string
   onChange: (value: string) => void
   testId: string
+  t: ReturnType<typeof getTranslation>
 }
 
-function LanguagePicker({ value, onChange, testId }: LanguagePickerProps) {
+function LanguagePicker({ value, onChange, testId, t }: LanguagePickerProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [isCustomMode, setIsCustomMode] = useState(false)
@@ -190,7 +191,7 @@ function LanguagePicker({ value, onChange, testId }: LanguagePickerProps) {
         }}
         data-testid={testId}
       >
-        <span>{value || 'Select language'}</span>
+        <span>{value || t.selectLanguage}</span>
         <svg
           width="16"
           height="16"
@@ -234,7 +235,7 @@ function LanguagePicker({ value, onChange, testId }: LanguagePickerProps) {
               <div style={{ padding: '8px', borderBottom: '1px solid rgb(241, 245, 249)' }}>
                 <input
                   type="text"
-                  placeholder="Search languages..."
+                  placeholder={t.searchLanguages}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   autoFocus
@@ -293,7 +294,7 @@ function LanguagePicker({ value, onChange, testId }: LanguagePickerProps) {
                 ))}
                 {filteredLanguages.length === 0 && (
                   <div style={{ padding: '16px', textAlign: 'center', color: 'rgb(100, 116, 139)', fontSize: '0.875rem' }}>
-                    No languages found
+                    {t.noLanguagesFound}
                   </div>
                 )}
               </div>
@@ -325,14 +326,14 @@ function LanguagePicker({ value, onChange, testId }: LanguagePickerProps) {
                     <line x1="12" y1="5" x2="12" y2="19" />
                     <line x1="5" y1="12" x2="19" y2="12" />
                   </svg>
-                  Custom language...
+                  {t.customLanguage}
                 </button>
               </div>
             </>
           ) : (
             <div style={{ padding: '12px' }}>
               <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 500, color: 'rgb(100, 116, 139)', marginBottom: '8px' }}>
-                Enter custom language
+                {t.enterCustomLanguage}
               </label>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <input
@@ -377,7 +378,7 @@ function LanguagePicker({ value, onChange, testId }: LanguagePickerProps) {
                   }}
                   data-testid={`${testId}-custom-submit`}
                 >
-                  Add
+                  {t.add}
                 </button>
               </div>
               <button
@@ -394,7 +395,7 @@ function LanguagePicker({ value, onChange, testId }: LanguagePickerProps) {
                 }}
                 data-testid={`${testId}-custom-back`}
               >
-                Back to list
+                {t.backToList}
               </button>
             </div>
           )}
@@ -1008,7 +1009,7 @@ export default function Home() {
               }}
             >
               <h2 style={{ fontSize: '1rem', fontWeight: 600, color: 'rgb(15, 23, 42)', margin: 0 }}>
-                Generation History
+                {t.generationHistory}
               </h2>
               <button
                 type="button"
@@ -1037,7 +1038,7 @@ export default function Home() {
             >
               {historyLoading ? (
                 <div style={{ textAlign: 'center', color: 'rgb(148, 163, 184)', padding: '40px 0' }}>
-                  Loading...
+                  {t.loading}
                 </div>
               ) : generations.length === 0 ? (
                 <div style={{ textAlign: 'center', color: 'rgb(148, 163, 184)', padding: '40px 0' }}>
@@ -1045,8 +1046,7 @@ export default function Home() {
                     <circle cx="12" cy="12" r="10" />
                     <polyline points="12 6 12 12 16 14" />
                   </svg>
-                  <p style={{ fontSize: '0.875rem' }}>No saved generations yet</p>
-                  <p style={{ fontSize: '0.75rem', marginTop: '4px' }}>Generate content and save it to see your history</p>
+                  <p style={{ fontSize: '0.875rem' }}>{t.noHistory}</p>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -1374,6 +1374,7 @@ export default function Home() {
                       value={formData.cold_email.language}
                       onChange={(value) => updateFormField('cold_email', 'language', value)}
                       testId="select-language"
+                      t={t}
                     />
                   </div>
                 </div>
@@ -1534,6 +1535,7 @@ export default function Home() {
                       value={formData.proposal.language}
                       onChange={(value) => updateFormField('proposal', 'language', value)}
                       testId="select-proposalLanguage"
+                      t={t}
                     />
                   </div>
                 </div>
@@ -1725,6 +1727,7 @@ export default function Home() {
                       value={formData.contract.language}
                       onChange={(value) => updateFormField('contract', 'language', value)}
                       testId="select-contractLanguage"
+                      t={t}
                     />
                   </div>
                 </div>
@@ -1881,6 +1884,7 @@ export default function Home() {
                       value={formData.social_pack.language}
                       onChange={(value) => updateFormField('social_pack', 'language', value)}
                       testId="select-socialLanguage"
+                      t={t}
                     />
                   </div>
                 </div>
@@ -2170,7 +2174,7 @@ export default function Home() {
               }}
               data-testid="button-generate"
             >
-              {isLoading ? 'Generating...' : 'Generate'}
+              {isLoading ? t.generating : t.generate}
             </button>
           </form>
 
@@ -2251,7 +2255,7 @@ export default function Home() {
                       <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
                       <path d="M21 3v5h-5" />
                     </svg>
-                    {isLoading ? 'Regenerating...' : 'Regenerate'}
+                    {isLoading ? t.generating : t.regenerate}
                   </button>
                   <button
                     type="button"

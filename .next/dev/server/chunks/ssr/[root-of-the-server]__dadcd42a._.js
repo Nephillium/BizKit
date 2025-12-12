@@ -269,7 +269,26 @@ const translations = {
         // Errors
         networkError: 'Network error. Please check your connection and try again.',
         apiKeyError: 'OpenAI API key is not configured. Please add your API key.',
-        generationError: 'An error occurred while generating content. Please try again.'
+        generationError: 'An error occurred while generating content. Please try again.',
+        // Language Picker
+        selectLanguage: 'Select language',
+        searchLanguages: 'Search languages...',
+        noLanguagesFound: 'No languages found',
+        customLanguage: 'Custom language...',
+        enterCustomLanguage: 'Enter custom language',
+        backToList: 'Back to list',
+        add: 'Add',
+        // Buy Credits Page
+        pleaseLogIn: 'Please Log In',
+        needToLogIn: 'You need to log in to purchase credits.',
+        goHome: 'Go to Home',
+        backToHome: 'Back to Home',
+        purchaseCredits: 'Purchase credits to generate content',
+        mostPopular: 'Most Popular',
+        perCredit: 'per credit',
+        buyNow: 'Buy Now',
+        creditsAdded: 'Credits have been added to your account!',
+        paymentCanceled: 'Payment was canceled.'
     },
     tr: {
         appName: 'BizKit AI',
@@ -376,7 +395,26 @@ const translations = {
         // Errors
         networkError: 'Ağ hatası. Lütfen bağlantınızı kontrol edip tekrar deneyin.',
         apiKeyError: 'OpenAI API anahtarı yapılandırılmamış. Lütfen API anahtarınızı ekleyin.',
-        generationError: 'İçerik oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.'
+        generationError: 'İçerik oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.',
+        // Language Picker
+        selectLanguage: 'Dil seçin',
+        searchLanguages: 'Dil ara...',
+        noLanguagesFound: 'Dil bulunamadı',
+        customLanguage: 'Özel dil...',
+        enterCustomLanguage: 'Özel dil girin',
+        backToList: 'Listeye dön',
+        add: 'Ekle',
+        // Buy Credits Page
+        pleaseLogIn: 'Giriş Yapmanız Gerekiyor',
+        needToLogIn: 'Kredi satın almak için giriş yapmanız gerekiyor.',
+        goHome: 'Ana Sayfaya Dön',
+        backToHome: 'Ana Sayfaya Dön',
+        purchaseCredits: 'İçerik oluşturmak için kredi satın alın',
+        mostPopular: 'En Popüler',
+        perCredit: 'kredi başına',
+        buyNow: 'Satın Al',
+        creditsAdded: 'Krediler hesabınıza eklendi!',
+        paymentCanceled: 'Ödeme iptal edildi.'
     }
 };
 function getTranslation(lang) {
@@ -477,7 +515,7 @@ const LANGUAGES = [
     'Japanese',
     'Korean'
 ];
-function LanguagePicker({ value, onChange, testId }) {
+function LanguagePicker({ value, onChange, testId, t }) {
     const [isOpen, setIsOpen] = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react__$5b$external$5d$__$28$react$2c$__cjs$29$__["useState"])(false);
     const [searchQuery, setSearchQuery] = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react__$5b$external$5d$__$28$react$2c$__cjs$29$__["useState"])('');
     const [isCustomMode, setIsCustomMode] = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react__$5b$external$5d$__$28$react$2c$__cjs$29$__["useState"])(false);
@@ -538,10 +576,10 @@ function LanguagePicker({ value, onChange, testId }) {
                 "data-testid": testId,
                 children: [
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("span", {
-                        children: value || 'Select language'
+                        children: value || t.selectLanguage
                     }, void 0, false, {
                         fileName: "[project]/pages/index.tsx",
-                        lineNumber: 193,
+                        lineNumber: 194,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("svg", {
@@ -562,18 +600,18 @@ function LanguagePicker({ value, onChange, testId }) {
                             points: "6 9 12 15 18 9"
                         }, void 0, false, {
                             fileName: "[project]/pages/index.tsx",
-                            lineNumber: 209,
+                            lineNumber: 210,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/pages/index.tsx",
-                        lineNumber: 194,
+                        lineNumber: 195,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/pages/index.tsx",
-                lineNumber: 173,
+                lineNumber: 174,
                 columnNumber: 7
             }, this),
             isOpen && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -602,7 +640,7 @@ function LanguagePicker({ value, onChange, testId }) {
                             },
                             children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("input", {
                                 type: "text",
-                                placeholder: "Search languages...",
+                                placeholder: t.searchLanguages,
                                 value: searchQuery,
                                 onChange: (e)=>setSearchQuery(e.target.value),
                                 autoFocus: true,
@@ -618,12 +656,12 @@ function LanguagePicker({ value, onChange, testId }) {
                                 "data-testid": `${testId}-search`
                             }, void 0, false, {
                                 fileName: "[project]/pages/index.tsx",
-                                lineNumber: 235,
+                                lineNumber: 236,
                                 columnNumber: 17
                             }, this)
                         }, void 0, false, {
                             fileName: "[project]/pages/index.tsx",
-                            lineNumber: 234,
+                            lineNumber: 235,
                             columnNumber: 15
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -665,7 +703,7 @@ function LanguagePicker({ value, onChange, testId }) {
                                                 children: lang
                                             }, void 0, false, {
                                                 fileName: "[project]/pages/index.tsx",
-                                                lineNumber: 286,
+                                                lineNumber: 287,
                                                 columnNumber: 21
                                             }, this),
                                             value === lang && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("svg", {
@@ -679,18 +717,18 @@ function LanguagePicker({ value, onChange, testId }) {
                                                     points: "20 6 9 17 4 12"
                                                 }, void 0, false, {
                                                     fileName: "[project]/pages/index.tsx",
-                                                    lineNumber: 289,
+                                                    lineNumber: 290,
                                                     columnNumber: 25
                                                 }, this)
                                             }, void 0, false, {
                                                 fileName: "[project]/pages/index.tsx",
-                                                lineNumber: 288,
+                                                lineNumber: 289,
                                                 columnNumber: 23
                                             }, this)
                                         ]
                                     }, lang, true, {
                                         fileName: "[project]/pages/index.tsx",
-                                        lineNumber: 256,
+                                        lineNumber: 257,
                                         columnNumber: 19
                                     }, this)),
                                 filteredLanguages.length === 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -700,16 +738,16 @@ function LanguagePicker({ value, onChange, testId }) {
                                         color: 'rgb(100, 116, 139)',
                                         fontSize: '0.875rem'
                                     },
-                                    children: "No languages found"
+                                    children: t.noLanguagesFound
                                 }, void 0, false, {
                                     fileName: "[project]/pages/index.tsx",
-                                    lineNumber: 295,
+                                    lineNumber: 296,
                                     columnNumber: 19
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/pages/index.tsx",
-                            lineNumber: 254,
+                            lineNumber: 255,
                             columnNumber: 15
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -754,7 +792,7 @@ function LanguagePicker({ value, onChange, testId }) {
                                                 y2: "19"
                                             }, void 0, false, {
                                                 fileName: "[project]/pages/index.tsx",
-                                                lineNumber: 325,
+                                                lineNumber: 326,
                                                 columnNumber: 21
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("line", {
@@ -764,25 +802,25 @@ function LanguagePicker({ value, onChange, testId }) {
                                                 y2: "12"
                                             }, void 0, false, {
                                                 fileName: "[project]/pages/index.tsx",
-                                                lineNumber: 326,
+                                                lineNumber: 327,
                                                 columnNumber: 21
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/pages/index.tsx",
-                                        lineNumber: 324,
+                                        lineNumber: 325,
                                         columnNumber: 19
                                     }, this),
-                                    "Custom language..."
+                                    t.customLanguage
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/pages/index.tsx",
-                                lineNumber: 302,
+                                lineNumber: 303,
                                 columnNumber: 17
                             }, this)
                         }, void 0, false, {
                             fileName: "[project]/pages/index.tsx",
-                            lineNumber: 301,
+                            lineNumber: 302,
                             columnNumber: 15
                         }, this)
                     ]
@@ -799,10 +837,10 @@ function LanguagePicker({ value, onChange, testId }) {
                                 color: 'rgb(100, 116, 139)',
                                 marginBottom: '8px'
                             },
-                            children: "Enter custom language"
+                            children: t.enterCustomLanguage
                         }, void 0, false, {
                             fileName: "[project]/pages/index.tsx",
-                            lineNumber: 334,
+                            lineNumber: 335,
                             columnNumber: 15
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -838,7 +876,7 @@ function LanguagePicker({ value, onChange, testId }) {
                                     "data-testid": `${testId}-custom-input`
                                 }, void 0, false, {
                                     fileName: "[project]/pages/index.tsx",
-                                    lineNumber: 338,
+                                    lineNumber: 339,
                                     columnNumber: 17
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("button", {
@@ -856,16 +894,16 @@ function LanguagePicker({ value, onChange, testId }) {
                                         cursor: customValue.trim() ? 'pointer' : 'not-allowed'
                                     },
                                     "data-testid": `${testId}-custom-submit`,
-                                    children: "Add"
+                                    children: t.add
                                 }, void 0, false, {
                                     fileName: "[project]/pages/index.tsx",
-                                    lineNumber: 364,
+                                    lineNumber: 365,
                                     columnNumber: 17
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/pages/index.tsx",
-                            lineNumber: 337,
+                            lineNumber: 338,
                             columnNumber: 15
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("button", {
@@ -881,27 +919,27 @@ function LanguagePicker({ value, onChange, testId }) {
                                 cursor: 'pointer'
                             },
                             "data-testid": `${testId}-custom-back`,
-                            children: "Back to list"
+                            children: t.backToList
                         }, void 0, false, {
                             fileName: "[project]/pages/index.tsx",
-                            lineNumber: 383,
+                            lineNumber: 384,
                             columnNumber: 15
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/pages/index.tsx",
-                    lineNumber: 333,
+                    lineNumber: 334,
                     columnNumber: 13
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/pages/index.tsx",
-                lineNumber: 214,
+                lineNumber: 215,
                 columnNumber: 9
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/pages/index.tsx",
-        lineNumber: 172,
+        lineNumber: 173,
         columnNumber: 5
     }, this);
 }
@@ -1270,7 +1308,7 @@ function Home() {
                         children: "BizKit AI - Client-Winning Content in Seconds"
                     }, void 0, false, {
                         fileName: "[project]/pages/index.tsx",
-                        lineNumber: 802,
+                        lineNumber: 803,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("meta", {
@@ -1278,7 +1316,7 @@ function Home() {
                         content: "width=device-width, initial-scale=1"
                     }, void 0, false, {
                         fileName: "[project]/pages/index.tsx",
-                        lineNumber: 803,
+                        lineNumber: 804,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("link", {
@@ -1286,13 +1324,13 @@ function Home() {
                         href: "/favicon.ico"
                     }, void 0, false, {
                         fileName: "[project]/pages/index.tsx",
-                        lineNumber: 804,
+                        lineNumber: 805,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/pages/index.tsx",
-                lineNumber: 801,
+                lineNumber: 802,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -1321,7 +1359,7 @@ function Home() {
                                 children: "BizKit AI"
                             }, void 0, false, {
                                 fileName: "[project]/pages/index.tsx",
-                                lineNumber: 825,
+                                lineNumber: 826,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -1363,27 +1401,27 @@ function Home() {
                                                         r: "10"
                                                     }, void 0, false, {
                                                         fileName: "[project]/pages/index.tsx",
-                                                        lineNumber: 849,
+                                                        lineNumber: 850,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("path", {
                                                         d: "M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
                                                     }, void 0, false, {
                                                         fileName: "[project]/pages/index.tsx",
-                                                        lineNumber: 850,
+                                                        lineNumber: 851,
                                                         columnNumber: 17
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/pages/index.tsx",
-                                                lineNumber: 848,
+                                                lineNumber: 849,
                                                 columnNumber: 15
                                             }, this),
                                             lang === 'en' ? 'TR' : 'EN'
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/pages/index.tsx",
-                                        lineNumber: 830,
+                                        lineNumber: 831,
                                         columnNumber: 13
                                     }, this),
                                     authLoading ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -1394,7 +1432,7 @@ function Home() {
                                         children: t.loading
                                     }, void 0, false, {
                                         fileName: "[project]/pages/index.tsx",
-                                        lineNumber: 855,
+                                        lineNumber: 856,
                                         columnNumber: 15
                                     }, this) : isAuthenticated && user ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["Fragment"], {
                                         children: [
@@ -1430,27 +1468,27 @@ function Home() {
                                                                 r: "10"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 877,
+                                                                lineNumber: 878,
                                                                 columnNumber: 21
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("polyline", {
                                                                 points: "12 6 12 12 16 14"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 878,
+                                                                lineNumber: 879,
                                                                 columnNumber: 21
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/pages/index.tsx",
-                                                        lineNumber: 876,
+                                                        lineNumber: 877,
                                                         columnNumber: 19
                                                     }, this),
                                                     t.history
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/pages/index.tsx",
-                                                lineNumber: 858,
+                                                lineNumber: 859,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -1476,7 +1514,7 @@ function Home() {
                                                         children: user.email?.charAt(0).toUpperCase() || 'U'
                                                     }, void 0, false, {
                                                         fileName: "[project]/pages/index.tsx",
-                                                        lineNumber: 883,
+                                                        lineNumber: 884,
                                                         columnNumber: 19
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -1507,13 +1545,13 @@ function Home() {
                                                                         ]
                                                                     }, void 0, true, {
                                                                         fileName: "[project]/pages/index.tsx",
-                                                                        lineNumber: 903,
+                                                                        lineNumber: 904,
                                                                         columnNumber: 25
                                                                     }, this)
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 900,
+                                                                lineNumber: 901,
                                                                 columnNumber: 21
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("span", {
@@ -1525,19 +1563,19 @@ function Home() {
                                                                 children: user.role === 'admin' ? t.unlimitedCredits : `${user.credits ?? 0} ${t.creditsLeft}`
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 906,
+                                                                lineNumber: 907,
                                                                 columnNumber: 21
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/pages/index.tsx",
-                                                        lineNumber: 899,
+                                                        lineNumber: 900,
                                                         columnNumber: 19
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/pages/index.tsx",
-                                                lineNumber: 882,
+                                                lineNumber: 883,
                                                 columnNumber: 17
                                             }, this),
                                             user.role !== 'admin' && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("button", {
@@ -1572,34 +1610,34 @@ function Home() {
                                                                 r: "10"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 931,
+                                                                lineNumber: 932,
                                                                 columnNumber: 23
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("path", {
                                                                 d: "M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 932,
+                                                                lineNumber: 933,
                                                                 columnNumber: 23
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("path", {
                                                                 d: "M12 18V6"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 933,
+                                                                lineNumber: 934,
                                                                 columnNumber: 23
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/pages/index.tsx",
-                                                        lineNumber: 930,
+                                                        lineNumber: 931,
                                                         columnNumber: 21
                                                     }, this),
                                                     t.buyCredits
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/pages/index.tsx",
-                                                lineNumber: 912,
+                                                lineNumber: 913,
                                                 columnNumber: 19
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("button", {
@@ -1619,7 +1657,7 @@ function Home() {
                                                 children: t.logout
                                             }, void 0, false, {
                                                 fileName: "[project]/pages/index.tsx",
-                                                lineNumber: 938,
+                                                lineNumber: 939,
                                                 columnNumber: 17
                                             }, this)
                                         ]
@@ -1644,19 +1682,19 @@ function Home() {
                                         children: t.login
                                     }, void 0, false, {
                                         fileName: "[project]/pages/index.tsx",
-                                        lineNumber: 957,
+                                        lineNumber: 958,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/pages/index.tsx",
-                                lineNumber: 828,
+                                lineNumber: 829,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/pages/index.tsx",
-                        lineNumber: 815,
+                        lineNumber: 816,
                         columnNumber: 9
                     }, this),
                     showHistory && isAuthenticated && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -1692,10 +1730,10 @@ function Home() {
                                             color: 'rgb(15, 23, 42)',
                                             margin: 0
                                         },
-                                        children: "Generation History"
+                                        children: t.generationHistory
                                     }, void 0, false, {
                                         fileName: "[project]/pages/index.tsx",
-                                        lineNumber: 1010,
+                                        lineNumber: 1011,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("button", {
@@ -1724,7 +1762,7 @@ function Home() {
                                                     y2: "18"
                                                 }, void 0, false, {
                                                     fileName: "[project]/pages/index.tsx",
-                                                    lineNumber: 1026,
+                                                    lineNumber: 1027,
                                                     columnNumber: 19
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("line", {
@@ -1734,24 +1772,24 @@ function Home() {
                                                     y2: "18"
                                                 }, void 0, false, {
                                                     fileName: "[project]/pages/index.tsx",
-                                                    lineNumber: 1027,
+                                                    lineNumber: 1028,
                                                     columnNumber: 19
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/pages/index.tsx",
-                                            lineNumber: 1025,
+                                            lineNumber: 1026,
                                             columnNumber: 17
                                         }, this)
                                     }, void 0, false, {
                                         fileName: "[project]/pages/index.tsx",
-                                        lineNumber: 1013,
+                                        lineNumber: 1014,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/pages/index.tsx",
-                                lineNumber: 1001,
+                                lineNumber: 1002,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -1766,10 +1804,10 @@ function Home() {
                                         color: 'rgb(148, 163, 184)',
                                         padding: '40px 0'
                                     },
-                                    children: "Loading..."
+                                    children: t.loading
                                 }, void 0, false, {
                                     fileName: "[project]/pages/index.tsx",
-                                    lineNumber: 1039,
+                                    lineNumber: 1040,
                                     columnNumber: 17
                                 }, this) : generations.length === 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
                                     style: {
@@ -1795,38 +1833,27 @@ function Home() {
                                                     r: "10"
                                                 }, void 0, false, {
                                                     fileName: "[project]/pages/index.tsx",
-                                                    lineNumber: 1045,
+                                                    lineNumber: 1046,
                                                     columnNumber: 21
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("polyline", {
                                                     points: "12 6 12 12 16 14"
                                                 }, void 0, false, {
                                                     fileName: "[project]/pages/index.tsx",
-                                                    lineNumber: 1046,
+                                                    lineNumber: 1047,
                                                     columnNumber: 21
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/pages/index.tsx",
-                                            lineNumber: 1044,
+                                            lineNumber: 1045,
                                             columnNumber: 19
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("p", {
                                             style: {
                                                 fontSize: '0.875rem'
                                             },
-                                            children: "No saved generations yet"
-                                        }, void 0, false, {
-                                            fileName: "[project]/pages/index.tsx",
-                                            lineNumber: 1048,
-                                            columnNumber: 19
-                                        }, this),
-                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("p", {
-                                            style: {
-                                                fontSize: '0.75rem',
-                                                marginTop: '4px'
-                                            },
-                                            children: "Generate content and save it to see your history"
+                                            children: t.noHistory
                                         }, void 0, false, {
                                             fileName: "[project]/pages/index.tsx",
                                             lineNumber: 1049,
@@ -1835,7 +1862,7 @@ function Home() {
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/pages/index.tsx",
-                                    lineNumber: 1043,
+                                    lineNumber: 1044,
                                     columnNumber: 17
                                 }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
                                     style: {
@@ -1980,13 +2007,13 @@ function Home() {
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/pages/index.tsx",
-                                lineNumber: 1031,
+                                lineNumber: 1032,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/pages/index.tsx",
-                        lineNumber: 984,
+                        lineNumber: 985,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("header", {
@@ -2281,7 +2308,8 @@ function Home() {
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])(LanguagePicker, {
                                                                 value: formData.cold_email.language,
                                                                 onChange: (value)=>updateFormField('cold_email', 'language', value),
-                                                                testId: "select-language"
+                                                                testId: "select-language",
+                                                                t: t
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
                                                                 lineNumber: 1373,
@@ -2320,7 +2348,7 @@ function Home() {
                                                                 children: t.clientType
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 1386,
+                                                                lineNumber: 1387,
                                                                 columnNumber: 21
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("input", {
@@ -2341,13 +2369,13 @@ function Home() {
                                                                 "data-testid": "input-clientType"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 1398,
+                                                                lineNumber: 1399,
                                                                 columnNumber: 21
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/pages/index.tsx",
-                                                        lineNumber: 1385,
+                                                        lineNumber: 1386,
                                                         columnNumber: 19
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -2364,7 +2392,7 @@ function Home() {
                                                                 children: t.projectScope
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 1419,
+                                                                lineNumber: 1420,
                                                                 columnNumber: 21
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("textarea", {
@@ -2387,13 +2415,13 @@ function Home() {
                                                                 "data-testid": "input-projectScope"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 1431,
+                                                                lineNumber: 1432,
                                                                 columnNumber: 21
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/pages/index.tsx",
-                                                        lineNumber: 1418,
+                                                        lineNumber: 1419,
                                                         columnNumber: 19
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -2410,7 +2438,7 @@ function Home() {
                                                                 children: t.deliverables
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 1454,
+                                                                lineNumber: 1455,
                                                                 columnNumber: 21
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("textarea", {
@@ -2433,13 +2461,13 @@ function Home() {
                                                                 "data-testid": "input-deliverables"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 1466,
+                                                                lineNumber: 1467,
                                                                 columnNumber: 21
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/pages/index.tsx",
-                                                        lineNumber: 1453,
+                                                        lineNumber: 1454,
                                                         columnNumber: 19
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -2456,7 +2484,7 @@ function Home() {
                                                                 children: t.budgetRange
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 1489,
+                                                                lineNumber: 1490,
                                                                 columnNumber: 21
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("input", {
@@ -2477,13 +2505,13 @@ function Home() {
                                                                 "data-testid": "input-budgetRange"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 1501,
+                                                                lineNumber: 1502,
                                                                 columnNumber: 21
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/pages/index.tsx",
-                                                        lineNumber: 1488,
+                                                        lineNumber: 1489,
                                                         columnNumber: 19
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -2499,28 +2527,29 @@ function Home() {
                                                                 children: t.language
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 1522,
+                                                                lineNumber: 1523,
                                                                 columnNumber: 21
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])(LanguagePicker, {
                                                                 value: formData.proposal.language,
                                                                 onChange: (value)=>updateFormField('proposal', 'language', value),
-                                                                testId: "select-proposalLanguage"
+                                                                testId: "select-proposalLanguage",
+                                                                t: t
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 1533,
+                                                                lineNumber: 1534,
                                                                 columnNumber: 21
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/pages/index.tsx",
-                                                        lineNumber: 1521,
+                                                        lineNumber: 1522,
                                                         columnNumber: 19
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/pages/index.tsx",
-                                                lineNumber: 1384,
+                                                lineNumber: 1385,
                                                 columnNumber: 17
                                             }, this),
                                             activeTab === 'contract' && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -2544,7 +2573,7 @@ function Home() {
                                                                 children: t.clientName
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 1546,
+                                                                lineNumber: 1548,
                                                                 columnNumber: 21
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("input", {
@@ -2565,13 +2594,13 @@ function Home() {
                                                                 "data-testid": "input-clientName"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 1558,
+                                                                lineNumber: 1560,
                                                                 columnNumber: 21
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/pages/index.tsx",
-                                                        lineNumber: 1545,
+                                                        lineNumber: 1547,
                                                         columnNumber: 19
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -2588,7 +2617,7 @@ function Home() {
                                                                 children: t.providerName
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 1579,
+                                                                lineNumber: 1581,
                                                                 columnNumber: 21
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("input", {
@@ -2609,13 +2638,13 @@ function Home() {
                                                                 "data-testid": "input-providerName"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 1591,
+                                                                lineNumber: 1593,
                                                                 columnNumber: 21
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/pages/index.tsx",
-                                                        lineNumber: 1578,
+                                                        lineNumber: 1580,
                                                         columnNumber: 19
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -2632,7 +2661,7 @@ function Home() {
                                                                 children: t.serviceDescription
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 1612,
+                                                                lineNumber: 1614,
                                                                 columnNumber: 21
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("textarea", {
@@ -2655,13 +2684,13 @@ function Home() {
                                                                 "data-testid": "input-serviceDescription"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 1624,
+                                                                lineNumber: 1626,
                                                                 columnNumber: 21
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/pages/index.tsx",
-                                                        lineNumber: 1611,
+                                                        lineNumber: 1613,
                                                         columnNumber: 19
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -2678,7 +2707,7 @@ function Home() {
                                                                 children: t.paymentTerms
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 1647,
+                                                                lineNumber: 1649,
                                                                 columnNumber: 21
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("input", {
@@ -2699,13 +2728,13 @@ function Home() {
                                                                 "data-testid": "input-paymentTerms"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 1659,
+                                                                lineNumber: 1661,
                                                                 columnNumber: 21
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/pages/index.tsx",
-                                                        lineNumber: 1646,
+                                                        lineNumber: 1648,
                                                         columnNumber: 19
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -2722,7 +2751,7 @@ function Home() {
                                                                 children: t.jurisdiction
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 1680,
+                                                                lineNumber: 1682,
                                                                 columnNumber: 21
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("input", {
@@ -2743,13 +2772,13 @@ function Home() {
                                                                 "data-testid": "input-jurisdiction"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 1692,
+                                                                lineNumber: 1694,
                                                                 columnNumber: 21
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/pages/index.tsx",
-                                                        lineNumber: 1679,
+                                                        lineNumber: 1681,
                                                         columnNumber: 19
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -2765,28 +2794,29 @@ function Home() {
                                                                 children: t.language
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 1713,
+                                                                lineNumber: 1715,
                                                                 columnNumber: 21
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])(LanguagePicker, {
                                                                 value: formData.contract.language,
                                                                 onChange: (value)=>updateFormField('contract', 'language', value),
-                                                                testId: "select-contractLanguage"
+                                                                testId: "select-contractLanguage",
+                                                                t: t
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 1724,
+                                                                lineNumber: 1726,
                                                                 columnNumber: 21
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/pages/index.tsx",
-                                                        lineNumber: 1712,
+                                                        lineNumber: 1714,
                                                         columnNumber: 19
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/pages/index.tsx",
-                                                lineNumber: 1544,
+                                                lineNumber: 1546,
                                                 columnNumber: 17
                                             }, this),
                                             activeTab === 'social_pack' && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -2810,7 +2840,7 @@ function Home() {
                                                                 children: t.businessType
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 1737,
+                                                                lineNumber: 1740,
                                                                 columnNumber: 21
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("input", {
@@ -2831,13 +2861,13 @@ function Home() {
                                                                 "data-testid": "input-businessType"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 1749,
+                                                                lineNumber: 1752,
                                                                 columnNumber: 21
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/pages/index.tsx",
-                                                        lineNumber: 1736,
+                                                        lineNumber: 1739,
                                                         columnNumber: 19
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -2854,7 +2884,7 @@ function Home() {
                                                                 children: t.niche
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 1770,
+                                                                lineNumber: 1773,
                                                                 columnNumber: 21
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("input", {
@@ -2875,13 +2905,13 @@ function Home() {
                                                                 "data-testid": "input-niche"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 1782,
+                                                                lineNumber: 1785,
                                                                 columnNumber: 21
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/pages/index.tsx",
-                                                        lineNumber: 1769,
+                                                        lineNumber: 1772,
                                                         columnNumber: 19
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -2898,7 +2928,7 @@ function Home() {
                                                                 children: t.tone
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 1803,
+                                                                lineNumber: 1806,
                                                                 columnNumber: 21
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("input", {
@@ -2919,13 +2949,13 @@ function Home() {
                                                                 "data-testid": "input-socialTone"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 1815,
+                                                                lineNumber: 1818,
                                                                 columnNumber: 21
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/pages/index.tsx",
-                                                        lineNumber: 1802,
+                                                        lineNumber: 1805,
                                                         columnNumber: 19
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -2942,7 +2972,7 @@ function Home() {
                                                                 children: t.platform
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 1836,
+                                                                lineNumber: 1839,
                                                                 columnNumber: 21
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("input", {
@@ -2963,13 +2993,13 @@ function Home() {
                                                                 "data-testid": "input-platform"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 1848,
+                                                                lineNumber: 1851,
                                                                 columnNumber: 21
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/pages/index.tsx",
-                                                        lineNumber: 1835,
+                                                        lineNumber: 1838,
                                                         columnNumber: 19
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -2985,28 +3015,29 @@ function Home() {
                                                                 children: t.language
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 1869,
+                                                                lineNumber: 1872,
                                                                 columnNumber: 21
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])(LanguagePicker, {
                                                                 value: formData.social_pack.language,
                                                                 onChange: (value)=>updateFormField('social_pack', 'language', value),
-                                                                testId: "select-socialLanguage"
+                                                                testId: "select-socialLanguage",
+                                                                t: t
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 1880,
+                                                                lineNumber: 1883,
                                                                 columnNumber: 21
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/pages/index.tsx",
-                                                        lineNumber: 1868,
+                                                        lineNumber: 1871,
                                                         columnNumber: 19
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/pages/index.tsx",
-                                                lineNumber: 1735,
+                                                lineNumber: 1738,
                                                 columnNumber: 17
                                             }, this)
                                         ]
@@ -3057,12 +3088,12 @@ function Home() {
                                                             points: "6 9 12 15 18 9"
                                                         }, void 0, false, {
                                                             fileName: "[project]/pages/index.tsx",
-                                                            lineNumber: 1926,
+                                                            lineNumber: 1930,
                                                             columnNumber: 19
                                                         }, this)
                                                     }, void 0, false, {
                                                         fileName: "[project]/pages/index.tsx",
-                                                        lineNumber: 1912,
+                                                        lineNumber: 1916,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("svg", {
@@ -3081,20 +3112,20 @@ function Home() {
                                                                 r: "3"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 1938,
+                                                                lineNumber: 1942,
                                                                 columnNumber: 19
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("path", {
                                                                 d: "M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 1939,
+                                                                lineNumber: 1943,
                                                                 columnNumber: 19
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/pages/index.tsx",
-                                                        lineNumber: 1928,
+                                                        lineNumber: 1932,
                                                         columnNumber: 17
                                                     }, this),
                                                     "Advanced Options",
@@ -3108,13 +3139,13 @@ function Home() {
                                                         children: "Customize AI behavior"
                                                     }, void 0, false, {
                                                         fileName: "[project]/pages/index.tsx",
-                                                        lineNumber: 1943,
+                                                        lineNumber: 1947,
                                                         columnNumber: 19
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/pages/index.tsx",
-                                                lineNumber: 1892,
+                                                lineNumber: 1896,
                                                 columnNumber: 15
                                             }, this),
                                             showAdvancedOptions && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -3146,7 +3177,7 @@ function Home() {
                                                                     children: "AI Model"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/pages/index.tsx",
-                                                                    lineNumber: 1971,
+                                                                    lineNumber: 1975,
                                                                     columnNumber: 23
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -3182,7 +3213,7 @@ function Home() {
                                                                                     children: "GPT-4o Mini"
                                                                                 }, void 0, false, {
                                                                                     fileName: "[project]/pages/index.tsx",
-                                                                                    lineNumber: 2000,
+                                                                                    lineNumber: 2004,
                                                                                     columnNumber: 27
                                                                                 }, this),
                                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -3194,13 +3225,13 @@ function Home() {
                                                                                     children: "Fast & efficient"
                                                                                 }, void 0, false, {
                                                                                     fileName: "[project]/pages/index.tsx",
-                                                                                    lineNumber: 2001,
+                                                                                    lineNumber: 2005,
                                                                                     columnNumber: 27
                                                                                 }, this)
                                                                             ]
                                                                         }, void 0, true, {
                                                                             fileName: "[project]/pages/index.tsx",
-                                                                            lineNumber: 1983,
+                                                                            lineNumber: 1987,
                                                                             columnNumber: 25
                                                                         }, this),
                                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("button", {
@@ -3230,7 +3261,7 @@ function Home() {
                                                                                     children: "GPT-4o"
                                                                                 }, void 0, false, {
                                                                                     fileName: "[project]/pages/index.tsx",
-                                                                                    lineNumber: 2022,
+                                                                                    lineNumber: 2026,
                                                                                     columnNumber: 27
                                                                                 }, this),
                                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -3242,25 +3273,25 @@ function Home() {
                                                                                     children: "Higher quality"
                                                                                 }, void 0, false, {
                                                                                     fileName: "[project]/pages/index.tsx",
-                                                                                    lineNumber: 2023,
+                                                                                    lineNumber: 2027,
                                                                                     columnNumber: 27
                                                                                 }, this)
                                                                             ]
                                                                         }, void 0, true, {
                                                                             fileName: "[project]/pages/index.tsx",
-                                                                            lineNumber: 2005,
+                                                                            lineNumber: 2009,
                                                                             columnNumber: 25
                                                                         }, this)
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/pages/index.tsx",
-                                                                    lineNumber: 1982,
+                                                                    lineNumber: 1986,
                                                                     columnNumber: 23
                                                                 }, this)
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/pages/index.tsx",
-                                                            lineNumber: 1970,
+                                                            lineNumber: 1974,
                                                             columnNumber: 21
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -3276,7 +3307,7 @@ function Home() {
                                                                     children: "Output Length"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/pages/index.tsx",
-                                                                    lineNumber: 2032,
+                                                                    lineNumber: 2036,
                                                                     columnNumber: 23
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -3311,18 +3342,18 @@ function Home() {
                                                                             children: length
                                                                         }, length, false, {
                                                                             fileName: "[project]/pages/index.tsx",
-                                                                            lineNumber: 2045,
+                                                                            lineNumber: 2049,
                                                                             columnNumber: 27
                                                                         }, this))
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/pages/index.tsx",
-                                                                    lineNumber: 2043,
+                                                                    lineNumber: 2047,
                                                                     columnNumber: 23
                                                                 }, this)
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/pages/index.tsx",
-                                                            lineNumber: 2031,
+                                                            lineNumber: 2035,
                                                             columnNumber: 21
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -3342,7 +3373,7 @@ function Home() {
                                                                             children: "Creativity Level"
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/pages/index.tsx",
-                                                                            lineNumber: 2083,
+                                                                            lineNumber: 2087,
                                                                             columnNumber: 25
                                                                         }, this),
                                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("span", {
@@ -3356,13 +3387,13 @@ function Home() {
                                                                             ]
                                                                         }, void 0, true, {
                                                                             fileName: "[project]/pages/index.tsx",
-                                                                            lineNumber: 2084,
+                                                                            lineNumber: 2088,
                                                                             columnNumber: 25
                                                                         }, this)
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/pages/index.tsx",
-                                                                    lineNumber: 2072,
+                                                                    lineNumber: 2076,
                                                                     columnNumber: 23
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -3380,7 +3411,7 @@ function Home() {
                                                                             children: "Precise"
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/pages/index.tsx",
-                                                                            lineNumber: 2089,
+                                                                            lineNumber: 2093,
                                                                             columnNumber: 25
                                                                         }, this),
                                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("input", {
@@ -3403,7 +3434,7 @@ function Home() {
                                                                             "data-testid": "slider-creativity"
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/pages/index.tsx",
-                                                                            lineNumber: 2090,
+                                                                            lineNumber: 2094,
                                                                             columnNumber: 25
                                                                         }, this),
                                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("span", {
@@ -3414,19 +3445,19 @@ function Home() {
                                                                             children: "Creative"
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/pages/index.tsx",
-                                                                            lineNumber: 2106,
+                                                                            lineNumber: 2110,
                                                                             columnNumber: 25
                                                                         }, this)
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/pages/index.tsx",
-                                                                    lineNumber: 2088,
+                                                                    lineNumber: 2092,
                                                                     columnNumber: 23
                                                                 }, this)
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/pages/index.tsx",
-                                                            lineNumber: 2071,
+                                                            lineNumber: 2075,
                                                             columnNumber: 21
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -3443,7 +3474,7 @@ function Home() {
                                                                     children: "Custom Instructions"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/pages/index.tsx",
-                                                                    lineNumber: 2112,
+                                                                    lineNumber: 2116,
                                                                     columnNumber: 23
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("textarea", {
@@ -3469,30 +3500,30 @@ function Home() {
                                                                     "data-testid": "input-custom-instructions"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/pages/index.tsx",
-                                                                    lineNumber: 2124,
+                                                                    lineNumber: 2128,
                                                                     columnNumber: 23
                                                                 }, this)
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/pages/index.tsx",
-                                                            lineNumber: 2111,
+                                                            lineNumber: 2115,
                                                             columnNumber: 21
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/pages/index.tsx",
-                                                    lineNumber: 1968,
+                                                    lineNumber: 1972,
                                                     columnNumber: 19
                                                 }, this)
                                             }, void 0, false, {
                                                 fileName: "[project]/pages/index.tsx",
-                                                lineNumber: 1958,
+                                                lineNumber: 1962,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/pages/index.tsx",
-                                        lineNumber: 1891,
+                                        lineNumber: 1895,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("button", {
@@ -3513,10 +3544,10 @@ function Home() {
                                             boxShadow: isLoading ? 'none' : '0 1px 3px rgba(99, 102, 241, 0.3)'
                                         },
                                         "data-testid": "button-generate",
-                                        children: isLoading ? 'Generating...' : 'Generate'
+                                        children: isLoading ? t.generating : t.generate
                                     }, void 0, false, {
                                         fileName: "[project]/pages/index.tsx",
-                                        lineNumber: 2150,
+                                        lineNumber: 2154,
                                         columnNumber: 13
                                     }, this)
                                 ]
@@ -3539,7 +3570,7 @@ function Home() {
                                 children: error
                             }, void 0, false, {
                                 fileName: "[project]/pages/index.tsx",
-                                lineNumber: 2179,
+                                lineNumber: 2183,
                                 columnNumber: 13
                             }, this),
                             output && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -3566,7 +3597,7 @@ function Home() {
                                                 children: "Generated Content"
                                             }, void 0, false, {
                                                 fileName: "[project]/pages/index.tsx",
-                                                lineNumber: 2208,
+                                                lineNumber: 2212,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -3613,27 +3644,27 @@ function Home() {
                                                                         d: "M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/pages/index.tsx",
-                                                                        lineNumber: 2251,
+                                                                        lineNumber: 2255,
                                                                         columnNumber: 23
                                                                     }, this),
                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("path", {
                                                                         d: "M21 3v5h-5"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/pages/index.tsx",
-                                                                        lineNumber: 2252,
+                                                                        lineNumber: 2256,
                                                                         columnNumber: 23
                                                                     }, this)
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 2238,
+                                                                lineNumber: 2242,
                                                                 columnNumber: 21
                                                             }, this),
-                                                            isLoading ? 'Regenerating...' : 'Regenerate'
+                                                            isLoading ? t.generating : t.regenerate
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/pages/index.tsx",
-                                                        lineNumber: 2218,
+                                                        lineNumber: 2222,
                                                         columnNumber: 19
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("button", {
@@ -3669,12 +3700,12 @@ function Home() {
                                                                         points: "20 6 9 17 4 12"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/pages/index.tsx",
-                                                                        lineNumber: 2303,
+                                                                        lineNumber: 2307,
                                                                         columnNumber: 27
                                                                     }, this)
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/pages/index.tsx",
-                                                                    lineNumber: 2293,
+                                                                    lineNumber: 2297,
                                                                     columnNumber: 25
                                                                 }, this),
                                                                 "Copied!"
@@ -3697,7 +3728,7 @@ function Home() {
                                                                             r: "10"
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/pages/index.tsx",
-                                                                            lineNumber: 2319,
+                                                                            lineNumber: 2323,
                                                                             columnNumber: 27
                                                                         }, this),
                                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("line", {
@@ -3707,7 +3738,7 @@ function Home() {
                                                                             y2: "15"
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/pages/index.tsx",
-                                                                            lineNumber: 2320,
+                                                                            lineNumber: 2324,
                                                                             columnNumber: 27
                                                                         }, this),
                                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("line", {
@@ -3717,13 +3748,13 @@ function Home() {
                                                                             y2: "15"
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/pages/index.tsx",
-                                                                            lineNumber: 2321,
+                                                                            lineNumber: 2325,
                                                                             columnNumber: 27
                                                                         }, this)
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/pages/index.tsx",
-                                                                    lineNumber: 2309,
+                                                                    lineNumber: 2313,
                                                                     columnNumber: 25
                                                                 }, this),
                                                                 "Failed"
@@ -3749,20 +3780,20 @@ function Home() {
                                                                             ry: "2"
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/pages/index.tsx",
-                                                                            lineNumber: 2337,
+                                                                            lineNumber: 2341,
                                                                             columnNumber: 27
                                                                         }, this),
                                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("path", {
                                                                             d: "M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/pages/index.tsx",
-                                                                            lineNumber: 2338,
+                                                                            lineNumber: 2342,
                                                                             columnNumber: 27
                                                                         }, this)
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/pages/index.tsx",
-                                                                    lineNumber: 2327,
+                                                                    lineNumber: 2331,
                                                                     columnNumber: 25
                                                                 }, this),
                                                                 "Copy"
@@ -3770,7 +3801,7 @@ function Home() {
                                                         }, void 0, true)
                                                     }, void 0, false, {
                                                         fileName: "[project]/pages/index.tsx",
-                                                        lineNumber: 2256,
+                                                        lineNumber: 2260,
                                                         columnNumber: 19
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -3812,14 +3843,14 @@ function Home() {
                                                                                 d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
                                                                             }, void 0, false, {
                                                                                 fileName: "[project]/pages/index.tsx",
-                                                                                lineNumber: 2374,
+                                                                                lineNumber: 2378,
                                                                                 columnNumber: 25
                                                                             }, this),
                                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("polyline", {
                                                                                 points: "7 10 12 15 17 10"
                                                                             }, void 0, false, {
                                                                                 fileName: "[project]/pages/index.tsx",
-                                                                                lineNumber: 2375,
+                                                                                lineNumber: 2379,
                                                                                 columnNumber: 25
                                                                             }, this),
                                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("line", {
@@ -3829,13 +3860,13 @@ function Home() {
                                                                                 y2: "3"
                                                                             }, void 0, false, {
                                                                                 fileName: "[project]/pages/index.tsx",
-                                                                                lineNumber: 2376,
+                                                                                lineNumber: 2380,
                                                                                 columnNumber: 25
                                                                             }, this)
                                                                         ]
                                                                     }, void 0, true, {
                                                                         fileName: "[project]/pages/index.tsx",
-                                                                        lineNumber: 2364,
+                                                                        lineNumber: 2368,
                                                                         columnNumber: 23
                                                                     }, this),
                                                                     "Export",
@@ -3856,18 +3887,18 @@ function Home() {
                                                                             points: "6 9 12 15 18 9"
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/pages/index.tsx",
-                                                                            lineNumber: 2393,
+                                                                            lineNumber: 2397,
                                                                             columnNumber: 25
                                                                         }, this)
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/pages/index.tsx",
-                                                                        lineNumber: 2379,
+                                                                        lineNumber: 2383,
                                                                         columnNumber: 23
                                                                     }, this)
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 2345,
+                                                                lineNumber: 2349,
                                                                 columnNumber: 21
                                                             }, this),
                                                             showExportMenu && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -3915,14 +3946,14 @@ function Home() {
                                                                                         d: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
                                                                                     }, void 0, false, {
                                                                                         fileName: "[project]/pages/index.tsx",
-                                                                                        lineNumber: 2431,
+                                                                                        lineNumber: 2435,
                                                                                         columnNumber: 29
                                                                                     }, this),
                                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("polyline", {
                                                                                         points: "14 2 14 8 20 8"
                                                                                     }, void 0, false, {
                                                                                         fileName: "[project]/pages/index.tsx",
-                                                                                        lineNumber: 2432,
+                                                                                        lineNumber: 2436,
                                                                                         columnNumber: 29
                                                                                     }, this),
                                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("line", {
@@ -3932,7 +3963,7 @@ function Home() {
                                                                                         y2: "13"
                                                                                     }, void 0, false, {
                                                                                         fileName: "[project]/pages/index.tsx",
-                                                                                        lineNumber: 2433,
+                                                                                        lineNumber: 2437,
                                                                                         columnNumber: 29
                                                                                     }, this),
                                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("line", {
@@ -3942,20 +3973,20 @@ function Home() {
                                                                                         y2: "17"
                                                                                     }, void 0, false, {
                                                                                         fileName: "[project]/pages/index.tsx",
-                                                                                        lineNumber: 2434,
+                                                                                        lineNumber: 2438,
                                                                                         columnNumber: 29
                                                                                     }, this)
                                                                                 ]
                                                                             }, void 0, true, {
                                                                                 fileName: "[project]/pages/index.tsx",
-                                                                                lineNumber: 2430,
+                                                                                lineNumber: 2434,
                                                                                 columnNumber: 27
                                                                             }, this),
                                                                             "Plain Text (.txt)"
                                                                         ]
                                                                     }, void 0, true, {
                                                                         fileName: "[project]/pages/index.tsx",
-                                                                        lineNumber: 2411,
+                                                                        lineNumber: 2415,
                                                                         columnNumber: 25
                                                                     }, this),
                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("button", {
@@ -3990,27 +4021,27 @@ function Home() {
                                                                                         d: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
                                                                                     }, void 0, false, {
                                                                                         fileName: "[project]/pages/index.tsx",
-                                                                                        lineNumber: 2459,
+                                                                                        lineNumber: 2463,
                                                                                         columnNumber: 29
                                                                                     }, this),
                                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("polyline", {
                                                                                         points: "14 2 14 8 20 8"
                                                                                     }, void 0, false, {
                                                                                         fileName: "[project]/pages/index.tsx",
-                                                                                        lineNumber: 2460,
+                                                                                        lineNumber: 2464,
                                                                                         columnNumber: 29
                                                                                     }, this)
                                                                                 ]
                                                                             }, void 0, true, {
                                                                                 fileName: "[project]/pages/index.tsx",
-                                                                                lineNumber: 2458,
+                                                                                lineNumber: 2462,
                                                                                 columnNumber: 27
                                                                             }, this),
                                                                             "PDF Document (.pdf)"
                                                                         ]
                                                                     }, void 0, true, {
                                                                         fileName: "[project]/pages/index.tsx",
-                                                                        lineNumber: 2438,
+                                                                        lineNumber: 2442,
                                                                         columnNumber: 25
                                                                     }, this),
                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("button", {
@@ -4045,39 +4076,39 @@ function Home() {
                                                                                         d: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
                                                                                     }, void 0, false, {
                                                                                         fileName: "[project]/pages/index.tsx",
-                                                                                        lineNumber: 2485,
+                                                                                        lineNumber: 2489,
                                                                                         columnNumber: 29
                                                                                     }, this),
                                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("polyline", {
                                                                                         points: "14 2 14 8 20 8"
                                                                                     }, void 0, false, {
                                                                                         fileName: "[project]/pages/index.tsx",
-                                                                                        lineNumber: 2486,
+                                                                                        lineNumber: 2490,
                                                                                         columnNumber: 29
                                                                                     }, this)
                                                                                 ]
                                                                             }, void 0, true, {
                                                                                 fileName: "[project]/pages/index.tsx",
-                                                                                lineNumber: 2484,
+                                                                                lineNumber: 2488,
                                                                                 columnNumber: 27
                                                                             }, this),
                                                                             "Word Document (.docx)"
                                                                         ]
                                                                     }, void 0, true, {
                                                                         fileName: "[project]/pages/index.tsx",
-                                                                        lineNumber: 2464,
+                                                                        lineNumber: 2468,
                                                                         columnNumber: 25
                                                                     }, this)
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 2397,
+                                                                lineNumber: 2401,
                                                                 columnNumber: 23
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/pages/index.tsx",
-                                                        lineNumber: 2344,
+                                                        lineNumber: 2348,
                                                         columnNumber: 19
                                                     }, this),
                                                     isAuthenticated && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("button", {
@@ -4113,46 +4144,46 @@ function Home() {
                                                                         d: "M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/pages/index.tsx",
-                                                                        lineNumber: 2523,
+                                                                        lineNumber: 2527,
                                                                         columnNumber: 25
                                                                     }, this),
                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("polyline", {
                                                                         points: "17 21 17 13 7 13 7 21"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/pages/index.tsx",
-                                                                        lineNumber: 2524,
+                                                                        lineNumber: 2528,
                                                                         columnNumber: 25
                                                                     }, this),
                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("polyline", {
                                                                         points: "7 3 7 8 15 8"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/pages/index.tsx",
-                                                                        lineNumber: 2525,
+                                                                        lineNumber: 2529,
                                                                         columnNumber: 25
                                                                     }, this)
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/pages/index.tsx",
-                                                                lineNumber: 2513,
+                                                                lineNumber: 2517,
                                                                 columnNumber: 23
                                                             }, this),
                                                             "Save"
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/pages/index.tsx",
-                                                        lineNumber: 2494,
+                                                        lineNumber: 2498,
                                                         columnNumber: 21
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/pages/index.tsx",
-                                                lineNumber: 2217,
+                                                lineNumber: 2221,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/pages/index.tsx",
-                                        lineNumber: 2198,
+                                        lineNumber: 2202,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("textarea", {
@@ -4174,13 +4205,13 @@ function Home() {
                                         "data-testid": "output-content"
                                     }, void 0, false, {
                                         fileName: "[project]/pages/index.tsx",
-                                        lineNumber: 2532,
+                                        lineNumber: 2536,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/pages/index.tsx",
-                                lineNumber: 2197,
+                                lineNumber: 2201,
                                 columnNumber: 13
                             }, this)
                         ]
@@ -4205,12 +4236,12 @@ function Home() {
                             children: "BizKit AI – Beta v1.0"
                         }, void 0, false, {
                             fileName: "[project]/pages/index.tsx",
-                            lineNumber: 2563,
+                            lineNumber: 2567,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/pages/index.tsx",
-                        lineNumber: 2555,
+                        lineNumber: 2559,
                         columnNumber: 9
                     }, this),
                     showSubscriptionPrompt && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -4269,17 +4300,17 @@ function Home() {
                                                 d: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
                                             }, void 0, false, {
                                                 fileName: "[project]/pages/index.tsx",
-                                                lineNumber: 2628,
+                                                lineNumber: 2632,
                                                 columnNumber: 21
                                             }, this)
                                         }, void 0, false, {
                                             fileName: "[project]/pages/index.tsx",
-                                            lineNumber: 2617,
+                                            lineNumber: 2621,
                                             columnNumber: 19
                                         }, this)
                                     }, void 0, false, {
                                         fileName: "[project]/pages/index.tsx",
-                                        lineNumber: 2605,
+                                        lineNumber: 2609,
                                         columnNumber: 17
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("h2", {
@@ -4293,7 +4324,7 @@ function Home() {
                                         children: "Free Trial Used"
                                     }, void 0, false, {
                                         fileName: "[project]/pages/index.tsx",
-                                        lineNumber: 2631,
+                                        lineNumber: 2635,
                                         columnNumber: 17
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("p", {
@@ -4307,7 +4338,7 @@ function Home() {
                                         children: "You've used your free generation. Subscribe to unlock unlimited access to all content generation tools."
                                     }, void 0, false, {
                                         fileName: "[project]/pages/index.tsx",
-                                        lineNumber: 2642,
+                                        lineNumber: 2646,
                                         columnNumber: 17
                                     }, this),
                                     !isAuthenticated && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -4324,7 +4355,7 @@ function Home() {
                                                 children: "Please sign in first to subscribe:"
                                             }, void 0, false, {
                                                 fileName: "[project]/pages/index.tsx",
-                                                lineNumber: 2656,
+                                                lineNumber: 2660,
                                                 columnNumber: 21
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("button", {
@@ -4349,13 +4380,13 @@ function Home() {
                                                 children: "Sign In with Replit"
                                             }, void 0, false, {
                                                 fileName: "[project]/pages/index.tsx",
-                                                lineNumber: 2659,
+                                                lineNumber: 2663,
                                                 columnNumber: 21
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/pages/index.tsx",
-                                        lineNumber: 2655,
+                                        lineNumber: 2659,
                                         columnNumber: 19
                                     }, this),
                                     isAuthenticated && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -4372,7 +4403,7 @@ function Home() {
                                                 children: "Contact us to subscribe and get unlimited access:"
                                             }, void 0, false, {
                                                 fileName: "[project]/pages/index.tsx",
-                                                lineNumber: 2686,
+                                                lineNumber: 2690,
                                                 columnNumber: 21
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("a", {
@@ -4396,13 +4427,13 @@ function Home() {
                                                 children: "Contact to Subscribe"
                                             }, void 0, false, {
                                                 fileName: "[project]/pages/index.tsx",
-                                                lineNumber: 2689,
+                                                lineNumber: 2693,
                                                 columnNumber: 21
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/pages/index.tsx",
-                                        lineNumber: 2685,
+                                        lineNumber: 2689,
                                         columnNumber: 19
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("button", {
@@ -4423,23 +4454,23 @@ function Home() {
                                         children: "Maybe Later"
                                     }, void 0, false, {
                                         fileName: "[project]/pages/index.tsx",
-                                        lineNumber: 2713,
+                                        lineNumber: 2717,
                                         columnNumber: 17
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/pages/index.tsx",
-                                lineNumber: 2604,
+                                lineNumber: 2608,
                                 columnNumber: 15
                             }, this)
                         }, void 0, false, {
                             fileName: "[project]/pages/index.tsx",
-                            lineNumber: 2592,
+                            lineNumber: 2596,
                             columnNumber: 13
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/pages/index.tsx",
-                        lineNumber: 2576,
+                        lineNumber: 2580,
                         columnNumber: 11
                     }, this),
                     showAuthModal && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -4480,7 +4511,7 @@ function Home() {
                                     children: authMode === 'login' ? t.welcomeBack : t.createAccount
                                 }, void 0, false, {
                                     fileName: "[project]/pages/index.tsx",
-                                    lineNumber: 2766,
+                                    lineNumber: 2770,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("p", {
@@ -4493,7 +4524,7 @@ function Home() {
                                     children: authMode === 'login' ? t.loginAccess : t.registerAccess
                                 }, void 0, false, {
                                     fileName: "[project]/pages/index.tsx",
-                                    lineNumber: 2777,
+                                    lineNumber: 2781,
                                     columnNumber: 15
                                 }, this),
                                 authError && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -4510,7 +4541,7 @@ function Home() {
                                     children: authError
                                 }, void 0, false, {
                                     fileName: "[project]/pages/index.tsx",
-                                    lineNumber: 2789,
+                                    lineNumber: 2793,
                                     columnNumber: 17
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("form", {
@@ -4532,7 +4563,7 @@ function Home() {
                                                     children: t.email
                                                 }, void 0, false, {
                                                     fileName: "[project]/pages/index.tsx",
-                                                    lineNumber: 2807,
+                                                    lineNumber: 2811,
                                                     columnNumber: 19
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("input", {
@@ -4553,13 +4584,13 @@ function Home() {
                                                     "data-testid": "input-auth-email"
                                                 }, void 0, false, {
                                                     fileName: "[project]/pages/index.tsx",
-                                                    lineNumber: 2818,
+                                                    lineNumber: 2822,
                                                     columnNumber: 19
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/pages/index.tsx",
-                                            lineNumber: 2806,
+                                            lineNumber: 2810,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -4578,7 +4609,7 @@ function Home() {
                                                     children: t.password
                                                 }, void 0, false, {
                                                     fileName: "[project]/pages/index.tsx",
-                                                    lineNumber: 2838,
+                                                    lineNumber: 2842,
                                                     columnNumber: 19
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("input", {
@@ -4600,13 +4631,13 @@ function Home() {
                                                     "data-testid": "input-auth-password"
                                                 }, void 0, false, {
                                                     fileName: "[project]/pages/index.tsx",
-                                                    lineNumber: 2849,
+                                                    lineNumber: 2853,
                                                     columnNumber: 19
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/pages/index.tsx",
-                                            lineNumber: 2837,
+                                            lineNumber: 2841,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("button", {
@@ -4628,7 +4659,7 @@ function Home() {
                                             children: authLoading2 ? t.pleaseWait : authMode === 'login' ? t.login : t.createAccount
                                         }, void 0, false, {
                                             fileName: "[project]/pages/index.tsx",
-                                            lineNumber: 2869,
+                                            lineNumber: 2873,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("button", {
@@ -4651,13 +4682,13 @@ function Home() {
                                             children: authMode === 'login' ? t.noAccount : t.hasAccount
                                         }, void 0, false, {
                                             fileName: "[project]/pages/index.tsx",
-                                            lineNumber: 2889,
+                                            lineNumber: 2893,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/pages/index.tsx",
-                                    lineNumber: 2805,
+                                    lineNumber: 2809,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("button", {
@@ -4679,24 +4710,24 @@ function Home() {
                                     children: t.cancel
                                 }, void 0, false, {
                                     fileName: "[project]/pages/index.tsx",
-                                    lineNumber: 2911,
+                                    lineNumber: 2915,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/pages/index.tsx",
-                            lineNumber: 2754,
+                            lineNumber: 2758,
                             columnNumber: 13
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/pages/index.tsx",
-                        lineNumber: 2738,
+                        lineNumber: 2742,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/pages/index.tsx",
-                lineNumber: 807,
+                lineNumber: 808,
                 columnNumber: 7
             }, this)
         ]

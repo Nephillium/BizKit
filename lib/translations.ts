@@ -120,6 +120,27 @@ export const translations = {
     networkError: 'Network error. Please check your connection and try again.',
     apiKeyError: 'OpenAI API key is not configured. Please add your API key.',
     generationError: 'An error occurred while generating content. Please try again.',
+    
+    // Language Picker
+    selectLanguage: 'Select language',
+    searchLanguages: 'Search languages...',
+    noLanguagesFound: 'No languages found',
+    customLanguage: 'Custom language...',
+    enterCustomLanguage: 'Enter custom language',
+    backToList: 'Back to list',
+    add: 'Add',
+    
+    // Buy Credits Page
+    pleaseLogIn: 'Please Log In',
+    needToLogIn: 'You need to log in to purchase credits.',
+    goHome: 'Go to Home',
+    backToHome: 'Back to Home',
+    purchaseCredits: 'Purchase credits to generate content',
+    mostPopular: 'Most Popular',
+    perCredit: 'per credit',
+    buyNow: 'Buy Now',
+    creditsAdded: 'Credits have been added to your account!',
+    paymentCanceled: 'Payment was canceled.',
   },
   tr: {
     appName: 'BizKit AI',
@@ -240,6 +261,27 @@ export const translations = {
     networkError: 'Ağ hatası. Lütfen bağlantınızı kontrol edip tekrar deneyin.',
     apiKeyError: 'OpenAI API anahtarı yapılandırılmamış. Lütfen API anahtarınızı ekleyin.',
     generationError: 'İçerik oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.',
+    
+    // Language Picker
+    selectLanguage: 'Dil seçin',
+    searchLanguages: 'Dil ara...',
+    noLanguagesFound: 'Dil bulunamadı',
+    customLanguage: 'Özel dil...',
+    enterCustomLanguage: 'Özel dil girin',
+    backToList: 'Listeye dön',
+    add: 'Ekle',
+    
+    // Buy Credits Page
+    pleaseLogIn: 'Giriş Yapmanız Gerekiyor',
+    needToLogIn: 'Kredi satın almak için giriş yapmanız gerekiyor.',
+    goHome: 'Ana Sayfaya Dön',
+    backToHome: 'Ana Sayfaya Dön',
+    purchaseCredits: 'İçerik oluşturmak için kredi satın alın',
+    mostPopular: 'En Popüler',
+    perCredit: 'kredi başına',
+    buyNow: 'Satın Al',
+    creditsAdded: 'Krediler hesabınıza eklendi!',
+    paymentCanceled: 'Ödeme iptal edildi.',
   },
 }
 
