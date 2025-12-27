@@ -40,9 +40,12 @@ async function apiRequest<T>(
   options: RequestInit = {}
 ): Promise<{ data: T | null; error?: string; ok: boolean }> {
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
     ...(options.headers as Record<string, string>),
   };
+
+  if (options.method && options.method !== 'GET') {
+    headers['Content-Type'] = 'application/json';
+  }
 
   if (authToken) {
     headers['Authorization'] = `Bearer ${authToken}`;

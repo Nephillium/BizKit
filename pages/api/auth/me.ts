@@ -9,7 +9,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const jwtPayload = getUserFromRequest(req.headers.cookie, req.headers.authorization);
 
   if (!jwtPayload) {
-    return res.status(200).json({ ok: true, user: null });
+    return res.status(401).json({ ok: false, user: null, error: 'Not authenticated' });
   }
 
   const user = await findUserById(jwtPayload.id);

@@ -245,7 +245,14 @@ function getTokenFromCookie(cookieHeader) {
     }, {});
     return cookies.bizkit_token || null;
 }
-function getUserFromRequest(cookieHeader) {
+function getUserFromRequest(cookieHeader, authHeader) {
+    // First try Authorization header (for mobile apps)
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        const payload = verifyToken(token);
+        if (payload) return payload;
+    }
+    // Fall back to cookie (for web app)
     const token = getTokenFromCookie(cookieHeader);
     if (!token) return null;
     return verifyToken(token);
@@ -311,11 +318,12 @@ async function handler(req, res) {
             error: 'Method not allowed'
         });
     }
-    const jwtPayload = (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$users$2e$ts__$5b$api$5d$__$28$ecmascript$29$__["getUserFromRequest"])(req.headers.cookie);
+    const jwtPayload = (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$users$2e$ts__$5b$api$5d$__$28$ecmascript$29$__["getUserFromRequest"])(req.headers.cookie, req.headers.authorization);
     if (!jwtPayload) {
-        return res.status(200).json({
-            ok: true,
-            user: null
+        return res.status(401).json({
+            ok: false,
+            user: null,
+            error: 'Not authenticated'
         });
     }
     const user = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$users$2e$ts__$5b$api$5d$__$28$ecmascript$29$__["findUserById"])(jwtPayload.id);
