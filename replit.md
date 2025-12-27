@@ -8,6 +8,8 @@ The application uses a Next.js architecture with React, TypeScript, and **Postgr
 
 ## Recent Changes (Dec 2024)
 
+- **React Native Mobile App** - Complete mobile app in `/mobile` directory for iOS/Android
+- **Bearer Token Auth Support** - API now supports Authorization header for mobile apps
 - **PostgreSQL database integration** - Users stored persistently in Neon PostgreSQL
 - **Credits system** - Users start with 0 credits, admins bypass credit checks
 - **Stripe payments** - Users can purchase credits via Stripe checkout
@@ -19,6 +21,29 @@ The application uses a Next.js architecture with React, TypeScript, and **Postgr
 - **1 free use limit** - Anonymous users get 1 generation, then must register
 - **Turkish language support** - Full UI translation with language selector
 - **Dual OpenAI support** - Works with Replit AI Integrations or standard OPENAI_API_KEY
+
+## Mobile App
+
+The `/mobile` directory contains a React Native/Expo mobile app:
+
+**Features:**
+- Login/Register screens with secure token storage
+- Content generation for all 4 content types
+- Credits display and purchase via Stripe
+- Bilingual support (English/Turkish)
+- Tab navigation (Home, Profile)
+
+**Building the Mobile App:**
+1. `cd mobile && npm install` - Install dependencies
+2. Update `src/lib/api.ts` with your backend URL
+3. `npm start` - Start Expo development server
+4. Use Expo Go app to test on your phone
+
+**Production Builds:**
+- iOS: `npx eas build --platform ios`
+- Android: `npx eas build --platform android`
+
+See `mobile/README.md` for full documentation.
 
 ## User Preferences
 

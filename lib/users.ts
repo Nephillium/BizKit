@@ -135,7 +135,15 @@ export function getTokenFromCookie(cookieHeader: string | undefined): string | n
   return cookies.bizkit_token || null;
 }
 
-export function getUserFromRequest(cookieHeader: string | undefined): JWTPayload | null {
+export function getUserFromRequest(cookieHeader: string | undefined, authHeader?: string | undefined): JWTPayload | null {
+  // First try Authorization header (for mobile apps)
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    const payload = verifyToken(token);
+    if (payload) return payload;
+  }
+  
+  // Fall back to cookie (for web app)
   const token = getTokenFromCookie(cookieHeader);
   if (!token) return null;
   return verifyToken(token);

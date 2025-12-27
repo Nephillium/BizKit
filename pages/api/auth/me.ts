@@ -6,7 +6,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ ok: false, error: 'Method not allowed' });
   }
 
-  const jwtPayload = getUserFromRequest(req.headers.cookie);
+  const jwtPayload = getUserFromRequest(req.headers.cookie, req.headers.authorization);
 
   if (!jwtPayload) {
     return res.status(200).json({ ok: true, user: null });

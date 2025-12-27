@@ -184,7 +184,7 @@ export default async function handler(
     return res.status(500).json({ ok: false, error: 'missing_openai_key' })
   }
 
-  const jwtPayload = getUserFromRequest(req.headers.cookie)
+  const jwtPayload = getUserFromRequest(req.headers.cookie, req.headers.authorization)
   
   const isLoggedIn = !!jwtPayload
   const isAdmin = jwtPayload?.role === 'admin'
