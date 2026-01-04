@@ -202,6 +202,41 @@ async function callHuggingFace(prompt: string, maxTokens: number, temperature: n
   return JSON.stringify(result)
 }
 
+async function callLMStudio(prompt: string, maxTokens: number, temperature: number): Promise<string> {
+  const baseUrl = process.env.LMSTUDIO_API_URL || 'http://localhost:1234/v1'
+  const model = process.env.LMSTUDIO_MODEL || 'local-model'
+
+  const response = await fetch(`${baseUrl}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer lm-studio',
+    },
+    body: JSON.stringify({
+      model: model,
+      messages: [
+        { role: 'user', content: prompt }
+      ],
+      max_tokens: maxTokens,
+      temperature: temperature,
+    }),
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    console.error('LM Studio API error:', errorText)
+    throw new Error(`LM Studio API error: ${response.status}`)
+  }
+
+  const result = await response.json()
+  
+  if (result.choices?.[0]?.message?.content) {
+    return result.choices[0].message.content
+  }
+  
+  throw new Error('Invalid LM Studio response')
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<ApiResponse>
@@ -210,9 +245,10 @@ export default async function handler(
     return res.status(405).json({ ok: false, error: 'method_not_allowed' })
   }
 
+  const useLMStudio = !!process.env.LMSTUDIO_API_URL
   const huggingFaceKey = process.env.HUGGINGFACE_API_KEY
 
-  if (!huggingFaceKey) {
+  if (!useLMStudio && !huggingFaceKey) {
     return res.status(500).json({ ok: false, error: 'missing_api_key' })
   }
 
@@ -266,7 +302,13 @@ export default async function handler(
       prompt = `${prompt}\n\nAdditional Instructions: ${customInstructions}`
     }
 
-    const content = await callHuggingFace(prompt, maxTokens, temperature)
+    let content: string
+
+    if (useLMStudio) {
+      content = await callLMStudio(prompt, maxTokens, temperature)
+    } else {
+      content = await callHuggingFace(prompt, maxTokens, temperature)
+    }
 
     const headers: string[] = []
 
@@ -308,6 +350,13 @@ export default async function handler(
       return res.status(200).json({
         ok: true,
         output: 'The AI model is loading. Please try again in a few seconds.',
+      })
+    }
+
+    if (errorMessage.includes('ECONNREFUSED') || errorMessage.includes('fetch failed')) {
+      return res.status(500).json({ 
+        ok: false, 
+        error: 'Cannot connect to LM Studio. Make sure it is running and accessible.' 
       })
     }
 

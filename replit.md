@@ -106,11 +106,16 @@ Preferred communication style: Simple, everyday language.
 
 ### External Dependencies
 
-**AI Integration: Hugging Face Inference API**
-- Content generation powered by Mistral-7B-Instruct model
+**AI Integration: Hugging Face or LM Studio**
+- Supports two AI backends:
+  1. **Hugging Face** (cloud) - Free Mistral-7B-Instruct model
+  2. **LM Studio** (local) - Any model you run locally
 - API route at `/api/generate` handles AI requests
-- Uses free Hugging Face Inference API
-- Environment variable: HUGGINGFACE_API_KEY
+- LM Studio takes priority if LMSTUDIO_API_URL is set
+- Environment variables:
+  - `HUGGINGFACE_API_KEY` - For Hugging Face (free at huggingface.co)
+  - `LMSTUDIO_API_URL` - LM Studio server URL (e.g., http://your-ip:1234/v1)
+  - `LMSTUDIO_MODEL` - Model name in LM Studio (default: local-model)
 
 ## Project Structure
 
@@ -152,7 +157,11 @@ schema.sql          # Database schema documentation
 **Required:**
 - `DATABASE_URL` - PostgreSQL connection string (Neon)
 - `SESSION_SECRET` or `JWT_SECRET` - For signing JWT tokens
+
+**For AI (choose one):**
 - `HUGGINGFACE_API_KEY` - Hugging Face API token (free at huggingface.co)
+- `LMSTUDIO_API_URL` - LM Studio server URL (e.g., https://your-ngrok-url.ngrok.io/v1)
+- `LMSTUDIO_MODEL` - Model name in LM Studio (optional, default: local-model)
 
 **For Stripe payments:**
 - `STRIPE_SECRET_KEY` - Stripe secret key (sk_live_... or sk_test_...)
