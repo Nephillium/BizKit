@@ -1,9 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import OpenAI from 'openai'
 import { parse, serialize } from 'cookie'
 import { getUserFromRequest, getUserCredits, addCredits, incrementUserUsage } from '../../lib/users'
 
-type ModelOption = 'gpt-4o-mini' | 'gpt-4o'
 type LengthOption = 'short' | 'standard' | 'detailed'
 type Tool = 'cold_email' | 'proposal' | 'contract' | 'social_pack'
 
@@ -48,7 +46,6 @@ interface SocialPackInputs {
 type Inputs = ColdEmailInputs | ProposalInputs | ContractInputs | SocialPackInputs
 
 interface PremiumOptions {
-  model?: ModelOption
   length?: LengthOption
   creativity?: number
   customInstructions?: string
@@ -69,13 +66,13 @@ interface ApiResponse {
   freeUsed?: boolean
 }
 
-function buildPrompts(tool: Tool, inputs: Inputs): { systemPrompt: string; userPrompt: string } {
+function buildPrompt(tool: Tool, inputs: Inputs): string {
   switch (tool) {
     case 'cold_email': {
       const { target, service, tone, language } = inputs as ColdEmailInputs
-      return {
-        systemPrompt: 'You are an expert B2B sales copywriter.',
-        userPrompt: `Write 3 short cold email variants for the following:
+      return `You are an expert B2B sales copywriter.
+
+Write 3 short cold email variants for the following:
 
 Target audience: ${target || 'business owners'}
 Service being offered: ${service || 'consulting services'}
@@ -86,15 +83,14 @@ Each email should include:
 - A compelling subject line
 - A concise body (3-5 sentences max)
 
-Return as a numbered list (1, 2, 3) with clear separation between each variant.`,
-      }
+Return as a numbered list (1, 2, 3) with clear separation between each variant.`
     }
 
     case 'proposal': {
       const { clientType, projectScope, deliverables, budgetRange, language } = inputs as ProposalInputs
-      return {
-        systemPrompt: 'You are a professional consultant writing project proposals.',
-        userPrompt: `Write a professional project proposal with the following details:
+      return `You are a professional consultant writing project proposals.
+
+Write a professional project proposal with the following details:
 
 Client Type: ${clientType || 'business client'}
 Project Scope: ${projectScope || 'to be defined'}
@@ -111,15 +107,14 @@ Structure the proposal with these sections:
 6. Investment
 7. Next Steps
 
-Make it professional, clear, and persuasive.`,
-      }
+Make it professional, clear, and persuasive.`
     }
 
     case 'contract': {
       const { clientName, providerName, serviceDescription, paymentTerms, jurisdiction, language } = inputs as ContractInputs
-      return {
-        systemPrompt: 'You draft simple, plain-language service agreements (not legal advice).',
-        userPrompt: `Draft a simple service agreement with the following details:
+      return `You draft simple, plain-language service agreements (not legal advice).
+
+Draft a simple service agreement with the following details:
 
 Client Name: ${clientName || '[CLIENT NAME]'}
 Provider Name: ${providerName || '[PROVIDER NAME]'}
@@ -138,15 +133,14 @@ Include these clauses:
 7. Termination
 8. Governing Law
 
-Keep it concise and in plain language. Add a disclaimer that this is not legal advice.`,
-      }
+Keep it concise and in plain language. Add a disclaimer that this is not legal advice.`
     }
 
     case 'social_pack': {
       const { businessType, niche, tone, platform, language } = inputs as SocialPackInputs
-      return {
-        systemPrompt: 'You are a social media strategist.',
-        userPrompt: `Create 10 short social media post ideas for the following:
+      return `You are a social media strategist.
+
+Create 10 short social media post ideas for the following:
 
 Business Type: ${businessType || 'business'}
 Niche: ${niche || 'general'}
@@ -155,13 +149,57 @@ Platform: ${platform || 'social media'}
 Language: ${language || 'English'}
 
 Provide 10 numbered post ideas (1-10) with captions ready to use.
-Each post should be engaging and appropriate for the specified platform.`,
-      }
+Each post should be engaging and appropriate for the specified platform.`
     }
 
     default:
       throw new Error(`Unknown tool: ${tool}`)
   }
+}
+
+async function callHuggingFace(prompt: string, maxTokens: number, temperature: number): Promise<string> {
+  const apiKey = process.env.HUGGINGFACE_API_KEY
+  
+  if (!apiKey) {
+    throw new Error('HUGGINGFACE_API_KEY not configured')
+  }
+
+  const response = await fetch(
+    'https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3',
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        inputs: prompt,
+        parameters: {
+          max_new_tokens: maxTokens,
+          temperature: temperature,
+          return_full_text: false,
+        },
+      }),
+    }
+  )
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    console.error('Hugging Face API error:', errorText)
+    throw new Error(`Hugging Face API error: ${response.status}`)
+  }
+
+  const result = await response.json()
+  
+  if (Array.isArray(result) && result[0]?.generated_text) {
+    return result[0].generated_text
+  }
+  
+  if (result.error) {
+    throw new Error(result.error)
+  }
+  
+  return JSON.stringify(result)
 }
 
 export default async function handler(
@@ -172,16 +210,10 @@ export default async function handler(
     return res.status(405).json({ ok: false, error: 'method_not_allowed' })
   }
 
-  const replitBaseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL
-  const replitApiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY
-  const standardApiKey = process.env.OPENAI_API_KEY
+  const huggingFaceKey = process.env.HUGGINGFACE_API_KEY
 
-  const useReplitIntegrations = replitBaseURL && replitApiKey
-  const apiKey = useReplitIntegrations ? replitApiKey : standardApiKey
-  const baseURL = useReplitIntegrations ? replitBaseURL : undefined
-
-  if (!apiKey) {
-    return res.status(500).json({ ok: false, error: 'missing_openai_key' })
+  if (!huggingFaceKey) {
+    return res.status(500).json({ ok: false, error: 'missing_api_key' })
   }
 
   const jwtPayload = getUserFromRequest(req.headers.cookie, req.headers.authorization)
@@ -221,7 +253,6 @@ export default async function handler(
       return res.status(400).json({ ok: false, error: 'invalid_request' })
     }
 
-    const model: ModelOption = premiumOptions?.model || 'gpt-4o-mini'
     const length: LengthOption = premiumOptions?.length || 'standard'
     const creativity = premiumOptions?.creativity ?? 50
     const customInstructions = premiumOptions?.customInstructions || ''
@@ -229,28 +260,13 @@ export default async function handler(
     const temperature = Math.min(Math.max(creativity / 100, 0), 1)
     const maxTokens = MAX_TOKENS_MAP[length]
 
-    const { systemPrompt, userPrompt } = buildPrompts(tool, inputs)
+    let prompt = buildPrompt(tool, inputs)
 
-    const finalSystemPrompt = customInstructions
-      ? `${systemPrompt}\n\nAdditional Instructions from User:\n${customInstructions}`
-      : systemPrompt
+    if (customInstructions) {
+      prompt = `${prompt}\n\nAdditional Instructions: ${customInstructions}`
+    }
 
-    const openai = new OpenAI({
-      ...(baseURL && { baseURL }),
-      apiKey,
-    })
-
-    const response = await openai.chat.completions.create({
-      model,
-      messages: [
-        { role: 'system', content: finalSystemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-      max_tokens: maxTokens,
-      temperature,
-    })
-
-    const content = response.choices[0]?.message?.content || ''
+    const content = await callHuggingFace(prompt, maxTokens, temperature)
 
     const headers: string[] = []
 
@@ -284,22 +300,17 @@ export default async function handler(
       output: content,
     })
   } catch (error: any) {
-    console.error('OpenAI API Error:', error)
+    console.error('API Error:', error)
 
     const errorMessage = error?.message || String(error)
-    const errorCode = error?.code || ''
 
-    if (
-      errorMessage.includes('429') ||
-      errorMessage.includes('insufficient_quota') ||
-      errorCode === 'insufficient_quota'
-    ) {
+    if (errorMessage.includes('loading')) {
       return res.status(200).json({
         ok: true,
-        output: 'AI quota is exhausted on the server. Please add credits to the OpenAI account.',
+        output: 'The AI model is loading. Please try again in a few seconds.',
       })
     }
 
-    return res.status(500).json({ ok: false, error: 'openai_error' })
+    return res.status(500).json({ ok: false, error: 'generation_error' })
   }
 }

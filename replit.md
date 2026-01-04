@@ -20,7 +20,7 @@ The application uses a Next.js architecture with React, TypeScript, and **Postgr
 - **Super user support** - Via SUPER_USER_EMAIL env var (any registered user with this email becomes admin)
 - **1 free use limit** - Anonymous users get 1 generation, then must register
 - **Turkish language support** - Full UI translation with language selector
-- **Dual OpenAI support** - Works with Replit AI Integrations or standard OPENAI_API_KEY
+- **Hugging Face AI** - Uses free Hugging Face Inference API (Mistral-7B model)
 
 ## Mobile App
 
@@ -106,14 +106,11 @@ Preferred communication style: Simple, everyday language.
 
 ### External Dependencies
 
-**AI Integration: OpenAI API**
-- Content generation powered by GPT-4o-mini model
+**AI Integration: Hugging Face Inference API**
+- Content generation powered by Mistral-7B-Instruct model
 - API route at `/api/generate` handles AI requests
-- Supports both Replit AI Integrations and standard OpenAI API key
-- Environment variables:
-  - AI_INTEGRATIONS_OPENAI_BASE_URL (Replit)
-  - AI_INTEGRATIONS_OPENAI_API_KEY (Replit)
-  - OPENAI_API_KEY (standard, for Vercel deployment)
+- Uses free Hugging Face Inference API
+- Environment variable: HUGGINGFACE_API_KEY
 
 ## Project Structure
 
@@ -155,16 +152,14 @@ schema.sql          # Database schema documentation
 **Required:**
 - `DATABASE_URL` - PostgreSQL connection string (Neon)
 - `SESSION_SECRET` or `JWT_SECRET` - For signing JWT tokens
+- `HUGGINGFACE_API_KEY` - Hugging Face API token (free at huggingface.co)
 
-**For Vercel deployment (required):**
+**For Stripe payments:**
 - `STRIPE_SECRET_KEY` - Stripe secret key (sk_live_... or sk_test_...)
 - `STRIPE_PUBLISHABLE_KEY` - Stripe publishable key (pk_live_... or pk_test_...)
 - `STRIPE_WEBHOOK_SECRET` - Stripe webhook signing secret (whsec_...)
-- `OPENAI_API_KEY` - Standard OpenAI API key
 
 **Optional:**
-- `AI_INTEGRATIONS_OPENAI_BASE_URL` - Replit AI Integrations URL (Replit only)
-- `AI_INTEGRATIONS_OPENAI_API_KEY` - Replit AI Integrations key (Replit only)
 - `SUPER_USER_EMAIL` - Email address for super user/admin access
 
 Note: On Replit, Stripe credentials are automatically provided via the Stripe connector integration. On Vercel or other platforms, you must set the STRIPE_* environment variables manually.
@@ -188,6 +183,6 @@ Note: On Replit, Stripe credentials are automatically provided via the Stripe co
 2. Connect to Vercel
 3. Add environment variables:
    - DATABASE_URL (required)
-   - OPENAI_API_KEY (required)
+   - HUGGINGFACE_API_KEY (required)
    - SESSION_SECRET (required)
    - SUPER_USER_EMAIL (optional)
