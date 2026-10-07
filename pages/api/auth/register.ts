@@ -13,8 +13,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ ok: false, error: 'Email and password are required' });
   }
 
-  if (password.length < 4) {
-    return res.status(400).json({ ok: false, error: 'Password must be at least 4 characters' });
+  if (password.length < 10) {
+    return res.status(400).json({ ok: false, error: 'Password must be at least 10 characters' });
   }
 
   const result = await registerUser(email, password);

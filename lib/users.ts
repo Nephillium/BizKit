@@ -20,7 +20,19 @@ export interface JWTPayload {
   role: UserRole;
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET || 'bizkit-dev-secret';
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET || process.env.SESSION_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('JWT_SECRET or SESSION_SECRET is required in production');
+    }
+    return 'bizkit-dev-secret';
+  }
+  if (process.env.NODE_ENV === 'production' && secret.length < 32) {
+    throw new Error('JWT secret must be at least 32 characters in production');
+  }
+  return secret;
+}
 const SUPER_USER_EMAIL = process.env.SUPER_USER_EMAIL;
 const SALT_ROUNDS = 10;
 
@@ -112,12 +124,12 @@ export function generateToken(user: { id: string; email: string; role: UserRole 
     email: user.email,
     role: user.role,
   };
-  return sign(payload, JWT_SECRET, { expiresIn: '7d' });
+  return sign(payload, getJwtSecret(), { expiresIn: '7d' });
 }
 
 export function verifyToken(token: string): JWTPayload | null {
   try {
-    return verify(token, JWT_SECRET) as JWTPayload;
+    return verify(token, getJwtSecret()) as JWTPayload;
   } catch {
     return null;
   }

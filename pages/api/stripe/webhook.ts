@@ -34,12 +34,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-    if (webhookSecret) {
-      event = stripe.webhooks.constructEvent(buf.toString(), sig, webhookSecret);
-    } else {
-      const payload = JSON.parse(buf.toString());
-      event = payload;
+    if (!webhookSecret) {
+      console.error('STRIPE_WEBHOOK_SECRET is not configured');
+      return res.status(503).json({ error: 'Webhook verification is not configured' });
     }
+    event = stripe.webhooks.constructEvent(buf, sig, webhookSecret);
   } catch (err: any) {
     console.error('Webhook signature verification failed:', err.message);
     return res.status(400).json({ error: `Webhook Error: ${err.message}` });

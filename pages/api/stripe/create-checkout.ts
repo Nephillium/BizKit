@@ -46,9 +46,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    const origin =
-      (req.headers.origin as string) ||
-      `${req.headers['x-forwarded-proto'] || 'https'}://${req.headers.host}`;
+    const configuredBaseUrl = process.env.APP_BASE_URL;
+    if (process.env.NODE_ENV === 'production' && !configuredBaseUrl) {
+      return res.status(500).json({ error: 'app_base_url_not_configured' });
+    }
+    const origin = configuredBaseUrl
+      ? new URL(configuredBaseUrl).origin
+      : ((req.headers.origin as string) ||
+        `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}`);
 
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
