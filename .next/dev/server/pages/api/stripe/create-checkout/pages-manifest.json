@@ -1,3 +1,0 @@
-{
-  "/api/stripe/create-checkout": "pages/api/stripe/create-checkout.js"
-}

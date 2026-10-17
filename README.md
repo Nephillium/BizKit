@@ -23,6 +23,12 @@ Dependency installation alone does not configure database or external services. 
 
 Set DATABASE_URL, JWT_SECRET (at least 32 random characters), APP_BASE_URL, DB_INIT_TOKEN and Stripe credentials including STRIPE_WEBHOOK_SECRET. See .env.example. Never use the development JWT fallback in production.
 
+Public registration always creates a normal user. Admin is created only when `SUPER_USER_EMAIL` and `SUPER_USER_PASSWORD` are set in the server environment and `POST /api/init-db` runs. Login does not promote accounts. If that email already exists as a non-admin, it is left unchanged.
+
+Anonymous callers get one free generation. The limit is stored in Postgres (keyed by an HMAC of the client address), not in a browser cookie. Set `TRUST_PROXY=1` only behind one trusted reverse proxy. In production the free tier fails closed if the quota cannot be recorded.
+
+`ADMIN_SECRET` belongs in Replit Secrets or the deployment environment. Do not commit it. The previous value is still in git history and must be rotated.
+
 ## Code layout
 
 The web app uses Next.js (`pages/`, `lib/`). The separate Expo app is in `mobile/`.

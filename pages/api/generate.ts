@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { parse, serialize } from 'cookie'
 import { getUserFromRequest, getUserCredits, addCredits, incrementUserUsage } from '../../lib/users'
+import { claimAnonymousGeneration, releaseAnonymousGeneration } from '../../lib/anonymousQuota'
 
 type LengthOption = 'short' | 'standard' | 'detailed'
 type Tool = 'cold_email' | 'proposal' | 'contract' | 'social_pack'
@@ -258,20 +258,6 @@ export default async function handler(
   const isAdmin = jwtPayload?.role === 'admin'
   const userId = jwtPayload?.id
 
-  if (!isLoggedIn) {
-    const cookies = parse(req.headers.cookie || '')
-    const freeUsed = cookies.bizkit_free_used === '1'
-    
-    if (freeUsed) {
-      return res.status(403).json({
-        ok: false,
-        error: 'Free quota used. Please register or login for unlimited access.',
-        requiresLogin: true,
-        freeUsed: true,
-      })
-    }
-  }
-
   const userCredits = isLoggedIn && userId ? await getUserCredits(userId) : 0
 
   if (isLoggedIn && !isAdmin && userCredits <= 0) {
@@ -282,11 +268,32 @@ export default async function handler(
     })
   }
 
+  let releaseAnonymousClaim = false
+
   try {
     const { tool, inputs, premiumOptions } = req.body as RequestBody
 
     if (!tool || !inputs) {
       return res.status(400).json({ ok: false, error: 'invalid_request' })
+    }
+
+    if (!isLoggedIn) {
+      const claim = await claimAnonymousGeneration(req)
+      if (claim === 'used') {
+        return res.status(403).json({
+          ok: false,
+          error: 'Free quota used. Please register or login for unlimited access.',
+          requiresLogin: true,
+          freeUsed: true,
+        })
+      }
+      if (claim === 'unavailable') {
+        return res.status(503).json({
+          ok: false,
+          error: 'Free trial is temporarily unavailable. Please try again later.',
+        })
+      }
+      releaseAnonymousClaim = true
     }
 
     const length: LengthOption = premiumOptions?.length || 'standard'
@@ -310,17 +317,7 @@ export default async function handler(
       content = await callHuggingFace(prompt, maxTokens, temperature)
     }
 
-    const headers: string[] = []
-
-    if (!isLoggedIn) {
-      headers.push(serialize('bizkit_free_used', '1', {
-        httpOnly: false,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 365,
-        path: '/',
-      }))
-    }
+    releaseAnonymousClaim = false
 
     if (isLoggedIn && userId) {
       await incrementUserUsage(userId)
@@ -333,15 +330,14 @@ export default async function handler(
       }
     }
 
-    if (headers.length > 0) {
-      res.setHeader('Set-Cookie', headers)
-    }
-
     return res.status(200).json({
       ok: true,
       output: content,
     })
   } catch (error: any) {
+    if (releaseAnonymousClaim) {
+      await releaseAnonymousGeneration(req)
+    }
     console.error('API Error:', error)
 
     const errorMessage = error?.message || String(error)

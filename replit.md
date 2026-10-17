@@ -17,7 +17,7 @@ The application uses a Next.js architecture with React, TypeScript, and **Postgr
 - **Buy Credits page** - /buy-credits with three credit packages ($5, $20, $35)
 - **Bcrypt password hashing** - Secure password storage with salts
 - **JWT-based authentication** - Email/password registration and login
-- **Super user support** - Via SUPER_USER_EMAIL env var (any registered user with this email becomes admin)
+- **Super user support** - Provisioned on the server from SUPER_USER_EMAIL and SUPER_USER_PASSWORD. Public registration never grants admin.
 - **1 free use limit** - Anonymous users get 1 generation, then must register
 - **Turkish language support** - Full UI translation with language selector
 - **Hugging Face AI** - Uses free Hugging Face Inference API (Mistral-7B model)
@@ -87,12 +87,14 @@ Preferred communication style: Simple, everyday language.
 - Logout: POST /api/auth/logout
 
 **Super User / Admin**
-- Set SUPER_USER_EMAIL env var to an email address
-- When a registered user with that email logs in, they get "admin" role
+- Set SUPER_USER_EMAIL and SUPER_USER_PASSWORD in Replit Secrets (not in the repo)
+- Call POST /api/init-db to create that account as a verified admin
+- Public signup cannot register that email, and login does not change anyone's role
+- If the email already exists as a non-admin, init-db will not elevate it
 - Admins have unlimited generations (bypass credit checks)
 
 **Usage Limits**
-- Anonymous users: 1 free generation (tracked via bizkit_free_used cookie)
+- Anonymous users: 1 free generation, recorded server-side by client address (not a browser cookie)
 - Registered users: Require credits to generate (start with 0)
 - Admin users: Unlimited generations
 
@@ -169,7 +171,10 @@ schema.sql          # Database schema documentation
 - `STRIPE_WEBHOOK_SECRET` - Stripe webhook signing secret (whsec_...)
 
 **Optional:**
-- `SUPER_USER_EMAIL` - Email address for super user/admin access
+- `SUPER_USER_EMAIL` - Email reserved for the server-provisioned admin
+- `SUPER_USER_PASSWORD` - Password for that admin (at least 10 characters)
+- `ADMIN_SECRET` - Set only in Replit Secrets. Do not commit a value
+- `TRUST_PROXY` - Set to 1 behind one trusted reverse proxy so the free-generation limit sees the client address
 
 Note: On Replit, Stripe credentials are automatically provided via the Stripe connector integration. On Vercel or other platforms, you must set the STRIPE_* environment variables manually.
 
@@ -183,7 +188,7 @@ Note: On Replit, Stripe credentials are automatically provided via the Stripe co
 
 1. Add DATABASE_URL secret with Neon PostgreSQL connection string
 2. Call POST /api/init-db to create tables
-3. Tables created: users, credit_transactions
+3. Tables created: users, credit_transactions, anonymous_generations. Existing databases gain `users.email_verified`.
 
 ## Deployment
 

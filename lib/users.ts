@@ -1,6 +1,9 @@
 import bcrypt from 'bcryptjs';
 import { sign, verify } from 'jsonwebtoken';
 import { query, queryOne, pool } from './db';
+import { publicSignupBlockReason, roleAfterAuthentication, superUserEmail } from './superUserPolicy';
+
+export { isUserSuperUser, publicSignupBlockReason, roleAfterAuthentication } from './superUserPolicy';
 
 export type UserRole = 'user' | 'admin';
 
@@ -33,8 +36,8 @@ function getJwtSecret(): string {
   }
   return secret;
 }
-const SUPER_USER_EMAIL = process.env.SUPER_USER_EMAIL;
 const SALT_ROUNDS = 10;
+const MIN_PASSWORD_LENGTH = 10;
 
 async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, SALT_ROUNDS);
@@ -42,11 +45,6 @@ async function hashPassword(password: string): Promise<string> {
 
 async function verifyPassword(password: string, hash: string): Promise<boolean> {
   return bcrypt.compare(password, hash);
-}
-
-export function isUserSuperUser(email: string): boolean {
-  if (!SUPER_USER_EMAIL) return false;
-  return email.toLowerCase().trim() === SUPER_USER_EMAIL.toLowerCase().trim();
 }
 
 export async function findUserByEmail(email: string): Promise<User | null> {
@@ -68,6 +66,11 @@ export async function registerUser(
   password: string
 ): Promise<User | { error: string }> {
   const normalizedEmail = email.toLowerCase().trim();
+
+  const reserved = publicSignupBlockReason(normalizedEmail);
+  if (reserved) {
+    return { error: reserved };
+  }
   
   const existing = await findUserByEmail(normalizedEmail);
   if (existing) {
@@ -75,7 +78,7 @@ export async function registerUser(
   }
   
   const passwordHash = await hashPassword(password);
-  const role: UserRole = isUserSuperUser(normalizedEmail) ? 'admin' : 'user';
+  const role: UserRole = 'user';
   
   const result = await queryOne<User>(
     `INSERT INTO users (email, password_hash, role, credits, usage_count) 
@@ -106,12 +109,8 @@ export async function loginUser(
   if (!valid) {
     return { error: 'Invalid email or password' };
   }
-  
-  let role = user.role;
-  if (isUserSuperUser(normalizedEmail) && role !== 'admin') {
-    await query('UPDATE users SET role = $1 WHERE id = $2', ['admin', user.id]);
-    role = 'admin';
-  }
+
+  const role = roleAfterAuthentication(user.role, normalizedEmail);
   
   const token = generateToken({ ...user, role });
   const { password_hash, ...userWithoutPassword } = { ...user, role };
@@ -198,6 +197,50 @@ export async function addCredits(
     return false;
   } finally {
     client.release();
+  }
+}
+
+export type SuperUserProvisionStatus =
+  | 'skipped'
+  | 'created'
+  | 'already_admin'
+  | 'not_elevated'
+  | 'invalid_password';
+
+/**
+ * Create the allowlisted admin from server environment variables.
+ * Does not read the request body, and does not promote an existing non-admin
+ * (that account may have been registered by someone else).
+ */
+export async function provisionSuperUser(): Promise<{ status: SuperUserProvisionStatus }> {
+  const email = superUserEmail();
+  const password = process.env.SUPER_USER_PASSWORD || '';
+  if (!email || !password) {
+    return { status: 'skipped' };
+  }
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    return { status: 'invalid_password' };
+  }
+
+  const existing = await findUserByEmail(email);
+  if (existing) {
+    return { status: existing.role === 'admin' ? 'already_admin' : 'not_elevated' };
+  }
+
+  const passwordHash = await hashPassword(password);
+  try {
+    const created = await queryOne<User>(
+      `INSERT INTO users (email, password_hash, role, credits, usage_count, email_verified)
+       VALUES ($1, $2, 'admin', 0, 0, TRUE)
+       RETURNING id, email, password_hash, role, credits, usage_count, created_at`,
+      [email, passwordHash]
+    );
+    return { status: created ? 'created' : 'not_elevated' };
+  } catch (error) {
+    const code = (error as { code?: string }).code;
+    if (code !== '23505') throw error;
+    const raced = await findUserByEmail(email);
+    return { status: raced?.role === 'admin' ? 'already_admin' : 'not_elevated' };
   }
 }
 

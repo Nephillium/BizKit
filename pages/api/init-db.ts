@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { pool } from '../../lib/db';
+import { provisionSuperUser } from '../../lib/users';
 import crypto from 'crypto';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -32,6 +33,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         role TEXT DEFAULT 'user',
         credits INTEGER DEFAULT 0,
         usage_count INTEGER DEFAULT 0,
+        email_verified BOOLEAN NOT NULL DEFAULT FALSE,
         created_at TIMESTAMPTZ DEFAULT NOW()
       )
     `);
@@ -58,8 +60,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     await client.query('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)');
     await client.query('CREATE INDEX IF NOT EXISTS idx_credit_transactions_user_id ON credit_transactions(user_id)');
+
+    await client.query(`
+      ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT FALSE
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS anonymous_generations (
+        subject_hash TEXT PRIMARY KEY,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+
+    const admin = await provisionSuperUser();
     
-    return res.status(200).json({ ok: true, message: 'Database initialized successfully' });
+    return res.status(200).json({
+      ok: true,
+      message: 'Database initialized successfully',
+      admin: admin.status,
+    });
   } catch (error: any) {
     console.error('Database init error:', error);
     return res.status(500).json({ ok: false, error: error.message });
