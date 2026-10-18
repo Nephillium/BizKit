@@ -20,7 +20,8 @@ externalPort = 8081
 
 [env]
 PORT = "5000"
-# One trusted reverse proxy (Replit). Anonymous quota uses the client address it appends.
+# One trusted reverse proxy (Replit Autoscale / Reserved VM).
+# Anonymous quota uses the rightmost X-Forwarded-For address that proxy appends.
 TRUST_PROXY = "1"
 
 [workflows]
@@ -46,10 +47,3 @@ waitForPort = 5000
 
 [agent]
 integrations = ["javascript_openai_ai_integrations:1.0.0", "javascript_log_in_with_replit:1.0.0", "stripe:2.0.0"]
-
-[userenv]
-
-[userenv.shared]
-# Placeholder only. Set the real ADMIN_SECRET in Replit Secrets (it overrides this).
-# Rotate the previous value; it remains in git history.
-ADMIN_SECRET = "set-in-replit-secrets"

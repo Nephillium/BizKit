@@ -89,12 +89,16 @@ Preferred communication style: Simple, everyday language.
 **Super User / Admin**
 - Set SUPER_USER_EMAIL and SUPER_USER_PASSWORD in Replit Secrets (not in the repo)
 - Call POST /api/init-db to create that account as a verified admin
+- SUPER_USER_PASSWORD is used only when that first create runs. After the admin exists, remove the password from secrets. Leave SUPER_USER_EMAIL in place so public signup keeps rejecting that address
 - Public signup cannot register that email, and login does not change anyone's role
 - If the email already exists as a non-admin, init-db will not elevate it
 - Admins have unlimited generations (bypass credit checks)
+- The admin role is copied into a JWT that lasts 7 days. Generate and `/api/auth/me` trust that token. Demoting the account in the database applies only after the token expires, or immediately if JWT_SECRET is rotated (that signs out every session)
 
 **Usage Limits**
 - Anonymous users: 1 free generation, recorded server-side by client address (not a browser cookie)
+- Set QUOTA_IP_SALT to its own random value. If it is unset, the address hash uses JWT_SECRET or SESSION_SECRET, and rotating that secret resets anonymous quotas
+- TRUST_PROXY=1 trusts one Replit proxy and uses the rightmost X-Forwarded-For address. Confirm that on live traffic before relying on the limit (see Proxy hop check)
 - Registered users: Require credits to generate (start with 0)
 - Admin users: Unlimited generations
 
@@ -171,10 +175,24 @@ schema.sql          # Database schema documentation
 - `STRIPE_WEBHOOK_SECRET` - Stripe webhook signing secret (whsec_...)
 
 **Optional:**
-- `SUPER_USER_EMAIL` - Email reserved for the server-provisioned admin
-- `SUPER_USER_PASSWORD` - Password for that admin (at least 10 characters)
-- `ADMIN_SECRET` - Set only in Replit Secrets. Do not commit a value
-- `TRUST_PROXY` - Set to 1 behind one trusted reverse proxy so the free-generation limit sees the client address
+- `SUPER_USER_EMAIL` - Email reserved for the server-provisioned admin. Leave this set so public signup cannot claim it
+- `SUPER_USER_PASSWORD` - Used only when init-db first creates that admin (at least 10 characters). Remove it from secrets afterwards
+- `QUOTA_IP_SALT` - HMAC salt for anonymous quota keys. Set it explicitly so rotating JWT_SECRET does not reset quotas
+- `TRUST_PROXY` - Set to 1 behind one trusted reverse proxy. The free-generation limit then uses the rightmost X-Forwarded-For address
+- `ADMIN_SECRET` - Unused. The application does not read this variable. Do not set it, and do not reuse an older value from git history
+
+## Proxy hop check
+
+Replit's Autoscale and Reserved VM docs describe one published external port. TLS ends at Replit, and a geography-specific proxy forwards traffic to the app. Deployments expose `X-Forwarded-For`. Those pages do not publish a hop count, and they do not show a second platform proxy appending its own address. The quota code therefore still trusts exactly one hop.
+
+Verify on the published URL. The editor preview can use a different proxy path:
+
+1. From a known public address, request the app without sending `X-Forwarded-For`.
+2. Log the socket remote address and the full `X-Forwarded-For` list for that request, then remove the raw addresses from lasting logs.
+3. One entry equal to your public address means the rightmost value is the client.
+4. Several entries when you sent none, and your address is not rightmost, means more than one proxy appended. The quota would then be shared across callers.
+5. Send `X-Forwarded-For: 203.0.113.50` as well. The rightmost value should remain your public address. If that test value becomes the rightmost entry, `TRUST_PROXY=1` is unsafe.
+6. A proxy in front of Replit, such as Cloudflare with the orange cloud on, is an extra hop. Replit's custom-domain setup expects DNS-only records.
 
 Note: On Replit, Stripe credentials are automatically provided via the Stripe connector integration. On Vercel or other platforms, you must set the STRIPE_* environment variables manually.
 
