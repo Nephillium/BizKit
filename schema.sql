@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
   role TEXT DEFAULT 'user',
   credits INTEGER DEFAULT 0,
   usage_count INTEGER DEFAULT 0,
+  email_verified BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -22,6 +23,12 @@ CREATE TABLE IF NOT EXISTS credit_transactions (
   amount INTEGER NOT NULL,
   reason TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- One anonymous free generation per client address. The address is stored as a keyed hash, not in clear text.
+CREATE TABLE IF NOT EXISTS anonymous_generations (
+  subject_hash TEXT PRIMARY KEY,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- Indexes

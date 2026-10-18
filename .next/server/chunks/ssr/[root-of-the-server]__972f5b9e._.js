@@ -1,3 +1,0 @@
-module.exports=[8171,(a,b,c)=>{b.exports=a.x("react/jsx-runtime",()=>require("react/jsx-runtime"))},27669,(a,b,c)=>{b.exports=a.x("react",()=>require("react"))},67298,a=>{"use strict";var b=a.i(8171),c=a.i(27669);a.s(["default",0,function({Component:a,pageProps:d}){let[e,f]=(0,c.useState)(!1);return((0,c.useEffect)(()=>{f(!0)},[]),e)?(0,b.jsx)(a,{...d}):null}])}];
-
-//# sourceMappingURL=%5Broot-of-the-server%5D__972f5b9e._.js.map

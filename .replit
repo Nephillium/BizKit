@@ -20,6 +20,9 @@ externalPort = 8081
 
 [env]
 PORT = "5000"
+# One trusted reverse proxy (Replit Autoscale / Reserved VM).
+# Anonymous quota uses the rightmost X-Forwarded-For address that proxy appends.
+TRUST_PROXY = "1"
 
 [workflows]
 runButton = "Project"
@@ -44,8 +47,3 @@ waitForPort = 5000
 
 [agent]
 integrations = ["javascript_openai_ai_integrations:1.0.0", "javascript_log_in_with_replit:1.0.0", "stripe:2.0.0"]
-
-[userenv]
-
-[userenv.shared]
-ADMIN_SECRET = "bizkit-admin-2024-secret"
