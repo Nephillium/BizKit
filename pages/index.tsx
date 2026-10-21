@@ -9,14 +9,32 @@ import { translations, getTranslation, type Language } from '../lib/translations
 type Tool = 'cold_email' | 'proposal' | 'contract' | 'social_pack'
 type CopyState = 'idle' | 'copied' | 'error'
 type ExportState = 'idle' | 'exporting'
-type ModelOption = 'gpt-4o-mini' | 'gpt-4o'
 type LengthOption = 'short' | 'standard' | 'detailed'
 
 interface PremiumOptions {
-  model: ModelOption
   length: LengthOption
   creativity: number
   customInstructions: string
+}
+
+interface RuntimeConfig {
+  demoMode: boolean
+  provider: string
+  providerLabel: string
+  providerDetail: string
+  stripeEnabled: boolean
+  demoLogin: { email: string; password: string } | null
+}
+
+function generationErrorText(data: { error?: string; message?: string }): string {
+  if (data.message) return data.message
+  if (data.error === 'no_credits') {
+    return 'You have no credits left. Sign in with the demo account, or buy a pack when Stripe is configured.'
+  }
+  if (data.error === 'generation_error') {
+    return 'Generation failed. If you are using LM Studio or Hugging Face, check that the provider is reachable.'
+  }
+  return data.error || 'An unexpected error occurred.'
 }
 
 interface FormData {
@@ -406,7 +424,7 @@ function LanguagePicker({ value, onChange, testId, t }: LanguagePickerProps) {
 }
 
 export default function Home() {
-  const { user, isLoading: authLoading, isAuthenticated, login, register, logout } = useAuth()
+  const { user, isLoading: authLoading, isAuthenticated, login, register, logout, refresh } = useAuth()
   const [lang, setLang] = useState<Language>('en')
   const t = translations[lang]
   const [activeTab, setActiveTab] = useState<Tool>('cold_email')
@@ -431,17 +449,24 @@ export default function Home() {
   const [authError, setAuthError] = useState('')
   const [authLoading2, setAuthLoading2] = useState(false)
   const [premiumOptions, setPremiumOptions] = useState<PremiumOptions>({
-    model: 'gpt-4o-mini',
     length: 'standard',
     creativity: 50,
     customInstructions: '',
   })
+  const [runtime, setRuntime] = useState<RuntimeConfig | null>(null)
 
   useEffect(() => {
     const savedLang = localStorage.getItem('bizkit_lang') as Language
     if (savedLang && (savedLang === 'en' || savedLang === 'tr')) {
       setLang(savedLang)
     }
+  }, [])
+
+  useEffect(() => {
+    fetch('/api/config')
+      .then((response) => response.json())
+      .then((data: RuntimeConfig) => setRuntime(data))
+      .catch(() => setRuntime(null))
   }, [])
 
   const toggleLanguage = () => {
@@ -495,29 +520,6 @@ export default function Home() {
       console.error('Failed to fetch generations:', err)
     } finally {
       setHistoryLoading(false)
-    }
-  }
-
-  const saveGeneration = async () => {
-    if (!isAuthenticated || !output) return
-    try {
-      const response = await fetch('/api/generations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          toolType: activeTab,
-          inputs: formData[activeTab],
-          output,
-        }),
-      })
-      if (response.ok) {
-        fetchGenerations()
-      }
-    } catch (err) {
-      console.error('Failed to save generation:', err)
     }
   }
 
@@ -696,20 +698,22 @@ export default function Home() {
         if (data.usageCount !== undefined && data.usageLimit !== undefined) {
           setUsageInfo({ count: data.usageCount, limit: data.usageLimit })
         }
+        if (isAuthenticated) {
+          fetchGenerations()
+          refresh()
+        }
       } else {
         setOutput(previousOutput)
         if (data.error === 'usage_limit_exceeded') {
           setUsageInfo({ count: data.usageCount, limit: data.usageLimit })
           setShowSubscriptionPrompt(true)
           setError('')
+        } else if (data.requiresLogin || data.freeUsed) {
+          setShowAuthModal(true)
+          setAuthMode('register')
+          setError(t.freeTrialUsed)
         } else {
-          setError(
-            data.error === 'missing_openai_key'
-              ? 'OpenAI API key is not configured. Please add your API key.'
-              : data.error === 'openai_error'
-              ? 'An error occurred while generating content. Please try again.'
-              : data.error || 'An unexpected error occurred.'
-          )
+          setError(generationErrorText(data))
         }
       }
     } catch (err) {
@@ -758,19 +762,17 @@ export default function Home() {
 
       if (data.ok) {
         setOutput(data.output)
+        if (isAuthenticated) {
+          fetchGenerations()
+          refresh()
+        }
       } else {
         if (data.requiresLogin || data.freeUsed) {
           setShowAuthModal(true)
           setAuthMode('register')
-          setError('Your free trial is used. Register or log in for unlimited access.')
+          setError(t.freeTrialUsed)
         } else {
-          setError(
-            data.error === 'missing_openai_key'
-              ? 'OpenAI API key is not configured. Please add your API key.'
-              : data.error === 'openai_error'
-              ? 'An error occurred while generating content. Please try again.'
-              : data.error || 'An unexpected error occurred.'
-          )
+          setError(generationErrorText(data))
         }
       }
     } catch (err) {
@@ -1188,6 +1190,35 @@ export default function Home() {
             >
               {t.betaBadge}
             </span>
+            {runtime?.demoMode && (
+              <p
+                style={{
+                  marginTop: '16px',
+                  fontSize: '0.875rem',
+                  color: 'rgb(120, 53, 15)',
+                  backgroundColor: 'rgb(255, 247, 237)',
+                  border: '1px solid rgb(253, 186, 116)',
+                  borderRadius: '8px',
+                  padding: '10px 14px',
+                }}
+                data-testid="badge-demo"
+              >
+                {t.demoBanner}
+              </p>
+            )}
+            {runtime && (
+              <p
+                style={{
+                  marginTop: '12px',
+                  fontSize: '0.8125rem',
+                  color: 'rgb(71, 85, 105)',
+                }}
+                data-testid="text-provider"
+              >
+                {t.provider}: {runtime.providerLabel}
+                {runtime.providerDetail ? ` — ${runtime.providerDetail}` : ''}
+              </p>
+            )}
           </div>
         </header>
 
@@ -1970,67 +2001,6 @@ export default function Home() {
                   data-testid="panel-advanced-options"
                 >
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                    {/* AI Model Selection */}
-                    <div>
-                      <label
-                        style={{
-                          display: 'block',
-                          fontSize: '0.875rem',
-                          fontWeight: 500,
-                          color: 'rgb(51, 65, 85)',
-                          marginBottom: '8px',
-                        }}
-                      >
-                        AI Model
-                      </label>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button
-                          type="button"
-                          onClick={() => setPremiumOptions(prev => ({ ...prev, model: 'gpt-4o-mini' }))}
-                          style={{
-                            flex: 1,
-                            padding: '10px 16px',
-                            fontSize: '0.8125rem',
-                            fontWeight: 500,
-                            color: premiumOptions.model === 'gpt-4o-mini' ? 'rgb(99, 102, 241)' : 'rgb(71, 85, 105)',
-                            backgroundColor: premiumOptions.model === 'gpt-4o-mini' ? 'rgb(238, 242, 255)' : 'rgb(255, 255, 255)',
-                            border: premiumOptions.model === 'gpt-4o-mini' ? '2px solid rgb(99, 102, 241)' : '1px solid rgb(226, 232, 240)',
-                            borderRadius: '6px',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                          }}
-                          data-testid="button-model-mini"
-                        >
-                          <div style={{ fontWeight: 600 }}>GPT-4o Mini</div>
-                          <div style={{ fontSize: '0.6875rem', color: 'rgb(100, 116, 139)', marginTop: '4px' }}>
-                            Fast & efficient
-                          </div>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setPremiumOptions(prev => ({ ...prev, model: 'gpt-4o' }))}
-                          style={{
-                            flex: 1,
-                            padding: '10px 16px',
-                            fontSize: '0.8125rem',
-                            fontWeight: 500,
-                            color: premiumOptions.model === 'gpt-4o' ? 'rgb(99, 102, 241)' : 'rgb(71, 85, 105)',
-                            backgroundColor: premiumOptions.model === 'gpt-4o' ? 'rgb(238, 242, 255)' : 'rgb(255, 255, 255)',
-                            border: premiumOptions.model === 'gpt-4o' ? '2px solid rgb(99, 102, 241)' : '1px solid rgb(226, 232, 240)',
-                            borderRadius: '6px',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                          }}
-                          data-testid="button-model-full"
-                        >
-                          <div style={{ fontWeight: 600 }}>GPT-4o</div>
-                          <div style={{ fontSize: '0.6875rem', color: 'rgb(100, 116, 139)', marginTop: '4px' }}>
-                            Higher quality
-                          </div>
-                        </button>
-                      </div>
-                    </div>
-
                     {/* Output Length */}
                     <div>
                       <label
@@ -2494,43 +2464,6 @@ export default function Home() {
                       </div>
                     )}
                   </div>
-                  {isAuthenticated && (
-                    <button
-                      type="button"
-                      onClick={saveGeneration}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        padding: '8px 16px',
-                        fontSize: '0.8125rem',
-                        fontWeight: 500,
-                        color: 'rgb(255, 255, 255)',
-                        backgroundColor: 'rgb(99, 102, 241)',
-                        border: 'none',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                      }}
-                      data-testid="button-save"
-                    >
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-                        <polyline points="17 21 17 13 7 13 7 21" />
-                        <polyline points="7 3 7 8 15 8" />
-                      </svg>
-                      Save
-                    </button>
-                  )}
                 </div>
               </div>
               <textarea
@@ -2858,7 +2791,7 @@ export default function Home() {
                     onChange={(e) => setAuthPassword(e.target.value)}
                     placeholder={t.passwordPlaceholder}
                     required
-                    minLength={4}
+                    minLength={10}
                     style={{
                       width: '100%',
                       padding: '12px 16px',
@@ -2891,6 +2824,50 @@ export default function Home() {
                 >
                   {authLoading2 ? t.pleaseWait : authMode === 'login' ? t.login : t.createAccount}
                 </button>
+
+                {runtime?.demoLogin && authMode === 'login' && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const demo = runtime.demoLogin
+                      if (!demo) return
+                      setAuthEmail(demo.email)
+                      setAuthPassword(demo.password)
+                      setAuthError('')
+                      setAuthLoading2(true)
+                      try {
+                        const result = await login(demo.email, demo.password)
+                        if (result.ok) {
+                          setShowAuthModal(false)
+                          setAuthEmail('')
+                          setAuthPassword('')
+                          setShowSubscriptionPrompt(false)
+                        } else {
+                          setAuthError(result.error || 'Demo login failed. Run npm run db:seed first.')
+                        }
+                      } catch {
+                        setAuthError('Network error. Please try again.')
+                      } finally {
+                        setAuthLoading2(false)
+                      }
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '12px 24px',
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                      color: 'rgb(120, 53, 15)',
+                      backgroundColor: 'rgb(255, 247, 237)',
+                      border: '1px solid rgb(253, 186, 116)',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      marginBottom: '8px',
+                    }}
+                    data-testid="button-demo-login"
+                  >
+                    {t.useDemoAccount} ({runtime.demoLogin.email})
+                  </button>
+                )}
 
                 <button
                   type="button"

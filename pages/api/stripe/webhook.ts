@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getUncachableStripeClient } from '../../../lib/stripeClient';
+import { stripeSecretConfigured } from '../../../lib/runtimeConfig';
 import { addCredits, findUserById } from '../../../lib/users';
 
 export const config = {
@@ -20,6 +21,13 @@ async function getRawBody(req: NextApiRequest): Promise<Buffer> {
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  if (!stripeSecretConfigured()) {
+    return res.status(503).json({
+      error: 'stripe_not_configured',
+      message: 'Stripe is not configured. Set STRIPE_SECRET_KEY before sending webhooks.',
+    });
   }
 
   const stripe = await getUncachableStripeClient();

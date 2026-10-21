@@ -1,4 +1,8 @@
-let API_BASE_URL = 'http://localhost:5000';
+const DEFAULT_API_BASE_URL = (
+  process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:5000'
+).replace(/\/$/, '');
+
+let API_BASE_URL = DEFAULT_API_BASE_URL;
 
 interface User {
   id: number;
@@ -68,7 +72,7 @@ async function apiRequest<T>(
     }
 
     if (!response.ok) {
-      const errorMessage = (data as any)?.error || `HTTP ${response.status}`;
+      const errorMessage = (data as any)?.message || (data as any)?.error || `HTTP ${response.status}`;
       return { data: null, error: errorMessage, ok: false };
     }
 
@@ -146,10 +150,17 @@ export async function generateContent(params: GenerateParams): Promise<{ content
   return { error: result.error || result.data?.error || 'Generation failed' };
 }
 
+const CREDIT_PACKAGE_IDS: Record<number, string> = {
+  10: 'credits_10',
+  50: 'credits_50',
+  100: 'credits_100',
+};
+
 export async function createCheckoutSession(credits: number, priceId: string): Promise<{ url?: string; error?: string }> {
-  const result = await apiRequest<{ url?: string; error?: string }>('/api/stripe/create-checkout', {
+  const packageId = CREDIT_PACKAGE_IDS[credits] || priceId;
+  const result = await apiRequest<{ url?: string; error?: string; message?: string }>('/api/stripe/create-checkout', {
     method: 'POST',
-    body: JSON.stringify({ credits, priceId }),
+    body: JSON.stringify({ packageId }),
   });
 
   if (result.ok && result.data?.url) {
