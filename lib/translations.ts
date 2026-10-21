@@ -118,7 +118,11 @@ export const translations = {
     
     // Errors
     networkError: 'Network error. Please check your connection and try again.',
-    apiKeyError: 'OpenAI API key is not configured. Please add your API key.',
+    apiKeyError: 'No AI provider is configured.',
+    demoBanner: 'Demo mode: sample output. No Hugging Face or LM Studio key is in use.',
+    provider: 'Provider',
+    useDemoAccount: 'Sign in with demo account',
+    stripeDisabled: 'Credit purchases are turned off until STRIPE_SECRET_KEY is set. This demo does not need a Stripe account.',
     generationError: 'An error occurred while generating content. Please try again.',
     
     // Language Picker
@@ -259,7 +263,11 @@ export const translations = {
     
     // Errors
     networkError: 'Ağ hatası. Lütfen bağlantınızı kontrol edip tekrar deneyin.',
-    apiKeyError: 'OpenAI API anahtarı yapılandırılmamış. Lütfen API anahtarınızı ekleyin.',
+    apiKeyError: 'Yapay zeka sağlayıcısı yapılandırılmamış.',
+    demoBanner: 'Demo modu: örnek çıktı. Hugging Face veya LM Studio anahtarı kullanılmıyor.',
+    provider: 'Sağlayıcı',
+    useDemoAccount: 'Demo hesabıyla giriş yap',
+    stripeDisabled: 'STRIPE_SECRET_KEY tanımlanana kadar kredi satın alma kapalı. Bu demo bir Stripe hesabı gerektirmez.',
     generationError: 'İçerik oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.',
     
     // Language Picker

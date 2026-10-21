@@ -1,7 +1,8 @@
 import bcrypt from 'bcryptjs';
-import { sign, verify } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import { query, queryOne, pool } from './db';
 import { publicSignupBlockReason, roleAfterAuthentication, superUserEmail } from './superUserPolicy';
+import { demoSeedConfig, demoSeedRefusal } from './demoSeedPolicy';
 
 export { isUserSuperUser, publicSignupBlockReason, roleAfterAuthentication } from './superUserPolicy';
 
@@ -23,6 +24,11 @@ export interface JWTPayload {
   role: UserRole;
 }
 
+const INSECURE_JWT_SECRETS = new Set([
+  'bizkit-dev-secret',
+  'replace-with-at-least-32-random-characters',
+]);
+
 function getJwtSecret(): string {
   const secret = process.env.JWT_SECRET || process.env.SESSION_SECRET;
   if (!secret) {
@@ -31,10 +37,23 @@ function getJwtSecret(): string {
     }
     return 'bizkit-dev-secret';
   }
-  if (process.env.NODE_ENV === 'production' && secret.length < 32) {
-    throw new Error('JWT secret must be at least 32 characters in production');
+  if (
+    process.env.NODE_ENV === 'production' &&
+    (secret.length < 32 || INSECURE_JWT_SECRETS.has(secret))
+  ) {
+    throw new Error('JWT secret must be at least 32 characters and not a placeholder in production');
   }
   return secret;
+}
+
+/** New accounts start at 0 in production. Local demo signups can receive a small starter balance. */
+function developmentSignupCredits(): number {
+  if (process.env.NODE_ENV === 'production') return 0;
+  const raw = process.env.DEMO_SIGNUP_CREDITS;
+  if (raw === undefined || raw.trim() === '') return 5;
+  const parsed = Number(raw);
+  if (!Number.isInteger(parsed) || parsed < 0 || parsed > 100) return 0;
+  return parsed;
 }
 const SALT_ROUNDS = 10;
 const MIN_PASSWORD_LENGTH = 10;
@@ -79,12 +98,13 @@ export async function registerUser(
   
   const passwordHash = await hashPassword(password);
   const role: UserRole = 'user';
+  const credits = developmentSignupCredits();
   
   const result = await queryOne<User>(
     `INSERT INTO users (email, password_hash, role, credits, usage_count) 
      VALUES ($1, $2, $3, $4, $5) 
      RETURNING id, email, password_hash, role, credits, usage_count, created_at`,
-    [normalizedEmail, passwordHash, role, 0, 0]
+    [normalizedEmail, passwordHash, role, credits, 0]
   );
   
   if (!result) {
@@ -123,12 +143,12 @@ export function generateToken(user: { id: string; email: string; role: UserRole 
     email: user.email,
     role: user.role,
   };
-  return sign(payload, getJwtSecret(), { expiresIn: '7d' });
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: '7d' });
 }
 
 export function verifyToken(token: string): JWTPayload | null {
   try {
-    return verify(token, getJwtSecret()) as JWTPayload;
+    return jwt.verify(token, getJwtSecret()) as JWTPayload;
   } catch {
     return null;
   }
@@ -242,6 +262,52 @@ export async function provisionSuperUser(): Promise<{ status: SuperUserProvision
     const raced = await findUserByEmail(email);
     return { status: raced?.role === 'admin' ? 'already_admin' : 'not_elevated' };
   }
+}
+
+/**
+ * Create or top up the local demo user. Always role "user".
+ * Refuses when NODE_ENV=production, and never promotes or edits an admin.
+ */
+export async function seedDemoUser(): Promise<{ email: string; credits: number; created: boolean }> {
+  const refusal = demoSeedRefusal();
+  if (refusal) {
+    throw new Error(refusal);
+  }
+  const { email, password, credits } = demoSeedConfig();
+  const passwordHash = await hashPassword(password);
+  const existing = await findUserByEmail(email);
+  if (existing) {
+    if (existing.role === 'admin') {
+      throw new Error('Refusing to change an admin account from the demo seed');
+    }
+    const topUp = Math.max(0, credits - existing.credits);
+    await query(
+      'UPDATE users SET password_hash = $1, credits = GREATEST(credits, $2) WHERE id = $3 AND role <> \'admin\'',
+      [passwordHash, credits, existing.id]
+    );
+    if (topUp > 0) {
+      await query(
+        'INSERT INTO credit_transactions (user_id, amount, reason) VALUES ($1, $2, $3)',
+        [existing.id, topUp, 'demo seed']
+      );
+    }
+    return { email, credits: Math.max(existing.credits, credits), created: false };
+  }
+
+  const created = await queryOne<User>(
+    `INSERT INTO users (email, password_hash, role, credits, usage_count, email_verified)
+     VALUES ($1, $2, 'user', $3, 0, TRUE)
+     RETURNING id, email, password_hash, role, credits, usage_count, created_at`,
+    [email, passwordHash, credits]
+  );
+  if (!created) {
+    throw new Error('Failed to create demo user');
+  }
+  await query(
+    'INSERT INTO credit_transactions (user_id, amount, reason) VALUES ($1, $2, $3)',
+    [created.id, credits, 'demo seed']
+  );
+  return { email, credits, created: true };
 }
 
 export async function incrementUserUsage(userId: string): Promise<number> {

@@ -91,7 +91,7 @@ export const translations = {
     unlimitedCredits: 'Unlimited',
     
     networkError: 'Network error. Please check your connection and try again.',
-    apiKeyError: 'OpenAI API key is not configured.',
+    apiKeyError: 'No AI provider is configured.',
     generationError: 'An error occurred while generating content. Please try again.',
     
     selectLanguage: 'Select language',
@@ -201,7 +201,7 @@ export const translations = {
     unlimitedCredits: 'Sınırsız',
     
     networkError: 'Ağ hatası. Lütfen bağlantınızı kontrol edip tekrar deneyin.',
-    apiKeyError: 'OpenAI API anahtarı yapılandırılmamış.',
+    apiKeyError: 'Yapay zeka sağlayıcısı yapılandırılmamış.',
     generationError: 'İçerik oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.',
     
     selectLanguage: 'Dil seçin',

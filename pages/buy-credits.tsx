@@ -22,6 +22,7 @@ export default function BuyCredits() {
   const [lang, setLang] = useState<Language>('en')
   const [purchasing, setPurchasing] = useState<string | null>(null)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [stripeEnabled, setStripeEnabled] = useState<boolean | null>(null)
 
   useEffect(() => {
     const savedLang = localStorage.getItem('bizkit_lang') as Language
@@ -31,6 +32,13 @@ export default function BuyCredits() {
   }, [])
 
   const t = translations[lang]
+
+  useEffect(() => {
+    fetch('/api/config')
+      .then((response) => response.json())
+      .then((data: { stripeEnabled?: boolean }) => setStripeEnabled(Boolean(data.stripeEnabled)))
+      .catch(() => setStripeEnabled(false))
+  }, [])
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -61,18 +69,14 @@ export default function BuyCredits() {
         body: JSON.stringify({ packageId }),
       })
 
-      if (!response.ok) {
-        const text = await response.text().catch(() => '')
-        console.error('Checkout error:', response.status, text)
-        setMessage({ type: 'error', text: 'Failed to create checkout session' })
-        return
-      }
+      const data = await response.json().catch(() => null)
 
-      const data = await response.json()
-
-      if (!data || !data.url) {
-        console.error('No checkout URL returned:', data)
-        setMessage({ type: 'error', text: data.error || 'Failed to create checkout session' })
+      if (!response.ok || !data?.url) {
+        console.error('Checkout error:', response.status, data)
+        setMessage({
+          type: 'error',
+          text: data?.message || data?.error || 'Failed to create checkout session',
+        })
         return
       }
 
@@ -165,6 +169,23 @@ export default function BuyCredits() {
           </p>
         </div>
 
+        {stripeEnabled === false && (
+          <div
+            style={{
+              padding: '16px',
+              marginBottom: '24px',
+              borderRadius: '8px',
+              backgroundColor: 'rgb(255, 247, 237)',
+              color: 'rgb(120, 53, 15)',
+              textAlign: 'center',
+              border: '1px solid rgb(253, 186, 116)',
+            }}
+            data-testid="message-stripe-disabled"
+          >
+            {t.stripeDisabled}
+          </div>
+        )}
+
         {message && (
           <div
             style={{
@@ -229,17 +250,17 @@ export default function BuyCredits() {
 
               <button
                 onClick={() => handlePurchase(pkg.id)}
-                disabled={purchasing !== null}
+                disabled={purchasing !== null || stripeEnabled !== true}
                 style={{
                   width: '100%',
                   padding: '12px 24px',
                   fontSize: '1rem',
                   fontWeight: 600,
                   color: 'white',
-                  backgroundColor: purchasing === pkg.id ? 'rgb(148, 163, 184)' : 'rgb(99, 102, 241)',
+                  backgroundColor: purchasing === pkg.id || stripeEnabled !== true ? 'rgb(148, 163, 184)' : 'rgb(99, 102, 241)',
                   border: 'none',
                   borderRadius: '8px',
-                  cursor: purchasing !== null ? 'not-allowed' : 'pointer',
+                  cursor: purchasing !== null || stripeEnabled !== true ? 'not-allowed' : 'pointer',
                   transition: 'background-color 0.2s',
                 }}
                 data-testid={`button-buy-${pkg.id}`}

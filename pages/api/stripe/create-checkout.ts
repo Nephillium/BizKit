@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getUncachableStripeClient } from '../../../lib/stripeClient';
+import { stripeSecretConfigured } from '../../../lib/runtimeConfig';
 import { getUserFromRequest, findUserById } from '../../../lib/users';
 
 const PACKS: Record<string, { credits: number; amount: number; name: string }> = {
@@ -35,12 +36,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'invalid_package' });
     }
 
+    if (!stripeSecretConfigured()) {
+      return res.status(503).json({
+        error: 'stripe_not_configured',
+        message: 'Credit purchases are turned off until STRIPE_SECRET_KEY is set. The demo does not need a Stripe account.',
+      });
+    }
+
     let stripe;
     try {
       stripe = await getUncachableStripeClient();
     } catch (stripeError: any) {
       console.error('Stripe client error:', stripeError?.message);
-      return res.status(500).json({ 
+      return res.status(503).json({ 
         error: 'stripe_not_configured',
         message: stripeError?.message || 'Stripe is not properly configured'
       });
