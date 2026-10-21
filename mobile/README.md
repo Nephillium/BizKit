@@ -31,15 +31,10 @@ npm install
 
 ### 2. Configure API URL
 
-Edit `src/lib/api.ts` and update the `API_BASE_URL` to point to your backend:
+`src/lib/api.ts` defaults `API_BASE_URL` to `http://localhost:5000`, which matches the web app's dev server. For a deployed backend, set it to the same origin as the web app's `APP_BASE_URL` (no trailing path):
 
 ```typescript
-const API_BASE_URL = 'https://your-app-url.replit.app';
-```
-
-For local development:
-```typescript
-const API_BASE_URL = 'http://localhost:5000';
+let API_BASE_URL = 'https://your-bizkit-host.example.com';
 ```
 
 ### 3. Run the App

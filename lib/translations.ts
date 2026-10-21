@@ -39,7 +39,7 @@ export const translations = {
     freeTrialTitle: 'Free Trial Used',
     freeTrialMessage: "You've used your free generation. Subscribe to unlock unlimited access to all content generation tools.",
     signInFirst: 'Please sign in first to subscribe:',
-    signInReplit: 'Sign In with Replit',
+    signIn: 'Sign in',
     contactSubscribe: 'Contact to Subscribe',
     maybeLater: 'Maybe Later',
     
@@ -180,7 +180,7 @@ export const translations = {
     freeTrialTitle: 'Ücretsiz Deneme Kullanıldı',
     freeTrialMessage: 'Ücretsiz içerik oluşturma hakkınızı kullandınız. Tüm araçlara sınırsız erişim için abone olun.',
     signInFirst: 'Abone olmak için önce giriş yapın:',
-    signInReplit: 'Replit ile Giriş Yap',
+    signIn: 'Giriş yap',
     contactSubscribe: 'Abonelik için İletişim',
     maybeLater: 'Daha Sonra',
     
