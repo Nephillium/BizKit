@@ -2664,7 +2664,9 @@ export default function Home() {
                       type="button"
                       onClick={() => {
                         setShowSubscriptionPrompt(false)
-                        window.location.href = '/api/login'
+                        setAuthMode('login')
+                        setAuthError('')
+                        setShowAuthModal(true)
                       }}
                       style={{
                         width: '100%',
@@ -2680,7 +2682,7 @@ export default function Home() {
                       }}
                       data-testid="button-login-from-modal"
                     >
-                      Sign In with Replit
+                      {t.signIn}
                     </button>
                   </div>
                 )}

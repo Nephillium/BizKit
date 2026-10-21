@@ -1,4 +1,4 @@
-let API_BASE_URL = 'https://your-replit-app-url.replit.app';
+let API_BASE_URL = 'http://localhost:5000';
 
 interface User {
   id: number;
