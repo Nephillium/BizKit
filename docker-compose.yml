@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: bizkit
+      POSTGRES_PASSWORD: bizkit
+      POSTGRES_DB: bizkit
+    ports:
+      - "5432:5432"
+    volumes:
+      - bizkit_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bizkit -d bizkit"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  bizkit_pg:

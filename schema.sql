@@ -1,5 +1,6 @@
--- BizKit AI Database Schema
--- Run this once to set up the database
+-- BizKit AI database schema.
+-- Applied by `npm run db:init` / `POST /api/init-db` (see lib/initSchema.ts).
+-- This file is the SQL form of that initializer.
 
 -- Enable pgcrypto extension for gen_random_uuid()
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
@@ -31,6 +32,17 @@ CREATE TABLE IF NOT EXISTS anonymous_generations (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Per-user generation history
+CREATE TABLE IF NOT EXISTS generations (
+  id SERIAL PRIMARY KEY,
+  user_id VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  tool_type TEXT NOT NULL,
+  inputs JSONB NOT NULL DEFAULT '{}'::jsonb,
+  output TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_credit_transactions_user_id ON credit_transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_generations_user_created ON generations (user_id, created_at DESC);

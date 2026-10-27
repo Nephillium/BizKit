@@ -1,6 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { getUserFromRequest, getUserCredits, addCredits, incrementUserUsage } from '../../lib/users'
 import { claimAnonymousGeneration, releaseAnonymousGeneration } from '../../lib/anonymousQuota'
+import { buildDemoOutput, isGenerationTool } from '../../lib/demoContent'
+import { createGeneration } from '../../lib/generations'
+import { isDemoMode, resolveProvider, stripeSecretConfigured } from '../../lib/runtimeConfig'
 
 type LengthOption = 'short' | 'standard' | 'detailed'
 type Tool = 'cold_email' | 'proposal' | 'contract' | 'social_pack'
@@ -245,12 +248,7 @@ export default async function handler(
     return res.status(405).json({ ok: false, error: 'method_not_allowed' })
   }
 
-  const useLMStudio = !!process.env.LMSTUDIO_API_URL
-  const huggingFaceKey = process.env.HUGGINGFACE_API_KEY
-
-  if (!useLMStudio && !huggingFaceKey) {
-    return res.status(500).json({ ok: false, error: 'missing_api_key' })
-  }
+  const provider = resolveProvider()
 
   const jwtPayload = getUserFromRequest(req.headers.cookie, req.headers.authorization)
   
@@ -264,7 +262,9 @@ export default async function handler(
     return res.status(403).json({
       ok: false,
       error: 'no_credits',
-      message: 'You have no credits left. Please buy a pack.',
+      message: stripeSecretConfigured()
+        ? 'You have no credits left. Please buy a pack.'
+        : 'You have no credits left. Credit purchases stay off until STRIPE_SECRET_KEY is set. The seeded demo account includes credits.',
     })
   }
 
@@ -273,7 +273,7 @@ export default async function handler(
   try {
     const { tool, inputs, premiumOptions } = req.body as RequestBody
 
-    if (!tool || !inputs) {
+    if (!tool || !inputs || !isGenerationTool(tool)) {
       return res.status(400).json({ ok: false, error: 'invalid_request' })
     }
 
@@ -311,7 +311,13 @@ export default async function handler(
 
     let content: string
 
-    if (useLMStudio) {
+    if (provider.id === 'demo' || isDemoMode()) {
+      content = buildDemoOutput(tool, inputs as unknown as Record<string, unknown>, {
+        length,
+        creativity,
+        customInstructions,
+      })
+    } else if (provider.id === 'lmstudio') {
       content = await callLMStudio(prompt, maxTokens, temperature)
     } else {
       content = await callHuggingFace(prompt, maxTokens, temperature)
@@ -320,6 +326,14 @@ export default async function handler(
     releaseAnonymousClaim = false
 
     if (isLoggedIn && userId) {
+      try {
+        const saved = await createGeneration(userId, tool, inputs, content)
+        if (saved.error) {
+          console.error('Failed to save generation history:', saved.error)
+        }
+      } catch (saveError) {
+        console.error('Failed to save generation history:', saveError)
+      }
       await incrementUserUsage(userId)
       
       if (!isAdmin) {

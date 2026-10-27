@@ -31,11 +31,17 @@ npm install
 
 ### 2. Configure API URL
 
-`src/lib/api.ts` defaults `API_BASE_URL` to `http://localhost:5000`, which matches the web app's dev server. For a deployed backend, set it to the same origin as the web app's `APP_BASE_URL` (no trailing path):
+The app reads `EXPO_PUBLIC_API_BASE_URL` (no trailing slash). Copy the example and point it at the web app:
 
-```typescript
-let API_BASE_URL = 'https://your-bizkit-host.example.com';
+```bash
+cp .env.example .env
 ```
+
+```
+EXPO_PUBLIC_API_BASE_URL=http://localhost:5000
+```
+
+For a phone on the same network, use the computer's LAN address instead of `localhost`. For a deployed backend, use the same origin as `APP_BASE_URL`. Expo inlines `EXPO_PUBLIC_*` when the bundle is built, so restart Expo after changing it. If the variable is unset, the client falls back to `http://localhost:5000`.
 
 ### 3. Run the App
 

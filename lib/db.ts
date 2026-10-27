@@ -1,13 +1,38 @@
-import { Pool } from 'pg';
+import { Pool, type PoolConfig } from 'pg';
 
 let connectionString = process.env.DATABASE_URL || '';
-if (connectionString.startsWith("psql ")) {
-  connectionString = connectionString.replace("psql ", "").replace(/^'|'$/g, "");
+if (connectionString.startsWith('psql ')) {
+  connectionString = connectionString.replace(/^psql\s+/, '').replace(/^'|'$/g, '');
+}
+
+/** Local Postgres has no TLS. Hosted providers usually require it. */
+export function databaseSsl(connectionString: string): PoolConfig['ssl'] {
+  if (!connectionString) return undefined;
+  let host = '';
+  let sslmode: string | null = null;
+  try {
+    const url = new URL(connectionString);
+    host = url.hostname;
+    sslmode = url.searchParams.get('sslmode');
+  } catch {
+    return undefined;
+  }
+  if (sslmode === 'disable') return false;
+  if (
+    sslmode === 'require' ||
+    sslmode === 'verify-ca' ||
+    sslmode === 'verify-full' ||
+    sslmode === 'no-verify'
+  ) {
+    return { rejectUnauthorized: sslmode === 'verify-ca' || sslmode === 'verify-full' };
+  }
+  if (host === 'localhost' || host === '127.0.0.1' || host === '::1') return false;
+  return { rejectUnauthorized: false };
 }
 
 const pool = new Pool({
-  connectionString,
-  ssl: { rejectUnauthorized: false },
+  connectionString: connectionString || undefined,
+  ssl: databaseSsl(connectionString),
 });
 
 export async function query<T = any>(text: string, params?: any[]): Promise<T[]> {
