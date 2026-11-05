@@ -30,6 +30,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   return res.status(200).json({ 
     ok: true, 
     user: result.user,
+    // The Expo app in mobile/ stores this bearer token. The web app uses the cookie.
     token: result.token,
   });
 }

@@ -3,7 +3,7 @@ import { getUserFromRequest, getUserCredits, addCredits, incrementUserUsage } fr
 import { claimAnonymousGeneration, releaseAnonymousGeneration } from '../../lib/anonymousQuota'
 import { buildDemoOutput, isGenerationTool } from '../../lib/demoContent'
 import { createGeneration } from '../../lib/generations'
-import { isDemoMode, resolveProvider, stripeSecretConfigured } from '../../lib/runtimeConfig'
+import { creditDeltaAfterGeneration, generationGate, stripeSecretConfigured } from '../../lib/runtimeConfig'
 
 type LengthOption = 'short' | 'standard' | 'detailed'
 type Tool = 'cold_email' | 'proposal' | 'contract' | 'social_pack'
@@ -248,7 +248,14 @@ export default async function handler(
     return res.status(405).json({ ok: false, error: 'method_not_allowed' })
   }
 
-  const provider = resolveProvider()
+  const gate = generationGate()
+  if (gate.outcome === 'unavailable') {
+    return res.status(gate.status).json({
+      ok: false,
+      error: gate.error,
+      message: gate.message,
+    })
+  }
 
   const jwtPayload = getUserFromRequest(req.headers.cookie, req.headers.authorization)
   
@@ -311,13 +318,13 @@ export default async function handler(
 
     let content: string
 
-    if (provider.id === 'demo' || isDemoMode()) {
+    if (gate.outcome === 'sample') {
       content = buildDemoOutput(tool, inputs as unknown as Record<string, unknown>, {
         length,
         creativity,
         customInstructions,
       })
-    } else if (provider.id === 'lmstudio') {
+    } else if (gate.provider === 'lmstudio') {
       content = await callLMStudio(prompt, maxTokens, temperature)
     } else {
       content = await callHuggingFace(prompt, maxTokens, temperature)
@@ -335,9 +342,10 @@ export default async function handler(
         console.error('Failed to save generation history:', saveError)
       }
       await incrementUserUsage(userId)
-      
-      if (!isAdmin) {
-        const success = await addCredits(userId, -1, 'generation')
+
+      const creditDelta = creditDeltaAfterGeneration({ gate, isLoggedIn, isAdmin })
+      if (creditDelta !== 0) {
+        const success = await addCredits(userId, creditDelta, 'generation')
         if (!success) {
           console.error('Failed to decrement credits for user:', userId)
         }
