@@ -2,7 +2,7 @@
 
 Web and mobile app that drafts cold emails, proposals, contracts, and social packs. Accounts use email and password. Credits are purchased with Stripe when it is configured. Anonymous visitors get one free generation.
 
-The web app is Next.js (Pages Router). Postgres is accessed with `pg`. Schema changes live in `lib/initSchema.ts` (and `schema.sql`). Drizzle packages are installed but are not used at runtime.
+The web app is Next.js (Pages Router). Postgres is accessed with `pg`. Schema changes live in `lib/initSchema.ts` (and `schema.sql`).
 
 ## Run the demo
 
@@ -28,7 +28,7 @@ Demo login (also on the sign-in dialog outside production):
 
 The password and email come from `DEMO_USER_EMAIL`, `DEMO_USER_PASSWORD`, and `DEMO_USER_CREDITS`. `npm run db:seed` refuses when `NODE_ENV=production`, and it never creates an admin. Do not use this password on a public server.
 
-Leave `HUGGINGFACE_API_KEY` and `LMSTUDIO_API_URL` empty. Each generator then returns labelled sample text. A banner on the home page says demo mode is on.
+Leave `HUGGINGFACE_API_KEY` and `LMSTUDIO_API_URL` empty. Outside production, each generator then returns labelled sample text. A banner on the home page says demo mode is on. Production does not do this unless `DEMO_MODE=1`.
 
 Signed-in generations are stored in Postgres and show up under History. Buy Credits stays disabled, with an explanation, until `STRIPE_SECRET_KEY` is set.
 
@@ -45,7 +45,7 @@ Copy `.env.example` to `.env`. Never commit `.env`.
 | `DATABASE_URL` | Required. The compose URL above. | Required. Hosted Postgres. |
 | `JWT_SECRET` | Optional. Dev uses an insecure fallback if unset. | Required. 32+ random characters. The example placeholder is rejected. |
 | `APP_BASE_URL` | `http://localhost:5000` | Required. Public origin. Stripe return URLs use it. |
-| `DEMO_MODE` | Optional. `1` forces sample output. | Leave unset. |
+| `DEMO_MODE` | Optional. `1` forces sample output. Empty AI keys also use samples. | Leave unset for live generation. `1` keeps samples (the private `bizkit-demo` preview does this). Unset, with no AI key, `POST /api/generate` returns 503 and does not spend credits. |
 | `HUGGINGFACE_API_KEY` | Leave empty for the demo. | One of this or `LMSTUDIO_API_URL`. |
 | `LMSTUDIO_API_URL` / `LMSTUDIO_MODEL` | Leave empty for the demo. | Local OpenAI-compatible server. Used before Hugging Face when both are set. |
 | `DEMO_USER_*` | Seed only. Refused in production. | Do not rely on these. |
@@ -60,7 +60,7 @@ Copy `.env.example` to `.env`. Never commit `.env`.
 
 ### AI
 
-`POST /api/generate` uses demo samples when `DEMO_MODE` is `1`, `true`, or `yes`, or when both `HUGGINGFACE_API_KEY` and `LMSTUDIO_API_URL` are empty. Otherwise LM Studio wins when `LMSTUDIO_API_URL` is set (`LMSTUDIO_MODEL` defaults to `local-model`). Otherwise the route calls Hugging Face Inference (`mistralai/Mistral-7B-Instruct-v0.3`). The home page shows the active provider. There is no OpenAI model picker.
+`POST /api/generate` uses labelled demo samples when `DEMO_MODE` is `1`, `true`, or `yes`. It also uses samples when `NODE_ENV` is not `production` and both `HUGGINGFACE_API_KEY` and `LMSTUDIO_API_URL` are empty. In production, if neither provider is set and `DEMO_MODE` is not enabled, the route returns HTTP 503 with `ai_not_configured` and does not deduct a credit or record a generation. Otherwise LM Studio wins when `LMSTUDIO_API_URL` is set (`LMSTUDIO_MODEL` defaults to `local-model`). Otherwise the route calls Hugging Face Inference (`mistralai/Mistral-7B-Instruct-v0.3`). The home page shows the active provider. There is no OpenAI model picker.
 
 ### Stripe
 
@@ -74,7 +74,7 @@ Checkout and webhooks use `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, and `ST
 
 ### Authentication
 
-Sign-in is email and password. The browser stores a JWT in an httpOnly cookie. The mobile app sends `Authorization: Bearer`. Routes: `/api/auth/login`, `/api/auth/register`, `/api/auth/me`, `/api/auth/logout`.
+Sign-in is email and password. The browser stores a JWT in an httpOnly cookie. Login and register also return that token in the JSON body because the Expo app in `mobile/` stores it and sends `Authorization: Bearer`. The web app does not read the body token. Routes: `/api/auth/login`, `/api/auth/register`, `/api/auth/me`, `/api/auth/logout`.
 
 Public registration always creates a normal user. Admin is created only when `SUPER_USER_EMAIL` and `SUPER_USER_PASSWORD` are set and `POST /api/init-db` (or `npm run db:init`) runs. Login does not promote accounts. If that email already exists as a non-admin, it is left unchanged. `SUPER_USER_PASSWORD` is read only for that first create. After the admin row exists, remove the password. Keep `SUPER_USER_EMAIL` so public signup keeps rejecting that address.
 
@@ -110,12 +110,23 @@ Set `EXPO_PUBLIC_API_BASE_URL` to the web origin (`APP_BASE_URL`) with no traili
 
 ### Vercel
 
-An older deployment lived at https://biz-kit-kohl.vercel.app. This repo does not attach to that project. Create a project from this repository (Next.js detects the Pages Router; no `vercel.json` is required).
+The old biz-kit Vercel project was deleted. The current demo runs as a private Vercel preview project named `bizkit-demo`. That preview sets `DEMO_MODE=1`, so the generators return labelled samples without an AI key. Next.js detects the Pages Router; no `vercel.json` is required.
 
-1. Create a hosted Postgres database and set `DATABASE_URL` (include `sslmode=require` when the host requires TLS).
-2. Set `JWT_SECRET` (32+ random characters), `APP_BASE_URL` (the Vercel origin), `DB_INIT_TOKEN`, and `QUOTA_IP_SALT`.
+Production (`NODE_ENV=production`) needs these environment variables:
+
+- `DATABASE_URL` — hosted Postgres. Include `sslmode=require` when the host requires TLS.
+- `JWT_SECRET` — 32 or more random characters. The example placeholder is rejected.
+- `APP_BASE_URL` — public origin. Stripe return URLs use it.
+- `DB_INIT_TOKEN` — bearer token required by `POST /api/init-db`.
+- `QUOTA_IP_SALT` — dedicated random value for the anonymous free-tier hash.
+- `HUGGINGFACE_API_KEY` or `LMSTUDIO_API_URL` — live generation. If both are empty and `DEMO_MODE` is not `1`, `POST /api/generate` returns 503 and does not deduct credits.
+
+Live purchases also need `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, and `STRIPE_WEBHOOK_SECRET`. Set `TRUST_PROXY=1` only after the hop check above confirms Vercel is the single trusted proxy. Optional first-run admin: `SUPER_USER_EMAIL` and `SUPER_USER_PASSWORD`, then remove the password after init.
+
+1. Create a hosted Postgres database and set `DATABASE_URL`.
+2. Set `JWT_SECRET`, `APP_BASE_URL`, `DB_INIT_TOKEN`, and `QUOTA_IP_SALT`.
 3. Set `TRUST_PROXY=1` after you confirm Vercel is the only proxy. See the hop check above.
-4. For real generation, set `HUGGINGFACE_API_KEY` or `LMSTUDIO_API_URL` and leave `DEMO_MODE` unset. With both empty, production serves labelled sample output.
+4. For live generation, set `HUGGINGFACE_API_KEY` or `LMSTUDIO_API_URL` and leave `DEMO_MODE` unset. Set `DEMO_MODE=1` only for a sample-output demo such as the private `bizkit-demo` preview. Production without a provider and without `DEMO_MODE=1` returns 503 and does not spend credits.
 5. For payments, set the three `STRIPE_*` variables and register the webhook.
 6. Deploy, then `POST /api/init-db` with `Authorization: Bearer <DB_INIT_TOKEN>`.
 7. Optional: set `SUPER_USER_EMAIL` and `SUPER_USER_PASSWORD` before that init call, then remove the password.
@@ -141,4 +152,4 @@ The compose file is only the local database. It is not the application server.
 
 ## Validation limits
 
-`npm run test:security` covers the anonymous quota, admin-promotion rules, demo-mode selection, and the production seed refusal. It does not certify the whole app. Confirm database migrations and live provider keys in a controlled environment before a public launch.
+`npm run test:security` covers the anonymous quota, admin-promotion rules, demo-mode selection, the production 503 when no AI provider is configured, and the production seed refusal. It does not certify the whole app. Confirm database migrations and live provider keys in a controlled environment before a public launch.
