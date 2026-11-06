@@ -441,7 +441,7 @@ export default function Home() {
   const [historyLoading, setHistoryLoading] = useState(false)
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false)
   const [showSubscriptionPrompt, setShowSubscriptionPrompt] = useState(false)
-  const [usageInfo, setUsageInfo] = useState<{ count: number; limit: number } | null>(null)
+  const [_usageInfo, setUsageInfo] = useState<{ count: number; limit: number } | null>(null)
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login')
   const [authEmail, setAuthEmail] = useState('')
@@ -664,7 +664,7 @@ export default function Home() {
       await navigator.clipboard.writeText(output)
       setCopyState('copied')
       setTimeout(() => setCopyState('idle'), 2000)
-    } catch (err) {
+    } catch {
       setCopyState('error')
       setTimeout(() => setCopyState('idle'), 2000)
     }
@@ -716,7 +716,7 @@ export default function Home() {
           setError(generationErrorText(data))
         }
       }
-    } catch (err) {
+    } catch {
       setOutput(previousOutput)
       setError('Network error. Please check your connection and try again.')
     } finally {
@@ -775,29 +775,12 @@ export default function Home() {
           setError(generationErrorText(data))
         }
       }
-    } catch (err) {
+    } catch {
       setError('Network error. Please check your connection and try again.')
     } finally {
       setIsLoading(false)
     }
   }
-
-  const inputStyles = {
-    base: `
-      w-full px-4 py-3 
-      bg-white dark:bg-slate-800 
-      border border-slate-200 dark:border-slate-700 
-      rounded-md 
-      text-slate-900 dark:text-slate-100 
-      placeholder:text-slate-400 dark:placeholder:text-slate-500
-      focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20
-      transition-all duration-200
-    `,
-  }
-
-  const labelStyles = `
-    block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2
-  `
 
   return (
     <>

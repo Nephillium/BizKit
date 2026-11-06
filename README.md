@@ -34,7 +34,7 @@ Signed-in generations are stored in Postgres and show up under History. Buy Cred
 
 `npm ci` and `npm run dev` start without Docker. Login, generation, and history need the database from `db:up` and `db:setup`.
 
-Other checks: `npm run check`, `npm run test:security`, `npm run build`. Production start: `npm start` (port `PORT` or 5000).
+Other checks: `npm run lint`, `npm run check`, `npm test`, `npm run build`. Production start: `npm start` (port `PORT` or 5000).
 
 ## Configuration
 
@@ -154,6 +154,31 @@ The compose file is only the local database. It is not the application server.
 
 `pages/` and `lib/` are the web app. Auth is `pages/api/auth/`. Generation is `pages/api/generate.ts`. History is `pages/api/generations`. Stripe is `pages/api/stripe/`. `GET /api/config` reports demo mode, the provider, and whether Stripe checkout is enabled. It returns the demo login only when `NODE_ENV` is not production.
 
-## Validation limits
+## Tests
 
-`npm run test:security` covers the anonymous quota, admin-promotion rules, demo-mode selection, the production 503 when no AI provider is configured, the production seed refusal, and the rule that login and register omit the session token from JSON unless the Expo client sends `X-BizKit-Client: mobile`. It does not certify the whole app. Confirm database migrations and live provider keys in a controlled environment before a public launch.
+`npm test` runs both suites. CI (`.github/workflows/ci.yml`) runs install, lint, typecheck, build, and `npm test` on pull requests and pushes to `main`. The workflow starts Postgres 16 and generates throwaway `JWT_SECRET` and `QUOTA_IP_SALT` values. It does not use GitHub secrets or live AI/Stripe keys.
+
+```sh
+npm run lint          # eslint
+npm run check         # tsc
+npm run test:security # quota, demo gate, and session-token rules. No database.
+npm run test:api      # HTTP handlers against Postgres
+npm test
+```
+
+API tests need a database. With Docker:
+
+```sh
+npm run db:up
+npm run test:api
+```
+
+If `DATABASE_URL` is unset, `npm run test:api` uses `postgres://bizkit:bizkit@127.0.0.1:5432/bizkit`. If `JWT_SECRET` is missing or shorter than 32 characters, the runner generates a throwaway secret for that process and does not print it. The same applies to an empty `QUOTA_IP_SALT`. Point this at a local or CI database. The suite applies `lib/initSchema.ts` and deletes only the users and anonymous-quota rows it creates.
+
+`npm run test:security` runs `tests/security-hardening.ts`, `tests/demo-mode.ts`, and `tests/auth-session.ts`. That covers anonymous-quota decisions, admin-promotion rules, demo-mode selection, the production 503 when no AI provider is configured, the production seed refusal, and the rule that login and register omit the session token unless the request sends `X-BizKit-Client: mobile`. `npm run test:api` calls the route handlers and checks:
+
+- Anonymous free generation is one row in `anonymous_generations`, keyed by the server-observed address. Dropping cookies or sending `X-Forwarded-For` without `TRUST_PROXY` does not grant another try. A signed-in caller on that same address is not blocked by the anonymous row.
+- In production, with `HUGGINGFACE_API_KEY` and `LMSTUDIO_API_URL` unset and `DEMO_MODE` unset, `POST /api/generate` returns 503 `ai_not_configured` and does not change credits, usage, history, or the anonymous quota. `DEMO_MODE=1` returns labelled sample output and then deducts one credit.
+- Register, login, and logout against Postgres. Web clients get the httpOnly cookie and no `token` field, even if the JSON body asks for one. `X-BizKit-Client: mobile` also returns `token`. `GET /api/auth/me`, `/api/generations`, and `POST /api/stripe/create-checkout` reject missing or invalid credentials and accept either the cookie or `Authorization: Bearer`.
+
+These checks do not certify the whole app. Confirm database migrations and live provider keys in a controlled environment before a public launch.

@@ -8,8 +8,8 @@ if (connectionString.startsWith('psql ')) {
 /** Local Postgres has no TLS. Hosted providers usually require it. */
 export function databaseSsl(connectionString: string): PoolConfig['ssl'] {
   if (!connectionString) return undefined;
-  let host = '';
-  let sslmode: string | null = null;
+  let host: string;
+  let sslmode: string | null;
   try {
     const url = new URL(connectionString);
     host = url.hostname;

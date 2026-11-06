@@ -113,6 +113,7 @@ export function useAuth(): AuthState & AuthActions {
         credentials: 'include',
       })
     } catch {
+      // Still drop the local session if the logout request fails.
     }
     setState({
       user: null,

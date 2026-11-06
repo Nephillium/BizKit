@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: bizkit
+          POSTGRES_PASSWORD: ci-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          POSTGRES_DB: bizkit_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U bizkit -d bizkit_ci"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+    env:
+      DATABASE_URL: postgres://bizkit:ci-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}@localhost:5432/bizkit_ci
+      HUGGINGFACE_API_KEY: ""
+      LMSTUDIO_API_URL: ""
+      DEMO_MODE: ""
+      STRIPE_SECRET_KEY: ""
+      STRIPE_WEBHOOK_SECRET: ""
+      STRIPE_PUBLISHABLE_KEY: ""
+      SUPER_USER_EMAIL: ""
+      SUPER_USER_PASSWORD: ""
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run check
+
+      - name: Build
+        run: npm run build
+
+      - name: Generate throwaway test secrets
+        run: |
+          echo "JWT_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+          echo "QUOTA_IP_SALT=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+
+      - name: Test
+        run: npm test
