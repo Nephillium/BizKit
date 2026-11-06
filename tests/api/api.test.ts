@@ -513,3 +513,195 @@ describe('auth', () => {
     }
   });
 });
+
+describe('generation history', () => {
+  test('list filters and delete stay limited to the signed-in user', async () => {
+    const env = snapshotEnv();
+    const ownerEmail = `hist-owner-${randomBytes(4).toString('hex')}@example.com`;
+    const otherEmail = `hist-other-${randomBytes(4).toString('hex')}@example.com`;
+    const password = 'history-test-password';
+    try {
+      setEnv('NODE_ENV', 'production');
+
+      const owner = await invoke(registerHandler, {
+        method: 'POST',
+        body: { email: ownerEmail, password },
+      });
+      const other = await invoke(registerHandler, {
+        method: 'POST',
+        body: { email: otherEmail, password },
+      });
+      assert.equal(owner.status, 200);
+      assert.equal(other.status, 200);
+      const ownerCookie = cookieHeaderFromSetCookie(owner.headers['set-cookie']);
+      const otherCookie = cookieHeaderFromSetCookie(other.headers['set-cookie']);
+
+      const cold = await invoke(generationsHandler, {
+        method: 'POST',
+        headers: { cookie: ownerCookie },
+        body: {
+          toolType: 'cold_email',
+          inputs: { target: 'clinic owners', service: 'recall reminders' },
+          output: 'A warm note for clinic owners about recall reminders.',
+        },
+      });
+      assert.equal(cold.status, 201);
+      assert.equal(typeof cold.body.id, 'number');
+
+      const social = await invoke(generationsHandler, {
+        method: 'POST',
+        headers: { cookie: ownerCookie },
+        body: {
+          toolType: 'social_pack',
+          inputs: { businessType: 'a sourdough bakery', niche: 'weekend bread' },
+          output: 'Social pack for a sourdough bakery on Instagram.',
+        },
+      });
+      assert.equal(social.status, 201);
+
+      const foreign = await invoke(generationsHandler, {
+        method: 'POST',
+        headers: { cookie: otherCookie },
+        body: {
+          toolType: 'proposal',
+          inputs: { clientType: 'a private studio' },
+          output: 'Private proposal that the other account must not see.',
+        },
+      });
+      assert.equal(foreign.status, 201);
+
+      const ownerList = await invoke(generationsHandler, {
+        method: 'GET',
+        headers: { cookie: ownerCookie },
+        query: { userId: String(other.body.user.id) },
+      });
+      assert.equal(ownerList.status, 200);
+      assert.ok(Array.isArray(ownerList.body));
+      const ownerIds = ownerList.body.map((row: { id: number }) => row.id);
+      assert.deepEqual(ownerIds.sort(), [cold.body.id, social.body.id].sort());
+      assert.equal(ownerList.body.some((row: { output: string }) => row.output.includes('Private proposal')), false);
+
+      const clinic = await invoke(generationsHandler, {
+        method: 'GET',
+        headers: { cookie: ownerCookie },
+        query: { q: 'clinic' },
+      });
+      assert.equal(clinic.status, 200);
+      assert.deepEqual(clinic.body.map((row: { id: number }) => row.id), [cold.body.id]);
+
+      const socialOnly = await invoke(generationsHandler, {
+        method: 'GET',
+        headers: { cookie: ownerCookie },
+        query: { tool: 'social_pack' },
+      });
+      assert.equal(socialOnly.status, 200);
+      assert.deepEqual(socialOnly.body.map((row: { id: number }) => row.id), [social.body.id]);
+
+      const injected = await invoke(generationsHandler, {
+        method: 'GET',
+        headers: { cookie: ownerCookie },
+        query: { q: "%' OR user_id <> 'x" },
+      });
+      assert.equal(injected.status, 200);
+      assert.deepEqual(injected.body, []);
+
+      const badTool = await invoke(generationsHandler, {
+        method: 'GET',
+        headers: { cookie: ownerCookie },
+        query: { tool: 'invoice' },
+      });
+      assert.equal(badTool.status, 400);
+      assert.equal(badTool.body.error, 'invalid_tool');
+
+      const tooLong = await invoke(generationsHandler, {
+        method: 'GET',
+        headers: { cookie: ownerCookie },
+        query: { q: 'z'.repeat(201) },
+      });
+      assert.equal(tooLong.status, 400);
+      assert.equal(tooLong.body.error, 'query_too_long');
+
+      const otherList = await invoke(generationsHandler, {
+        method: 'GET',
+        headers: { cookie: otherCookie },
+      });
+      assert.deepEqual(otherList.body.map((row: { id: number }) => row.id), [foreign.body.id]);
+
+      const foreignDelete = await invoke(generationByIdHandler, {
+        method: 'DELETE',
+        query: { id: String(cold.body.id) },
+        headers: { cookie: otherCookie },
+      });
+      assert.equal(foreignDelete.status, 404);
+      assert.equal(foreignDelete.body.error, 'not_found');
+
+      const stillThere = await invoke(generationsHandler, {
+        method: 'GET',
+        headers: { cookie: ownerCookie },
+        query: { q: 'clinic' },
+      });
+      assert.deepEqual(stillThere.body.map((row: { id: number }) => row.id), [cold.body.id]);
+
+      const removed = await invoke(generationByIdHandler, {
+        method: 'DELETE',
+        query: { id: String(cold.body.id) },
+        headers: { cookie: ownerCookie },
+      });
+      assert.equal(removed.status, 200);
+      assert.equal(removed.body.ok, true);
+
+      const afterCookieDelete = await invoke(generationsHandler, {
+        method: 'GET',
+        headers: { cookie: ownerCookie },
+      });
+      assert.deepEqual(afterCookieDelete.body.map((row: { id: number }) => row.id), [social.body.id]);
+
+      const mobile = await invoke(loginHandler, {
+        method: 'POST',
+        body: { email: ownerEmail, password },
+        headers: { [MOBILE_CLIENT_HEADER]: MOBILE_CLIENT_VALUE },
+      });
+      assert.equal(mobile.status, 200);
+      assert.equal(typeof mobile.body.token, 'string');
+
+      const bearerDelete = await invoke(generationByIdHandler, {
+        method: 'DELETE',
+        query: { id: String(social.body.id) },
+        headers: { authorization: `Bearer ${mobile.body.token}` },
+      });
+      assert.equal(bearerDelete.status, 200);
+
+      const bearerForeign = await invoke(generationByIdHandler, {
+        method: 'DELETE',
+        query: { id: String(foreign.body.id) },
+        headers: { authorization: `Bearer ${mobile.body.token}` },
+      });
+      assert.equal(bearerForeign.status, 404);
+
+      const otherBearer = await invoke(generationsHandler, {
+        method: 'GET',
+        headers: { authorization: `Bearer ${sessionToken(other.headers['set-cookie'])}` },
+      });
+      assert.equal(otherBearer.status, 200);
+      assert.deepEqual(otherBearer.body.map((row: { id: number }) => row.id), [foreign.body.id]);
+
+      const otherAfter = await invoke(generationsHandler, {
+        method: 'GET',
+        headers: { cookie: otherCookie },
+      });
+      assert.equal(otherAfter.body[0].output, foreign.body.output);
+
+      const badId = await invoke(generationByIdHandler, {
+        method: 'DELETE',
+        query: { id: 'nope' },
+        headers: { cookie: ownerCookie },
+      });
+      assert.equal(badId.status, 400);
+      assert.equal(badId.body.error, 'invalid_id');
+    } finally {
+      await deleteUser(ownerEmail);
+      await deleteUser(otherEmail);
+      env.restore();
+    }
+  });
+});

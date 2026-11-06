@@ -30,7 +30,7 @@ The password and email come from `DEMO_USER_EMAIL`, `DEMO_USER_PASSWORD`, and `D
 
 Leave `HUGGINGFACE_API_KEY` and `LMSTUDIO_API_URL` empty. Outside production, each generator then returns labelled sample text. A banner on the home page says demo mode is on. Production does not do this unless `DEMO_MODE=1`.
 
-Signed-in generations are stored in Postgres and show up under History. Buy Credits stays disabled, with an explanation, until `STRIPE_SECRET_KEY` is set.
+Signed-in generations are stored in Postgres and show up under History. History can be searched, filtered by tool, copied, and deleted. Delete asks for confirmation, and the API removes a row only when it belongs to the signed-in user. `npm run db:setup` and `npm run db:seed` add four sample generations when that account has none, so the local demo has something to search. Buy Credits stays disabled, with an explanation, until `STRIPE_SECRET_KEY` is set.
 
 `npm ci` and `npm run dev` start without Docker. Login, generation, and history need the database from `db:up` and `db:setup`.
 
@@ -152,7 +152,7 @@ The compose file is only the local database. It is not the application server.
 
 ## Code layout
 
-`pages/` and `lib/` are the web app. Auth is `pages/api/auth/`. Generation is `pages/api/generate.ts`. History is `pages/api/generations`. Stripe is `pages/api/stripe/`. `GET /api/config` reports demo mode, the provider, and whether Stripe checkout is enabled. It returns the demo login only when `NODE_ENV` is not production.
+`pages/` and `lib/` are the web app. Auth is `pages/api/auth/`. Generation is `pages/api/generate.ts`. History is `pages/api/generations`. Both history routes use `getSessionFromRequest`, so they accept the httpOnly cookie or `Authorization: Bearer`. `GET /api/generations` accepts `q` and `tool`, ignores any caller-supplied user id, and returns only the signed-in user's rows. `DELETE /api/generations/:id` deletes only when `user_id` matches that account. Stripe is `pages/api/stripe/`. `GET /api/config` reports demo mode, the provider, and whether Stripe checkout is enabled. It returns the demo login only when `NODE_ENV` is not production.
 
 ## Tests
 
@@ -161,7 +161,7 @@ The compose file is only the local database. It is not the application server.
 ```sh
 npm run lint          # eslint
 npm run check         # tsc
-npm run test:security # quota, demo gate, and session-token rules. No database.
+npm run test:security # quota, demo gate, session-token rules, and history query binding. No database.
 npm run test:api      # HTTP handlers against Postgres
 npm test
 ```
@@ -175,10 +175,11 @@ npm run test:api
 
 If `DATABASE_URL` is unset, `npm run test:api` uses `postgres://bizkit:bizkit@127.0.0.1:5432/bizkit`. If `JWT_SECRET` is missing or shorter than 32 characters, the runner generates a throwaway secret for that process and does not print it. The same applies to an empty `QUOTA_IP_SALT`. Point this at a local or CI database. The suite applies `lib/initSchema.ts` and deletes only the users and anonymous-quota rows it creates.
 
-`npm run test:security` runs `tests/security-hardening.ts`, `tests/demo-mode.ts`, and `tests/auth-session.ts`. That covers anonymous-quota decisions, admin-promotion rules, demo-mode selection, the production 503 when no AI provider is configured, the production seed refusal, and the rule that login and register omit the session token unless the request sends `X-BizKit-Client: mobile`. `npm run test:api` calls the route handlers and checks:
+`npm run test:security` runs `tests/security-hardening.ts`, `tests/demo-mode.ts`, `tests/auth-session.ts`, and `tests/generation-history.ts`. That covers anonymous-quota decisions, admin-promotion rules, demo-mode selection, the production 503 when no AI provider is configured, the production seed refusal, the rule that login and register omit the session token unless the request sends `X-BizKit-Client: mobile`, and that history search text is a bound parameter scoped with `user_id`. `npm run test:api` calls the route handlers and checks:
 
 - Anonymous free generation is one row in `anonymous_generations`, keyed by the server-observed address. Dropping cookies or sending `X-Forwarded-For` without `TRUST_PROXY` does not grant another try. A signed-in caller on that same address is not blocked by the anonymous row.
 - In production, with `HUGGINGFACE_API_KEY` and `LMSTUDIO_API_URL` unset and `DEMO_MODE` unset, `POST /api/generate` returns 503 `ai_not_configured` and does not change credits, usage, history, or the anonymous quota. `DEMO_MODE=1` returns labelled sample output and then deducts one credit.
 - Register, login, and logout against Postgres. Web clients get the httpOnly cookie and no `token` field, even if the JSON body asks for one. `X-BizKit-Client: mobile` also returns `token`. `GET /api/auth/me`, `/api/generations`, and `POST /api/stripe/create-checkout` reject missing or invalid credentials and accept either the cookie or `Authorization: Bearer`.
+- History list and delete stay on the signed-in user for both the cookie and `Authorization: Bearer`. `q` and `tool` only narrow that user's rows. Deleting another user's id returns 404 and leaves the row in place.
 
 These checks do not certify the whole app. Confirm database migrations and live provider keys in a controlled environment before a public launch.
