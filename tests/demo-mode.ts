@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { releaseAnonymousGeneration } from '../lib/anonymousQuota';
 import { buildDemoOutput } from '../lib/demoContent';
 import { demoSeedRefusal } from '../lib/demoSeedPolicy';
-import { databaseSsl } from '../lib/db';
+import { databaseSsl, pool } from '../lib/db';
 import generateHandler from '../pages/api/generate';
 import {
   creditDeltaAfterGeneration,
@@ -242,6 +243,9 @@ async function testProductionGenerateReturns503WithoutCharging() {
     setEnv('NODE_ENV', 'development');
     setEnv('DEMO_MODE', undefined);
     assert.equal(generationGate().outcome, 'sample');
+    // The sample request records the anonymous quota for 127.0.0.1 when
+    // DATABASE_URL is set. Clear it so a second local run is not refused.
+    await releaseDevSampleClaim();
     const sample = await postGenerate({
       tool: 'proposal',
       inputs: { clientType: 'dental group', projectScope: 'new patient offers' },
@@ -250,11 +254,20 @@ async function testProductionGenerateReturns503WithoutCharging() {
     assert.equal(sample.body.ok, true);
     assert.match(String(sample.body.output), /Demo mode — sample output/);
     assert.match(String(sample.body.output), /dental group/);
+    await releaseDevSampleClaim();
   } finally {
     for (const [key, value] of Object.entries(previous)) {
       setEnv(key, value);
     }
   }
+}
+
+async function releaseDevSampleClaim(): Promise<void> {
+  if (!process.env.DATABASE_URL) return;
+  await releaseAnonymousGeneration({
+    socket: { remoteAddress: '127.0.0.1' },
+    headers: {},
+  } as NextApiRequest);
 }
 
 function testDatabaseSsl() {
@@ -269,4 +282,5 @@ testDemoCopy();
 testProviderSelection();
 await testProductionGenerateReturns503WithoutCharging();
 testDatabaseSsl();
+await pool.end();
 console.log('demo-mode tests passed');
