@@ -2,7 +2,11 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { getUserFromRequest, type JWTPayload } from './users';
 
 export function getSessionFromRequest(req: NextApiRequest): JWTPayload | null {
-  return getUserFromRequest(req.headers.cookie);
+  const authorization = req.headers?.authorization;
+  return getUserFromRequest(
+    req.headers?.cookie,
+    typeof authorization === 'string' ? authorization : undefined,
+  );
 }
 
 export type AuthHandler = (

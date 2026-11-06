@@ -74,7 +74,11 @@ Checkout and webhooks use `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, and `ST
 
 ### Authentication
 
-Sign-in is email and password. The browser stores a JWT in an httpOnly cookie. Login and register also return that token in the JSON body because the Expo app in `mobile/` stores it and sends `Authorization: Bearer`. The web app does not read the body token. Routes: `/api/auth/login`, `/api/auth/register`, `/api/auth/me`, `/api/auth/logout`.
+Sign-in is email and password. A successful `POST /api/auth/login` or `POST /api/auth/register` sets an httpOnly cookie named `bizkit_token` (7 days, `SameSite=Lax`, `Secure` in production). The JSON body is `{ ok: true, user }` and does not include the session token.
+
+The Expo app cannot read that cookie. On login and register it sends `X-BizKit-Client: mobile`. The value must be exactly `mobile` (capitalization and surrounding spaces are ignored; a list of values is ignored). Only then does the JSON also include `token`. The app stores that value and sends `Authorization: Bearer <token>` on later requests. `/api/auth/me`, `/api/generate`, `/api/generations`, and `/api/stripe/create-checkout` accept either the cookie or that bearer token. Any other client, including the web app, omits the header and receives `{ ok: true, user }` only. A field in the JSON body is ignored.
+
+Routes: `/api/auth/login`, `/api/auth/register`, `/api/auth/me`, `/api/auth/logout`.
 
 Public registration always creates a normal user. Admin is created only when `SUPER_USER_EMAIL` and `SUPER_USER_PASSWORD` are set and `POST /api/init-db` (or `npm run db:init`) runs. Login does not promote accounts. If that email already exists as a non-admin, it is left unchanged. `SUPER_USER_PASSWORD` is read only for that first create. After the admin row exists, remove the password. Keep `SUPER_USER_EMAIL` so public signup keeps rejecting that address.
 
@@ -152,4 +156,4 @@ The compose file is only the local database. It is not the application server.
 
 ## Validation limits
 
-`npm run test:security` covers the anonymous quota, admin-promotion rules, demo-mode selection, the production 503 when no AI provider is configured, and the production seed refusal. It does not certify the whole app. Confirm database migrations and live provider keys in a controlled environment before a public launch.
+`npm run test:security` covers the anonymous quota, admin-promotion rules, demo-mode selection, the production 503 when no AI provider is configured, the production seed refusal, and the rule that login and register omit the session token from JSON unless the Expo client sends `X-BizKit-Client: mobile`. It does not certify the whole app. Confirm database migrations and live provider keys in a controlled environment before a public launch.
