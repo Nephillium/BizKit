@@ -1,10 +1,11 @@
-import { useState, FormEvent, useRef, useEffect } from 'react'
+import { useState, FormEvent, useRef, useEffect, useCallback } from 'react'
 import Head from 'next/head'
 import { jsPDF } from 'jspdf'
 import { Document, Packer, Paragraph, TextRun } from 'docx'
 import { useAuth } from '../hooks/useAuth'
 import type { Generation } from '../shared/schema'
 import { translations, getTranslation, type Language } from '../lib/translations'
+import { HistoryPanel, type HistoryToolFilter } from '../components/HistoryPanel'
 
 type Tool = 'cold_email' | 'proposal' | 'contract' | 'social_pack'
 type CopyState = 'idle' | 'copied' | 'error'
@@ -439,6 +440,15 @@ export default function Home() {
   const [generations, setGenerations] = useState<Generation[]>([])
   const [showHistory, setShowHistory] = useState(false)
   const [historyLoading, setHistoryLoading] = useState(false)
+  const [historyRefreshing, setHistoryRefreshing] = useState(false)
+  const [historyQuery, setHistoryQuery] = useState('')
+  const [debouncedHistoryQuery, setDebouncedHistoryQuery] = useState('')
+  const [historyTool, setHistoryTool] = useState<HistoryToolFilter>('all')
+  const historyButtonRef = useRef<HTMLButtonElement>(null)
+  const historyQueryRef = useRef('')
+  const historyToolRef = useRef<HistoryToolFilter>('all')
+  const historyRequest = useRef(0)
+  const historyLoaded = useRef(false)
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false)
   const [showSubscriptionPrompt, setShowSubscriptionPrompt] = useState(false)
   const [_usageInfo, setUsageInfo] = useState<{ count: number; limit: number } | null>(null)
@@ -476,10 +486,55 @@ export default function Home() {
   }
 
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchGenerations()
+    const timer = window.setTimeout(() => setDebouncedHistoryQuery(historyQuery), 250)
+    return () => window.clearTimeout(timer)
+  }, [historyQuery])
+
+  const fetchGenerations = useCallback(async () => {
+    const requestId = ++historyRequest.current
+    const params = new URLSearchParams()
+    const search = historyQueryRef.current.trim()
+    const tool = historyToolRef.current
+    if (search) params.set('q', search)
+    if (tool !== 'all') params.set('tool', tool)
+    const suffix = params.toString()
+    if (!historyLoaded.current) setHistoryLoading(true)
+    else setHistoryRefreshing(true)
+    try {
+      const response = await fetch(`/api/generations${suffix ? `?${suffix}` : ''}`, {
+        credentials: 'include',
+      })
+      if (requestId !== historyRequest.current) return
+      if (response.ok) {
+        const data = await response.json()
+        if (Array.isArray(data)) setGenerations(data)
+      }
+    } catch (err) {
+      console.error('Failed to fetch generations:', err)
+    } finally {
+      if (requestId === historyRequest.current) {
+        historyLoaded.current = true
+        setHistoryLoading(false)
+        setHistoryRefreshing(false)
+      }
     }
-  }, [isAuthenticated])
+  }, [])
+
+  useEffect(() => {
+    historyQueryRef.current = debouncedHistoryQuery
+    historyToolRef.current = historyTool
+    if (!isAuthenticated) {
+      historyLoaded.current = false
+      setGenerations([])
+      return
+    }
+    void fetchGenerations()
+  }, [isAuthenticated, debouncedHistoryQuery, historyTool, fetchGenerations])
+
+  const closeHistory = () => {
+    setShowHistory(false)
+    historyButtonRef.current?.focus()
+  }
 
   const handleAuthSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -506,35 +561,14 @@ export default function Home() {
     }
   }
 
-  const fetchGenerations = async () => {
-    try {
-      setHistoryLoading(true)
-      const response = await fetch('/api/generations', {
-        credentials: 'include',
-      })
-      if (response.ok) {
-        const data = await response.json()
-        setGenerations(data)
-      }
-    } catch (err) {
-      console.error('Failed to fetch generations:', err)
-    } finally {
-      setHistoryLoading(false)
-    }
-  }
-
-  const deleteGeneration = async (id: number) => {
-    try {
-      const response = await fetch(`/api/generations/${id}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      })
-      if (response.ok) {
-        setGenerations(generations.filter(g => g.id !== id))
-      }
-    } catch (err) {
-      console.error('Failed to delete generation:', err)
-    }
+  const deleteGeneration = async (id: number): Promise<boolean> => {
+    const response = await fetch(`/api/generations/${id}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    })
+    if (!response.ok) return false
+    setGenerations((current) => current.filter((item) => item.id !== id))
+    return true
   }
 
   const loadGeneration = (generation: Generation) => {
@@ -843,7 +877,10 @@ export default function Home() {
               <>
                 <button
                   type="button"
+                  ref={historyButtonRef}
                   onClick={() => setShowHistory(!showHistory)}
+                  aria-expanded={showHistory}
+                  aria-controls="history-panel"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -965,163 +1002,22 @@ export default function Home() {
           </div>
         </nav>
 
-        {/* History Sidebar */}
         {showHistory && isAuthenticated && (
-          <div
-            style={{
-              position: 'fixed',
-              top: 0,
-              right: 0,
-              width: '400px',
-              maxWidth: '100vw',
-              height: '100vh',
-              backgroundColor: 'rgb(255, 255, 255)',
-              borderLeft: '1px solid rgb(226, 232, 240)',
-              boxShadow: '-4px 0 12px rgba(0, 0, 0, 0.1)',
-              zIndex: 100,
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-            data-testid="panel-history"
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '16px 20px',
-                borderBottom: '1px solid rgb(226, 232, 240)',
-              }}
-            >
-              <h2 style={{ fontSize: '1rem', fontWeight: 600, color: 'rgb(15, 23, 42)', margin: 0 }}>
-                {t.generationHistory}
-              </h2>
-              <button
-                type="button"
-                onClick={() => setShowHistory(false)}
-                style={{
-                  padding: '6px',
-                  backgroundColor: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: 'rgb(148, 163, 184)',
-                }}
-                data-testid="button-close-history"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
-            </div>
-            <div
-              style={{
-                flex: 1,
-                overflowY: 'auto',
-                padding: '16px',
-              }}
-            >
-              {historyLoading ? (
-                <div style={{ textAlign: 'center', color: 'rgb(148, 163, 184)', padding: '40px 0' }}>
-                  {t.loading}
-                </div>
-              ) : generations.length === 0 ? (
-                <div style={{ textAlign: 'center', color: 'rgb(148, 163, 184)', padding: '40px 0' }}>
-                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ margin: '0 auto 12px' }}>
-                    <circle cx="12" cy="12" r="10" />
-                    <polyline points="12 6 12 12 16 14" />
-                  </svg>
-                  <p style={{ fontSize: '0.875rem' }}>{t.noHistory}</p>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {generations.map((gen) => (
-                    <div
-                      key={gen.id}
-                      style={{
-                        padding: '14px',
-                        backgroundColor: 'rgb(248, 250, 252)',
-                        borderRadius: '6px',
-                        border: '1px solid rgb(226, 232, 240)',
-                      }}
-                      data-testid={`history-item-${gen.id}`}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                        <span
-                          style={{
-                            display: 'inline-block',
-                            padding: '4px 8px',
-                            fontSize: '0.6875rem',
-                            fontWeight: 500,
-                            backgroundColor: 'rgb(238, 242, 255)',
-                            color: 'rgb(99, 102, 241)',
-                            borderRadius: '4px',
-                            textTransform: 'uppercase',
-                          }}
-                        >
-                          {getTabLabels(t)[gen.toolType as Tool] || gen.toolType}
-                        </span>
-                        <span style={{ fontSize: '0.6875rem', color: 'rgb(148, 163, 184)' }}>
-                          {new Date(gen.createdAt!).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <p
-                        style={{
-                          fontSize: '0.8125rem',
-                          color: 'rgb(51, 65, 85)',
-                          lineHeight: 1.5,
-                          marginBottom: '12px',
-                          overflow: 'hidden',
-                          display: '-webkit-box',
-                          WebkitLineClamp: 3,
-                          WebkitBoxOrient: 'vertical',
-                        }}
-                      >
-                        {gen.output.substring(0, 150)}...
-                      </p>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button
-                          type="button"
-                          onClick={() => loadGeneration(gen)}
-                          style={{
-                            flex: 1,
-                            padding: '6px 10px',
-                            fontSize: '0.75rem',
-                            fontWeight: 500,
-                            color: 'rgb(99, 102, 241)',
-                            backgroundColor: 'rgb(255, 255, 255)',
-                            border: '1px solid rgb(199, 210, 254)',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                          }}
-                          data-testid={`button-load-${gen.id}`}
-                        >
-                          Load
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => deleteGeneration(gen.id)}
-                          style={{
-                            padding: '6px 10px',
-                            fontSize: '0.75rem',
-                            fontWeight: 500,
-                            color: 'rgb(239, 68, 68)',
-                            backgroundColor: 'rgb(255, 255, 255)',
-                            border: '1px solid rgb(254, 202, 202)',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                          }}
-                          data-testid={`button-delete-${gen.id}`}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+          <HistoryPanel
+            generations={generations}
+            loading={historyLoading}
+            refreshing={historyRefreshing}
+            query={historyQuery}
+            tool={historyTool}
+            filterActive={debouncedHistoryQuery.trim() !== '' || historyTool !== 'all'}
+            labels={getTabLabels(t)}
+            messages={t}
+            onQueryChange={setHistoryQuery}
+            onToolChange={setHistoryTool}
+            onClose={closeHistory}
+            onLoad={loadGeneration}
+            onDelete={deleteGeneration}
+          />
         )}
 
         {/* Hero Section */}

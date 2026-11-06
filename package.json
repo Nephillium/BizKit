@@ -9,7 +9,7 @@
     "start": "next start -p ${PORT:-5000}",
     "check": "tsc",
     "lint": "eslint .",
-    "test:security": "tsx tests/security-hardening.ts && tsx tests/demo-mode.ts && tsx tests/auth-session.ts",
+    "test:security": "tsx tests/security-hardening.ts && tsx tests/demo-mode.ts && tsx tests/auth-session.ts && tsx tests/generation-history.ts",
     "test:api": "tsx scripts/run-api-tests.ts",
     "test": "npm run test:security && npm run test:api",
     "db:up": "docker compose up -d --wait",

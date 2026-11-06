@@ -9,7 +9,8 @@ if (!process.env.DATABASE_URL) {
 
 const { pool } = await import('../lib/db');
 const { initSchema } = await import('../lib/initSchema');
-const { provisionSuperUser, seedDemoUser } = await import('../lib/users');
+const { findUserByEmail, provisionSuperUser, seedDemoUser } = await import('../lib/users');
+const { seedDemoHistory } = await import('../lib/generations');
 
 try {
   await initSchema();
@@ -21,6 +22,13 @@ try {
       ? `Created demo user ${seeded.email} with ${seeded.credits} credits.`
       : `Updated demo user ${seeded.email}. Credits are at least ${seeded.credits}.`
   );
+  const seededUser = await findUserByEmail(seeded.email);
+  if (seededUser) {
+    const added = await seedDemoHistory(seededUser.id);
+    if (added > 0) {
+      console.log(`Added ${added} sample generations for History.`);
+    }
+  }
 } catch (error) {
   console.error(error instanceof Error ? error.message : error);
   process.exitCode = 1;
