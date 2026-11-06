@@ -19,7 +19,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const jwtPayload = getUserFromRequest(req.headers.cookie);
+    const jwtPayload = getUserFromRequest(req.headers.cookie, req.headers.authorization);
     if (!jwtPayload) {
       return res.status(401).json({ error: 'not_authenticated' });
     }

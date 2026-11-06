@@ -105,7 +105,7 @@ mobile/
 
 ## Backend Requirements
 
-The mobile app requires the BizKit AI backend to be running. The backend provides:
+The mobile app requires the BizKit AI backend to be running. Login and register send `X-BizKit-Client: mobile` so the API includes the session token in JSON. The app stores that token and sends `Authorization: Bearer <token>` on later requests. The backend provides:
 
 - `/api/auth/login` - User authentication
 - `/api/auth/register` - User registration  

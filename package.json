@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start -p ${PORT:-5000}",
     "check": "tsc",
-    "test:security": "tsx tests/security-hardening.ts && tsx tests/demo-mode.ts",
+    "test:security": "tsx tests/security-hardening.ts && tsx tests/demo-mode.ts && tsx tests/auth-session.ts",
     "db:up": "docker compose up -d --wait",
     "db:init": "tsx scripts/db-init.ts",
     "db:seed": "tsx scripts/db-seed.ts",

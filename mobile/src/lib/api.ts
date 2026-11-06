@@ -27,6 +27,12 @@ interface GenerateResponse {
 
 let authToken: string | null = null;
 
+// Asks the API to include the session JWT in the login/register JSON body.
+// Must match MOBILE_CLIENT_HEADER / MOBILE_CLIENT_VALUE in lib/authResponse.ts.
+const MOBILE_CLIENT_HEADERS = {
+  'X-BizKit-Client': 'mobile',
+};
+
 export function setAuthToken(token: string | null) {
   authToken = token;
 }
@@ -85,12 +91,17 @@ async function apiRequest<T>(
 export async function login(email: string, password: string): Promise<AuthResponse> {
   const result = await apiRequest<{ ok: boolean; user?: User; token?: string; error?: string }>('/api/auth/login', {
     method: 'POST',
+    headers: MOBILE_CLIENT_HEADERS,
     body: JSON.stringify({ email, password }),
   });
 
   if (result.ok && result.data?.ok && result.data.token) {
     setAuthToken(result.data.token);
     return { success: true, user: result.data.user, token: result.data.token };
+  }
+
+  if (result.ok && result.data?.ok && !result.data.token) {
+    return { success: false, error: 'Login did not return a session token' };
   }
   
   return { success: false, error: result.error || result.data?.error || 'Login failed' };
@@ -99,12 +110,17 @@ export async function login(email: string, password: string): Promise<AuthRespon
 export async function register(email: string, password: string): Promise<AuthResponse> {
   const result = await apiRequest<{ ok: boolean; user?: User; token?: string; error?: string }>('/api/auth/register', {
     method: 'POST',
+    headers: MOBILE_CLIENT_HEADERS,
     body: JSON.stringify({ email, password }),
   });
 
   if (result.ok && result.data?.ok && result.data.token) {
     setAuthToken(result.data.token);
     return { success: true, user: result.data.user, token: result.data.token };
+  }
+
+  if (result.ok && result.data?.ok && !result.data.token) {
+    return { success: false, error: 'Registration did not return a session token' };
   }
   
   return { success: false, error: result.error || result.data?.error || 'Registration failed' };
