@@ -8,10 +8,12 @@ import {
   Linking,
   ActivityIndicator,
   Alert,
+  Platform,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { createCheckoutSession } from '../lib/api';
+import { sellsCreditsInApp } from '../lib/playBilling';
 
 const CREDIT_PACKAGES = [
   { credits: 10, price: 5, priceId: 'price_10_credits' },
@@ -27,6 +29,7 @@ export default function BuyCreditsScreen({ onGoBack }: Props) {
   const { user } = useAuth();
   const { t } = useLanguage();
   const [loadingPriceId, setLoadingPriceId] = useState<string | null>(null);
+  const sellsInApp = sellsCreditsInApp(Platform.OS);
 
   async function handlePurchase(credits: number, priceId: string) {
     if (!user) {
@@ -49,6 +52,24 @@ export default function BuyCreditsScreen({ onGoBack }: Props) {
     } finally {
       setLoadingPriceId(null);
     }
+  }
+
+  // TODO(play-billing): Android must not start Stripe checkout. Sell credits
+  // with Google Play Billing when Play Console products exist. See playBilling.ts.
+  if (!sellsInApp) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={onGoBack} style={styles.backButton} accessibilityRole="button">
+            <Text style={styles.backText}>{t.backToHome}</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>{t.managePlanOnWeb}</Text>
+        </View>
+        <View style={styles.content}>
+          <Text style={styles.notice}>{t.managePlanOnWebDetail}</Text>
+        </View>
+      </View>
+    );
   }
 
   return (
@@ -135,6 +156,13 @@ const styles = StyleSheet.create({
     color: '#64748b',
     textAlign: 'center',
     marginBottom: 24,
+  },
+  notice: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#334155',
+    textAlign: 'center',
+    marginTop: 24,
   },
   packagesContainer: {
     gap: 16,

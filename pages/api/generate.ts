@@ -3,7 +3,7 @@ import { getUserFromRequest, getUserCredits, addCredits, incrementUserUsage } fr
 import { claimAnonymousGeneration, releaseAnonymousGeneration } from '../../lib/anonymousQuota'
 import { buildDemoOutput, isGenerationTool } from '../../lib/demoContent'
 import { createGeneration } from '../../lib/generations'
-import { creditDeltaAfterGeneration, generationGate, stripeSecretConfigured } from '../../lib/runtimeConfig'
+import { creditDeltaAfterGeneration, generationGate, modelForProvider, stripeSecretConfigured } from '../../lib/runtimeConfig'
 
 type LengthOption = 'short' | 'standard' | 'detailed'
 type Tool = 'cold_email' | 'proposal' | 'contract' | 'social_pack'
@@ -160,7 +160,7 @@ Each post should be engaging and appropriate for the specified platform.`
   }
 }
 
-async function callHuggingFace(prompt: string, maxTokens: number, temperature: number): Promise<string> {
+async function callHuggingFace(prompt: string, maxTokens: number, temperature: number, model: string): Promise<string> {
   const apiKey = process.env.HUGGINGFACE_API_KEY
   
   if (!apiKey) {
@@ -168,7 +168,7 @@ async function callHuggingFace(prompt: string, maxTokens: number, temperature: n
   }
 
   const response = await fetch(
-    'https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3',
+    `https://api-inference.huggingface.co/models/${model}`,
     {
       method: 'POST',
       headers: {
@@ -205,9 +205,8 @@ async function callHuggingFace(prompt: string, maxTokens: number, temperature: n
   return JSON.stringify(result)
 }
 
-async function callLMStudio(prompt: string, maxTokens: number, temperature: number): Promise<string> {
+async function callLMStudio(prompt: string, maxTokens: number, temperature: number, model: string): Promise<string> {
   const baseUrl = process.env.LMSTUDIO_API_URL || 'http://localhost:1234/v1'
-  const model = process.env.LMSTUDIO_MODEL || 'local-model'
 
   const response = await fetch(`${baseUrl}/chat/completions`, {
     method: 'POST',
@@ -238,6 +237,45 @@ async function callLMStudio(prompt: string, maxTokens: number, temperature: numb
   }
   
   throw new Error('Invalid LM Studio response')
+}
+
+async function callOpenAICompatible(prompt: string, maxTokens: number, temperature: number, model: string): Promise<string> {
+  const baseUrl = (process.env.AI_BASE_URL || '').replace(/\/$/, '')
+  const apiKey = (process.env.AI_API_KEY || '').trim()
+
+  if (!baseUrl || !apiKey || !model) {
+    throw new Error('openai-compatible provider requires AI_BASE_URL, AI_API_KEY, and AI_MODEL')
+  }
+
+  const response = await fetch(`${baseUrl}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: 'user', content: prompt }
+      ],
+      max_tokens: maxTokens,
+      temperature,
+    }),
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    console.error('AI provider HTTP error:', response.status, errorText)
+    throw new Error(`AI provider HTTP error: ${response.status}`)
+  }
+
+  const result = await response.json()
+
+  if (result.choices?.[0]?.message?.content) {
+    return result.choices[0].message.content
+  }
+
+  throw new Error('Invalid AI provider response')
 }
 
 export default async function handler(
@@ -325,9 +363,11 @@ export default async function handler(
         customInstructions,
       })
     } else if (gate.provider === 'lmstudio') {
-      content = await callLMStudio(prompt, maxTokens, temperature)
+      content = await callLMStudio(prompt, maxTokens, temperature, modelForProvider(gate.provider))
+    } else if (gate.provider === 'openai-compatible') {
+      content = await callOpenAICompatible(prompt, maxTokens, temperature, modelForProvider(gate.provider))
     } else {
-      content = await callHuggingFace(prompt, maxTokens, temperature)
+      content = await callHuggingFace(prompt, maxTokens, temperature, modelForProvider(gate.provider))
     }
 
     releaseAnonymousClaim = false
@@ -372,6 +412,12 @@ export default async function handler(
     }
 
     if (errorMessage.includes('ECONNREFUSED') || errorMessage.includes('fetch failed')) {
+      if (gate.outcome === 'provider' && gate.provider === 'openai-compatible') {
+        return res.status(500).json({
+          ok: false,
+          error: 'Cannot connect to the configured AI provider.',
+        })
+      }
       return res.status(500).json({ 
         ok: false, 
         error: 'Cannot connect to LM Studio. Make sure it is running and accessible.' 

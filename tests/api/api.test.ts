@@ -36,6 +36,10 @@ const ENV_KEYS = [
   'HUGGINGFACE_API_KEY',
   'LMSTUDIO_API_URL',
   'LMSTUDIO_MODEL',
+  'AI_PROVIDER',
+  'AI_MODEL',
+  'AI_BASE_URL',
+  'AI_API_KEY',
   'TRUST_PROXY',
   'STRIPE_SECRET_KEY',
   'STRIPE_WEBHOOK_SECRET',
@@ -257,6 +261,10 @@ describe('POST /api/generate', () => {
       setEnv('DEMO_MODE', undefined);
       setEnv('HUGGINGFACE_API_KEY', undefined);
       setEnv('LMSTUDIO_API_URL', undefined);
+      setEnv('AI_PROVIDER', undefined);
+      setEnv('AI_MODEL', undefined);
+      setEnv('AI_BASE_URL', undefined);
+      setEnv('AI_API_KEY', undefined);
 
       const registered = await invoke(registerHandler, {
         method: 'POST',

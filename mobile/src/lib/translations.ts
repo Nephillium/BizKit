@@ -2,7 +2,7 @@ export type Language = 'en' | 'tr'
 
 export const translations = {
   en: {
-    appName: 'BizKit AI',
+    appName: 'PitchCrafter',
     login: 'Log in',
     logout: 'Log out',
     admin: 'Admin',
@@ -88,6 +88,8 @@ export const translations = {
     credits: 'Credits',
     creditsLeft: 'credits left',
     buyCredits: 'Buy Credits',
+    managePlanOnWeb: 'Manage your plan on the web',
+    managePlanOnWebDetail: 'Credit packs are sold on the PitchCrafter website. This app does not sell credits.',
     unlimitedCredits: 'Unlimited',
     
     networkError: 'Network error. Please check your connection and try again.',
@@ -112,7 +114,7 @@ export const translations = {
     settings: 'Settings',
   },
   tr: {
-    appName: 'BizKit AI',
+    appName: 'PitchCrafter',
     login: 'Giriş Yap',
     logout: 'Çıkış Yap',
     admin: 'Yönetici',
@@ -198,6 +200,8 @@ export const translations = {
     credits: 'Kredi',
     creditsLeft: 'kredi kaldı',
     buyCredits: 'Kredi Satın Al',
+    managePlanOnWeb: 'Planınızı web üzerinden yönetin',
+    managePlanOnWebDetail: 'Kredi paketleri PitchCrafter web sitesinde satılır. Bu uygulama kredi satmaz.',
     unlimitedCredits: 'Sınırsız',
     
     networkError: 'Ağ hatası. Lütfen bağlantınızı kontrol edip tekrar deneyin.',

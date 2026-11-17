@@ -47,7 +47,8 @@ Copy `.env.example` to `.env`. Never commit `.env`.
 | `APP_BASE_URL` | `http://localhost:5000` | Required. Public origin. Stripe return URLs use it. |
 | `DEMO_MODE` | Optional. `1` forces sample output. Empty AI keys also use samples. | Leave unset for live generation. `1` keeps samples (the private `bizkit-demo` preview does this). Unset, with no AI key, `POST /api/generate` returns 503 and does not spend credits. |
 | `HUGGINGFACE_API_KEY` | Leave empty for the demo. | One of this or `LMSTUDIO_API_URL`. |
-| `LMSTUDIO_API_URL` / `LMSTUDIO_MODEL` | Leave empty for the demo. | Local OpenAI-compatible server. Used before Hugging Face when both are set. |
+| `LMSTUDIO_API_URL` / `LMSTUDIO_MODEL` | Leave empty for the demo. | Local OpenAI-compatible server. Used before Hugging Face when both are set and `AI_PROVIDER` is unset. |
+| `AI_PROVIDER`, `AI_MODEL`, `AI_BASE_URL`, `AI_API_KEY` | Leave empty. The default provider rule stays. | Optional. Set `AI_PROVIDER` and `AI_MODEL` to switch the live brand without a code change. `openai-compatible` also needs `AI_BASE_URL` and `AI_API_KEY`. |
 | `DEMO_USER_*` | Seed only. Refused in production. | Do not rely on these. |
 | `DEMO_SIGNUP_CREDITS` | Starter credits for local signups. Default 5. | Ignored. New accounts start at 0. |
 | `DB_INIT_TOKEN` | Optional. | Required for `POST /api/init-db`. |
@@ -60,7 +61,9 @@ Copy `.env.example` to `.env`. Never commit `.env`.
 
 ### AI
 
-`POST /api/generate` uses labelled demo samples when `DEMO_MODE` is `1`, `true`, or `yes`. It also uses samples when `NODE_ENV` is not `production` and both `HUGGINGFACE_API_KEY` and `LMSTUDIO_API_URL` are empty. In production, if neither provider is set and `DEMO_MODE` is not enabled, the route returns HTTP 503 with `ai_not_configured` and does not deduct a credit or record a generation. Otherwise LM Studio wins when `LMSTUDIO_API_URL` is set (`LMSTUDIO_MODEL` defaults to `local-model`). Otherwise the route calls Hugging Face Inference (`mistralai/Mistral-7B-Instruct-v0.3`). The home page shows the active provider. There is no OpenAI model picker.
+`POST /api/generate` uses labelled demo samples when `DEMO_MODE` is `1`, `true`, or `yes`. It also uses samples when `NODE_ENV` is not `production` and no AI provider is configured. In production, if no provider is configured and `DEMO_MODE` is not enabled, the route returns HTTP 503 with `ai_not_configured` and does not deduct a credit or record a generation. With `AI_PROVIDER` unset, LM Studio wins when `LMSTUDIO_API_URL` is set (`LMSTUDIO_MODEL` defaults to `local-model`). Otherwise the route calls Hugging Face Inference (`mistralai/Mistral-7B-Instruct-v0.3`).
+
+`AI_PROVIDER` and `AI_MODEL` are the single switch for the live brand. Leave both unset to keep the rule above. `AI_PROVIDER` may be `huggingface`, `lmstudio`, or `openai-compatible`. `AI_MODEL` overrides the model id. `openai-compatible` calls `${AI_BASE_URL}/chat/completions` with `AI_API_KEY`, so another chat-completions brand does not require a code change. An unknown `AI_PROVIDER` is treated as not configured. The home page shows the active provider. There is no in-app model picker.
 
 ### Stripe
 
@@ -108,7 +111,7 @@ npm install
 npm start
 ```
 
-Set `EXPO_PUBLIC_API_BASE_URL` to the web origin (`APP_BASE_URL`) with no trailing slash. Restart Expo after changing it. See `mobile/README.md`.
+Set `EXPO_PUBLIC_API_BASE_URL` to the web origin (`APP_BASE_URL`) with no trailing slash. Restart Expo after changing it. Local development uses `http://localhost:5000` from `mobile/.env.example`. An EAS Android build defaults to `https://pitchcrafter.glmlabs.io`. The public app name is PitchCrafter. See `mobile/README.md` and `docs/ANDROID.md`.
 
 ## Deploy
 
@@ -123,14 +126,14 @@ Production (`NODE_ENV=production`) needs these environment variables:
 - `APP_BASE_URL` — public origin. Stripe return URLs use it.
 - `DB_INIT_TOKEN` — bearer token required by `POST /api/init-db`.
 - `QUOTA_IP_SALT` — dedicated random value for the anonymous free-tier hash.
-- `HUGGINGFACE_API_KEY` or `LMSTUDIO_API_URL` — live generation. If both are empty and `DEMO_MODE` is not `1`, `POST /api/generate` returns 503 and does not deduct credits.
+- `HUGGINGFACE_API_KEY` or `LMSTUDIO_API_URL` — live generation when `AI_PROVIDER` is unset. A complete `AI_PROVIDER=openai-compatible` setting (`AI_MODEL`, `AI_BASE_URL`, `AI_API_KEY`) is the other way to configure a brand. If none of these are set and `DEMO_MODE` is not `1`, `POST /api/generate` returns 503 and does not deduct credits.
 
 Live purchases also need `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, and `STRIPE_WEBHOOK_SECRET`. Set `TRUST_PROXY=1` only after the hop check above confirms Vercel is the single trusted proxy. Optional first-run admin: `SUPER_USER_EMAIL` and `SUPER_USER_PASSWORD`, then remove the password after init.
 
 1. Create a hosted Postgres database and set `DATABASE_URL`.
 2. Set `JWT_SECRET`, `APP_BASE_URL`, `DB_INIT_TOKEN`, and `QUOTA_IP_SALT`.
 3. Set `TRUST_PROXY=1` after you confirm Vercel is the only proxy. See the hop check above.
-4. For live generation, set `HUGGINGFACE_API_KEY` or `LMSTUDIO_API_URL` and leave `DEMO_MODE` unset. Set `DEMO_MODE=1` only for a sample-output demo such as the private `bizkit-demo` preview. Production without a provider and without `DEMO_MODE=1` returns 503 and does not spend credits.
+4. For live generation, set `HUGGINGFACE_API_KEY` or `LMSTUDIO_API_URL`, or set `AI_PROVIDER` and `AI_MODEL` (and `AI_BASE_URL` plus `AI_API_KEY` for `openai-compatible`). Leave `DEMO_MODE` unset. Set `DEMO_MODE=1` only for a sample-output demo such as the private `bizkit-demo` preview. Production without a provider and without `DEMO_MODE=1` returns 503 and does not spend credits.
 5. For payments, set the three `STRIPE_*` variables and register the webhook.
 6. Deploy, then `POST /api/init-db` with `Authorization: Bearer <DB_INIT_TOKEN>`.
 7. Optional: set `SUPER_USER_EMAIL` and `SUPER_USER_PASSWORD` before that init call, then remove the password.
@@ -175,7 +178,7 @@ npm run test:api
 
 If `DATABASE_URL` is unset, `npm run test:api` uses `postgres://bizkit:bizkit@127.0.0.1:5432/bizkit`. If `JWT_SECRET` is missing or shorter than 32 characters, the runner generates a throwaway secret for that process and does not print it. The same applies to an empty `QUOTA_IP_SALT`. Point this at a local or CI database. The suite applies `lib/initSchema.ts` and deletes only the users and anonymous-quota rows it creates.
 
-`npm run test:security` runs `tests/security-hardening.ts`, `tests/demo-mode.ts`, `tests/auth-session.ts`, and `tests/generation-history.ts`. That covers anonymous-quota decisions, admin-promotion rules, demo-mode selection, the production 503 when no AI provider is configured, the production seed refusal, the rule that login and register omit the session token unless the request sends `X-BizKit-Client: mobile`, and that history search text is a bound parameter scoped with `user_id`. `npm run test:api` calls the route handlers and checks:
+`npm run test:security` runs `tests/security-hardening.ts`, `tests/demo-mode.ts`, `tests/auth-session.ts`, `tests/generation-history.ts`, and `tests/mobile-api-base-url.ts`. That covers anonymous-quota decisions, admin-promotion rules, demo-mode selection, the production 503 when no AI provider is configured, the `AI_PROVIDER` switch, the production seed refusal, the rule that login and register omit the session token unless the request sends `X-BizKit-Client: mobile`, history search text as a bound parameter scoped with `user_id`, and the mobile API base URL plus the Android credit-purchase gate. `npm run test:api` calls the route handlers and checks:
 
 - Anonymous free generation is one row in `anonymous_generations`, keyed by the server-observed address. Dropping cookies or sending `X-Forwarded-For` without `TRUST_PROXY` does not grant another try. A signed-in caller on that same address is not blocked by the anonymous row.
 - In production, with `HUGGINGFACE_API_KEY` and `LMSTUDIO_API_URL` unset and `DEMO_MODE` unset, `POST /api/generate` returns 503 `ai_not_configured` and does not change credits, usage, history, or the anonymous quota. `DEMO_MODE=1` returns labelled sample output and then deducts one credit.

@@ -1,6 +1,32 @@
-const DEFAULT_API_BASE_URL = (
-  process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:5000'
-).replace(/\/$/, '');
+import { resolveApiBaseUrl } from './apiBaseUrl.cjs';
+
+declare const __DEV__: boolean | undefined;
+declare function require(moduleName: string): {
+  expoConfig?: { extra?: { apiBaseUrl?: unknown } } | null;
+};
+
+function extraApiBaseUrl(): string | undefined {
+  try {
+    // Static import would crash repo tests that load this file without
+    // mobile/node_modules. Metro still bundles the require() below.
+    const constants = require('expo-constants');
+    const value = constants.expoConfig?.extra?.apiBaseUrl;
+    return typeof value === 'string' ? value : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function isDevRuntime(): boolean {
+  if (typeof __DEV__ !== 'undefined') return __DEV__;
+  return process.env.NODE_ENV !== 'production';
+}
+
+const DEFAULT_API_BASE_URL = resolveApiBaseUrl({
+  envValue: process.env.EXPO_PUBLIC_API_BASE_URL,
+  extraValue: extraApiBaseUrl(),
+  dev: isDevRuntime(),
+});
 
 let API_BASE_URL = DEFAULT_API_BASE_URL;
 
