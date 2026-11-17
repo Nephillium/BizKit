@@ -114,6 +114,80 @@ async function testDeleteRequiresAuthAndConfirmation() {
   assert.equal(failed.result().setCookie, undefined);
 }
 
+async function testCookieOrigin() {
+  const previousBase = process.env.APP_BASE_URL;
+  delete (process.env as Record<string, string | undefined>).APP_BASE_URL;
+  let calls = 0;
+  const deleteAccount = async () => {
+    calls += 1;
+    return 'deleted' as const;
+  };
+  const cookie = `bizkit_token=${token}`;
+  const hostHeaders = {
+    cookie,
+    host: 'pitchcrafter.glmlabs.io',
+    'x-forwarded-proto': 'https',
+  };
+
+  try {
+    const cross = createResponse();
+    await handleDeleteAccount(
+      createRequest('POST', { confirm: true }, {
+        ...hostHeaders,
+        origin: 'https://evil.example',
+      }),
+      cross.res,
+      deleteAccount,
+    );
+    assert.equal(cross.result().statusCode, 403);
+    assert.equal((cross.result().jsonBody as { error: string }).error, 'cross_origin');
+    assert.equal(calls, 0);
+
+    const foreignReferer = createResponse();
+    await handleDeleteAccount(
+      createRequest('POST', { confirm: true }, {
+        ...hostHeaders,
+        referer: 'https://evil.example/account/delete',
+      }),
+      foreignReferer.res,
+      deleteAccount,
+    );
+    assert.equal(foreignReferer.result().statusCode, 403);
+    assert.equal(calls, 0);
+
+    const bearer = createResponse();
+    await handleDeleteAccount(
+      createRequest('POST', { confirm: true }, {
+        authorization: `Bearer ${token}`,
+        origin: 'https://evil.example',
+      }),
+      bearer.res,
+      deleteAccount,
+    );
+    assert.equal(bearer.result().statusCode, 200);
+    assert.equal(calls, 1);
+
+    const same = createResponse();
+    await handleDeleteAccount(
+      createRequest('POST', { confirm: true }, {
+        ...hostHeaders,
+        origin: 'https://pitchcrafter.glmlabs.io',
+      }),
+      same.res,
+      deleteAccount,
+    );
+    assert.equal(same.result().statusCode, 200);
+    assert.equal((same.result().jsonBody as { ok: boolean }).ok, true);
+    assert.equal(calls, 2);
+  } finally {
+    if (previousBase === undefined) {
+      delete (process.env as Record<string, string | undefined>).APP_BASE_URL;
+    } else {
+      process.env.APP_BASE_URL = previousBase;
+    }
+  }
+}
+
 function testPublicDeletionCopy() {
   assert.equal(ACCOUNT_DELETION_PATH, '/account/delete');
   assert.equal(ACCOUNT_DELETION_EMAIL, 'admin@glmlabs.io');
@@ -126,6 +200,7 @@ function testPublicDeletionCopy() {
   assert.match(docs, /admin@glmlabs\.io/);
   assert.match(docs, /google-services\.json/);
   assert.match(docs, /consent/i);
+  assert.match(docs, /automatic session events/);
   const sql = readFileSync('lib/accountDeletion.ts', 'utf8');
   assert.match(sql, /DELETE FROM generations/);
   assert.match(sql, /DELETE FROM credit_transactions/);
@@ -169,9 +244,11 @@ function testAndroidDoesNotSteerToWebCredits() {
   assert.doesNotMatch(buy, /managePlanOnWeb|pitchcrafter\.glmlabs\.io|buy-credits/);
   assert.doesNotMatch(profile, /managePlanOnWeb|pitchcrafter\.glmlabs\.io|buy-credits/);
   assert.match(profile, /deleteAccount/);
+  assert.match(profile, /creditsUnavailable/);
 }
 
 await testDeleteRequiresAuthAndConfirmation();
+await testCookieOrigin();
 testPublicDeletionCopy();
 testAnalyticsStaysOffUntilConsent();
 testAndroidDoesNotSteerToWebCredits();

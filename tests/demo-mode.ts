@@ -291,7 +291,8 @@ async function releaseDevSampleClaim(): Promise<void> {
 
 function testProviderConnectionError() {
   assert.match(providerConnectionError('lmstudio'), /LM Studio/);
-  assert.match(providerConnectionError('huggingface'), /Hugging Face/);
+  assert.match(providerConnectionError('huggingface'), /Hugging Face API is unreachable/);
+  assert.doesNotMatch(providerConnectionError('huggingface'), /running/);
   assert.match(providerConnectionError('openai-compatible'), /OpenAI-compatible/);
   assert.doesNotMatch(providerConnectionError('huggingface'), /LM Studio/);
   assert.doesNotMatch(providerConnectionError('openai-compatible'), /LM Studio/);

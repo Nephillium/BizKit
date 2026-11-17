@@ -39,7 +39,7 @@ Do not enable EAS `autoIncrement` while version code is committed in git. Commit
 
 Use this when filling in the Play Data safety form. The Android app does not ship an ads SDK or a crash reporter.
 
-Firebase Analytics is optional and off by default. A build without `google-services.json` does not link the Firebase SDK, so that build collects no analytics. When the file is present, collection stays off until the person accepts the in-app consent prompt. The default is denied. This app logs only `sign_up` (account created) and `purchase` (a credit purchase). It does not log screen views, and advertising-id collection is turned off. After consent, the Firebase SDK can also send its own session events while collection is on. Android does not sell credits in this version, so a purchase event is not sent until Play Billing exists. Change the choice later under Settings. Declining or dismissing the prompt keeps analytics off.
+Firebase Analytics is optional and off by default. A build without `google-services.json` does not link the Firebase SDK, so that build collects no analytics. When the file is present, collection stays off until the person accepts the in-app consent prompt. The default is denied. This app logs only `sign_up` (account created) and `purchase` (a credit purchase). It does not log screen views, and advertising-id collection is turned off. After consent, Firebase may also send its automatic session events (such as `session_start`) while collection is on. Android does not sell credits in this version, so a purchase event is not sent until Play Billing exists. Change the choice later under Settings. Declining or dismissing the prompt keeps analytics off.
 
 Collected and sent to the PitchCrafter API over HTTPS:
 
@@ -79,7 +79,7 @@ Analytics stays disabled unless both of these are true: the person has accepted 
 3. For EAS, create a file environment variable named `GOOGLE_SERVICES_JSON` whose value is that file. Do not commit the JSON or paste it into the repo.
 4. Rebuild. `mobile/app.config.ts` links `@react-native-firebase/app` and `@react-native-firebase/analytics` only when that file is present, and sets `extra.firebaseAnalytics`. `mobile/react-native.config.js` leaves those native modules unlinked when the file is absent, so `eas build` still succeeds and analytics cannot start.
 
-No Firebase API secret belongs in the app. `mobile/firebase.json` keeps collection off until consent, turns off automatic screen reporting, and turns off advertising-id collection.
+No Firebase API secret belongs in the app. `mobile/firebase.json` keeps collection off until consent, turns off automatic screen reporting, and turns off advertising-id collection. After the person consents, Firebase's automatic session events may still be sent. The app itself only logs `sign_up` and `purchase`.
 
 ## Privacy policy
 

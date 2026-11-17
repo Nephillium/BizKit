@@ -721,8 +721,10 @@ describe('POST /api/account/delete', () => {
     const email = `delete-${randomBytes(4).toString('hex')}@example.com`;
     const otherEmail = `keep-${randomBytes(4).toString('hex')}@example.com`;
     const password = 'delete-account-password';
+    const previousBase = process.env.APP_BASE_URL;
     try {
       setEnv('NODE_ENV', 'production');
+      setEnv('APP_BASE_URL', undefined);
       const registered = await invoke(registerHandler, {
         method: 'POST',
         body: { email, password },
@@ -770,10 +772,30 @@ describe('POST /api/account/delete', () => {
       const stillThere = await query('SELECT credits FROM users WHERE id = $1', [userId]);
       assert.equal(stillThere.length, 1);
 
+      const cookie = cookieHeaderFromSetCookie(registered.headers['set-cookie']);
+      const crossOrigin = await invoke(deleteAccountHandler, {
+        method: 'POST',
+        body: { confirm: true },
+        headers: {
+          cookie,
+          host: 'pitchcrafter.glmlabs.io',
+          'x-forwarded-proto': 'https',
+          origin: 'https://evil.example',
+        },
+      });
+      assert.equal(crossOrigin.status, 403);
+      assert.equal(crossOrigin.body.error, 'cross_origin');
+      assert.equal((await query('SELECT id FROM users WHERE id = $1', [userId])).length, 1);
+
       const deleted = await invoke(deleteAccountHandler, {
         method: 'POST',
         body: { confirm: true },
-        headers: { authorization: `Bearer ${token}` },
+        headers: {
+          cookie,
+          host: 'pitchcrafter.glmlabs.io',
+          'x-forwarded-proto': 'https',
+          origin: 'https://pitchcrafter.glmlabs.io',
+        },
       });
       assert.equal(deleted.status, 200);
       assert.equal(deleted.body.ok, true);
@@ -805,6 +827,7 @@ describe('POST /api/account/delete', () => {
       assert.equal(otherStill.body.length, 1);
       assert.equal(otherStill.body[0].output, 'other draft');
     } finally {
+      setEnv('APP_BASE_URL', previousBase);
       await deleteUser(email);
       await deleteUser(otherEmail);
       env.restore();

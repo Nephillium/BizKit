@@ -98,6 +98,9 @@ export default function ProfileScreen({ onNavigateToBuyCredits }: Props) {
             <Text style={styles.creditsValue}>
               {user.role === 'admin' ? t.unlimitedCredits : user.credits}
             </Text>
+            {!sellsInApp && (
+              <Text style={styles.creditsNote}>{t.creditsUnavailable}</Text>
+            )}
           </View>
 
           {user.role !== 'admin' && sellsInApp && onNavigateToBuyCredits && (
@@ -232,6 +235,13 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '700',
     color: '#6366f1',
+  },
+  creditsNote: {
+    marginTop: 8,
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#64748b',
+    textAlign: 'center',
   },
   buyButton: {
     width: '100%',

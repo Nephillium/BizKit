@@ -21,7 +21,7 @@ export function providerConnectionError(provider: string): string {
     return 'Cannot connect to LM Studio. Make sure it is running and accessible.';
   }
   if (provider === 'huggingface') {
-    return 'Cannot connect to Hugging Face. Make sure it is running and accessible.';
+    return 'Cannot connect to Hugging Face. The Hugging Face API is unreachable.';
   }
   if (provider === 'openai-compatible') {
     return 'Cannot connect to the OpenAI-compatible provider. Make sure it is running and accessible.';

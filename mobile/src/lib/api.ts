@@ -174,8 +174,7 @@ export async function deleteAccount(): Promise<{ success: boolean; error?: strin
   }
 
   if (result.error === 'not_authenticated') {
-    setAuthToken(null);
-    return { success: true };
+    return { success: false, error: 'Please sign in again.' };
   }
 
   return { success: false, error: result.error || 'Could not delete account' };
