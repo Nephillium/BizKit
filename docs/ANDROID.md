@@ -6,6 +6,8 @@ Store builds use EAS remote credentials. Do not commit a keystore, `.jks`, uploa
 
 ## Build
 
+The EAS project is glm-labs/pitchcrafter.
+
 From `mobile/`, after `npx eas login` and a one-time `npx eas init` that links this app to the Expo project:
 
 ```sh

@@ -2,6 +2,7 @@
   "expo": {
     "name": "PitchCrafter",
     "slug": "pitchcrafter",
+    "owner": "glm-labs",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -37,6 +38,11 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "738ec75f-ef5c-46a7-a28b-c39486e83c19"
+      }
     }
   }
 }
