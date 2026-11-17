@@ -24,6 +24,14 @@ eas build -p android --profile preview
 
 `eas.json` sets `credentialsSource` to `remote` and `appVersionSource` to `local`. The first time a production or preview build runs, EAS will create and store the upload key. Leave that key on EAS.
 
+Both Android profiles set `"image": "sdk-54"`. That alias is the SDK 54 builder `ubuntu-24.04-jdk-17-ndk-r27b`, which has Java 17. SDK 54's Android Gradle Plugin does not start on Java 11. Do not remove the pin and do not switch it to `latest`. With no `image`, EAS uses `auto`. `latest` currently tracks a newer SDK image, not the SDK 54 toolchain.
+
+`mobile/android` and `mobile/ios` stay gitignored. EAS generates them with `expo prebuild` during the build. They are not a committed native project, so the workflow stays managed (Continuous Native Generation). Do not check in a generated `android/` directory to work around a builder image. A checked-in tree would switch EAS to the bare workflow and can drift from the SDK in `package.json`.
+
+`app.json` does not set `sdkVersion`. Expo reads the SDK from the installed `expo` package. If that package cannot be resolved when `eas build` starts, the managed-workflow check has no SDK version and warns that it does not support SDK < 41. `auto` then boots an old Java 11 image. Prebuild still writes an SDK 54 `android/app/build.gradle`, and Gradle stops on the first line because the Android Gradle plugin requires Java 17. The pinned image does not depend on that detection. Run `eas build` from `mobile/` after `npm ci`.
+
+A production build of this managed app also warns that development uses Expo Go, because `expo-dev-client` is not installed. That warning does not select the builder image. The Play artifact is still the prebuilt app, not Expo Go.
+
 Release builds call `https://pitchcrafter.glmlabs.io` unless `EXPO_PUBLIC_API_BASE_URL` is a public origin set on the EAS build. `mobile/.env` with `http://localhost:5000` is for `expo start` only. A localhost value is not used as the release API.
 
 ## Version bump
@@ -50,7 +58,7 @@ Collected and sent to the PitchCrafter API over HTTPS:
 | Email address | Account identifier. Stored on the server. |
 | Password | Sent only to register or log in. The server stores a hash. The app does not keep the password. |
 | Account id, role, and credit balance | Returned by the API and shown in the app. |
-| Session token | Stored on the device in Expo SecureStore under `auth_token`. Sent as `Authorization: Bearer` on later requests. |
+| Session token | Stored on the device in Expo SecureStore under `auth_token`. Sent as `Authorization: Bearer` on later requests. The `expo-secure-store` config plugin excludes that store from Android backup and device transfer. |
 | Generator text | Prompts the person types, and the generated draft. Signed-in generations are stored in Postgres for that account (history). |
 | IP address, anonymous use only | The server stores an HMAC of the client address to enforce one free generation. It does not store the raw address in that table. The app does not read the IP itself. |
 
