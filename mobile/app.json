@@ -36,6 +36,9 @@
         "com.google.android.gms.permission.AD_ID"
       ]
     },
+    "plugins": [
+      "expo-secure-store"
+    ],
     "web": {
       "favicon": "./assets/favicon.png"
     },
