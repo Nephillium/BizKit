@@ -5,9 +5,11 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Platform,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { sellsCreditsInApp } from '../lib/playBilling';
 
 interface Props {
   onNavigateToBuyCredits: () => void;
@@ -16,6 +18,7 @@ interface Props {
 export default function ProfileScreen({ onNavigateToBuyCredits }: Props) {
   const { user, logout } = useAuth();
   const { t, language, setLanguage } = useLanguage();
+  const sellsInApp = sellsCreditsInApp(Platform.OS);
 
   async function handleLogout() {
     Alert.alert(
@@ -65,8 +68,11 @@ export default function ProfileScreen({ onNavigateToBuyCredits }: Props) {
             <TouchableOpacity
               style={styles.buyButton}
               onPress={onNavigateToBuyCredits}
+              accessibilityRole="button"
             >
-              <Text style={styles.buyButtonText}>{t.buyCredits}</Text>
+              <Text style={styles.buyButtonText}>
+                {sellsInApp ? t.buyCredits : t.managePlanOnWeb}
+              </Text>
             </TouchableOpacity>
           )}
         </View>

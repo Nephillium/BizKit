@@ -10,6 +10,12 @@ vite.config.ts.*
 .env.*
 !.env.example
 
+# Signing keys. Android builds use EAS remote credentials.
+*.jks
+*.keystore
+*.p12
+*.mobileprovision
+
 # Build output
 .next/
 out/

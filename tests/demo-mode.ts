@@ -45,6 +45,10 @@ function testProviderSelection() {
     HUGGINGFACE_API_KEY: process.env.HUGGINGFACE_API_KEY,
     LMSTUDIO_API_URL: process.env.LMSTUDIO_API_URL,
     LMSTUDIO_MODEL: process.env.LMSTUDIO_MODEL,
+    AI_PROVIDER: process.env.AI_PROVIDER,
+    AI_MODEL: process.env.AI_MODEL,
+    AI_BASE_URL: process.env.AI_BASE_URL,
+    AI_API_KEY: process.env.AI_API_KEY,
     NODE_ENV: process.env.NODE_ENV,
     DEMO_USER_EMAIL: process.env.DEMO_USER_EMAIL,
     DEMO_USER_PASSWORD: process.env.DEMO_USER_PASSWORD,
@@ -55,6 +59,10 @@ function testProviderSelection() {
     setEnv('DEMO_MODE', undefined);
     setEnv('HUGGINGFACE_API_KEY', undefined);
     setEnv('LMSTUDIO_API_URL', undefined);
+    setEnv('AI_PROVIDER', undefined);
+    setEnv('AI_MODEL', undefined);
+    setEnv('AI_BASE_URL', undefined);
+    setEnv('AI_API_KEY', undefined);
     setEnv('NODE_ENV', 'development');
     assert.equal(isDemoMode(), true);
     assert.equal(resolveProvider().id, 'demo');
@@ -62,6 +70,7 @@ function testProviderSelection() {
 
     setEnv('HUGGINGFACE_API_KEY', 'hf_test');
     assert.equal(resolveProvider().id, 'huggingface');
+    assert.equal(resolveProvider().detail, 'mistralai/Mistral-7B-Instruct-v0.3');
     setEnv('LMSTUDIO_API_URL', 'http://localhost:1234/v1');
     setEnv('LMSTUDIO_MODEL', 'demo-local');
     assert.equal(resolveProvider().id, 'lmstudio');
@@ -198,6 +207,10 @@ async function testProductionGenerateReturns503WithoutCharging() {
     DEMO_MODE: process.env.DEMO_MODE,
     HUGGINGFACE_API_KEY: process.env.HUGGINGFACE_API_KEY,
     LMSTUDIO_API_URL: process.env.LMSTUDIO_API_URL,
+    AI_PROVIDER: process.env.AI_PROVIDER,
+    AI_MODEL: process.env.AI_MODEL,
+    AI_BASE_URL: process.env.AI_BASE_URL,
+    AI_API_KEY: process.env.AI_API_KEY,
     NODE_ENV: process.env.NODE_ENV,
   };
   try {
@@ -205,6 +218,10 @@ async function testProductionGenerateReturns503WithoutCharging() {
     setEnv('DEMO_MODE', undefined);
     setEnv('HUGGINGFACE_API_KEY', undefined);
     setEnv('LMSTUDIO_API_URL', undefined);
+    setEnv('AI_PROVIDER', undefined);
+    setEnv('AI_MODEL', undefined);
+    setEnv('AI_BASE_URL', undefined);
+    setEnv('AI_API_KEY', undefined);
 
     const blocked = await postGenerate(
       {
@@ -278,8 +295,66 @@ function testDatabaseSsl() {
   assert.equal(databaseSsl('postgres://user:pw@db.example.com:5432/bizkit?sslmode=disable'), false);
 }
 
+function testExplicitAiProvider() {
+  const previous = {
+    DEMO_MODE: process.env.DEMO_MODE,
+    HUGGINGFACE_API_KEY: process.env.HUGGINGFACE_API_KEY,
+    LMSTUDIO_API_URL: process.env.LMSTUDIO_API_URL,
+    LMSTUDIO_MODEL: process.env.LMSTUDIO_MODEL,
+    AI_PROVIDER: process.env.AI_PROVIDER,
+    AI_MODEL: process.env.AI_MODEL,
+    AI_BASE_URL: process.env.AI_BASE_URL,
+    AI_API_KEY: process.env.AI_API_KEY,
+    NODE_ENV: process.env.NODE_ENV,
+  };
+  try {
+    setEnv('NODE_ENV', 'production');
+    setEnv('DEMO_MODE', undefined);
+    setEnv('AI_PROVIDER', undefined);
+    setEnv('AI_MODEL', undefined);
+    setEnv('AI_BASE_URL', undefined);
+    setEnv('AI_API_KEY', undefined);
+    setEnv('HUGGINGFACE_API_KEY', 'hf_test');
+    setEnv('LMSTUDIO_API_URL', 'http://localhost:1234/v1');
+    setEnv('LMSTUDIO_MODEL', 'demo-local');
+    assert.equal(generationGate().provider, 'lmstudio');
+    assert.equal(resolveProvider().detail, 'demo-local');
+
+    setEnv('AI_PROVIDER', 'huggingface');
+    setEnv('AI_MODEL', 'org/other-model');
+    assert.equal(generationGate().provider, 'huggingface');
+    assert.equal(resolveProvider().detail, 'org/other-model');
+
+    setEnv('AI_MODEL', undefined);
+    assert.equal(resolveProvider().id, 'huggingface');
+    assert.equal(resolveProvider().detail, 'mistralai/Mistral-7B-Instruct-v0.3');
+
+    setEnv('AI_PROVIDER', 'openai-compatible');
+    setEnv('AI_MODEL', 'switchable-model');
+    setEnv('AI_BASE_URL', 'https://example.test/v1');
+    setEnv('AI_API_KEY', 'test-key');
+    const switched = generationGate();
+    assert.equal(switched.outcome, 'provider');
+    assert.equal(switched.provider, 'openai-compatible');
+    assert.equal(resolveProvider().detail, 'switchable-model');
+
+    setEnv('AI_API_KEY', undefined);
+    assert.equal(generationGate().outcome, 'unavailable');
+
+    setEnv('AI_PROVIDER', 'not-a-brand');
+    setEnv('AI_API_KEY', 'test-key');
+    assert.equal(generationGate().outcome, 'unavailable');
+    assert.equal(generationGate().chargesCredit, false);
+  } finally {
+    for (const [key, value] of Object.entries(previous)) {
+      setEnv(key, value);
+    }
+  }
+}
+
 testDemoCopy();
 testProviderSelection();
+testExplicitAiProvider();
 await testProductionGenerateReturns503WithoutCharging();
 testDatabaseSsl();
 await pool.end();

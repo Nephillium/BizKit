@@ -1,6 +1,14 @@
 import { demoSeedConfig, demoSeedRefusal } from './demoSeedPolicy';
 
-export type ProviderId = 'demo' | 'huggingface' | 'lmstudio' | 'unconfigured';
+export type ProviderId = 'demo' | 'huggingface' | 'lmstudio' | 'openai-compatible' | 'unconfigured';
+
+export type LiveProviderId = 'huggingface' | 'lmstudio' | 'openai-compatible';
+
+/** Hugging Face model used when AI_MODEL is unset. */
+export const DEFAULT_HUGGINGFACE_MODEL = 'mistralai/Mistral-7B-Instruct-v0.3';
+
+/** LM Studio model used when AI_MODEL and LMSTUDIO_MODEL are unset. */
+export const DEFAULT_LMSTUDIO_MODEL = 'local-model';
 
 export const AI_NOT_CONFIGURED_ERROR = 'ai_not_configured';
 
@@ -12,7 +20,56 @@ export function demoModeRequested(): boolean {
   return flag === '1' || flag === 'true' || flag === 'yes';
 }
 
+function explicitAiProvider(): LiveProviderId | 'invalid' | null {
+  const raw = (process.env.AI_PROVIDER || '').trim().toLowerCase();
+  if (!raw) return null;
+  if (raw === 'huggingface' || raw === 'hugging-face' || raw === 'hf') return 'huggingface';
+  if (raw === 'lmstudio' || raw === 'lm-studio') return 'lmstudio';
+  if (raw === 'openai' || raw === 'openai-compatible') return 'openai-compatible';
+  return 'invalid';
+}
+
+function credentialsReady(provider: LiveProviderId): boolean {
+  if (provider === 'lmstudio') return Boolean(process.env.LMSTUDIO_API_URL);
+  if (provider === 'huggingface') return Boolean(process.env.HUGGINGFACE_API_KEY);
+  return Boolean(
+    (process.env.AI_BASE_URL || '').trim() &&
+      (process.env.AI_API_KEY || '').trim() &&
+      (process.env.AI_MODEL || '').trim(),
+  );
+}
+
+/**
+ * Single server-side choice of AI brand and model.
+ * Leave AI_PROVIDER unset to keep the historical default: LM Studio when
+ * LMSTUDIO_API_URL is set, otherwise Hugging Face. Set AI_PROVIDER and
+ * AI_MODEL to switch brands without a code change. openai-compatible calls
+ * AI_BASE_URL/chat/completions with AI_API_KEY. An unknown AI_PROVIDER is
+ * not configured.
+ */
+function selectedLiveProvider(): LiveProviderId | null {
+  const explicit = explicitAiProvider();
+  if (explicit === 'invalid') return null;
+  if (explicit) return credentialsReady(explicit) ? explicit : null;
+  if (process.env.LMSTUDIO_API_URL) return 'lmstudio';
+  if (process.env.HUGGINGFACE_API_KEY) return 'huggingface';
+  return null;
+}
+
+export function modelForProvider(provider: LiveProviderId): string {
+  const override = (process.env.AI_MODEL || '').trim();
+  if (override) return override;
+  if (provider === 'lmstudio') {
+    return (process.env.LMSTUDIO_MODEL || '').trim() || DEFAULT_LMSTUDIO_MODEL;
+  }
+  if (provider === 'huggingface') return DEFAULT_HUGGINGFACE_MODEL;
+  return '';
+}
+
 export function aiProviderConfigured(): boolean {
+  const explicit = explicitAiProvider();
+  if (explicit === 'invalid') return false;
+  if (explicit) return credentialsReady(explicit);
   return Boolean(process.env.LMSTUDIO_API_URL || process.env.HUGGINGFACE_API_KEY);
 }
 
@@ -35,7 +92,7 @@ export type GenerationGate =
     }
   | {
       outcome: 'provider';
-      provider: 'lmstudio' | 'huggingface';
+      provider: LiveProviderId;
       chargesCredit: true;
     }
   | {
@@ -66,8 +123,9 @@ export function generationGate(): GenerationGate {
   if (isDemoMode()) {
     return { outcome: 'sample', provider: 'demo', chargesCredit: true };
   }
-  if (process.env.LMSTUDIO_API_URL) {
-    return { outcome: 'provider', provider: 'lmstudio', chargesCredit: true };
+  const live = selectedLiveProvider();
+  if (live) {
+    return { outcome: 'provider', provider: live, chargesCredit: true };
   }
   return { outcome: 'provider', provider: 'huggingface', chargesCredit: true };
 }
@@ -107,13 +165,20 @@ export function resolveProvider(): { id: ProviderId; label: string; detail: stri
     return {
       id: 'lmstudio',
       label: 'LM Studio',
-      detail: process.env.LMSTUDIO_MODEL || 'local-model',
+      detail: modelForProvider('lmstudio'),
+    };
+  }
+  if (gate.provider === 'openai-compatible') {
+    return {
+      id: 'openai-compatible',
+      label: 'OpenAI-compatible',
+      detail: modelForProvider('openai-compatible'),
     };
   }
   return {
     id: 'huggingface',
     label: 'Hugging Face',
-    detail: 'mistralai/Mistral-7B-Instruct-v0.3',
+    detail: modelForProvider('huggingface'),
   };
 }
 
