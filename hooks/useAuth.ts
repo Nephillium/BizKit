@@ -18,6 +18,7 @@ interface AuthActions {
   login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>
   register: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>
   logout: () => Promise<void>
+  deleteAccount: () => Promise<{ ok: boolean; error?: string }>
   refresh: () => Promise<void>
 }
 
@@ -106,6 +107,36 @@ export function useAuth(): AuthState & AuthActions {
     }
   }
 
+  const deleteAccount = async () => {
+    try {
+      const response = await fetch('/api/account/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ confirm: true }),
+      })
+      const data = await response.json().catch(() => null)
+      if (response.ok && data?.ok) {
+        setState({
+          user: null,
+          isLoading: false,
+          isAuthenticated: false,
+        })
+        return { ok: true }
+      }
+      if (response.status === 401) {
+        setState({
+          user: null,
+          isLoading: false,
+          isAuthenticated: false,
+        })
+      }
+      return { ok: false, error: data?.error || 'Could not delete account' }
+    } catch {
+      return { ok: false, error: 'Network error' }
+    }
+  }
+
   const logout = async () => {
     try {
       await fetch('/api/auth/logout', {
@@ -127,6 +158,7 @@ export function useAuth(): AuthState & AuthActions {
     login,
     register,
     logout,
+    deleteAccount,
     refresh: fetchUser,
   }
 }

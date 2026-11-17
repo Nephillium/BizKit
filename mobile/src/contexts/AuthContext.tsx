@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import * as SecureStore from 'expo-secure-store';
-import { login as apiLogin, register as apiRegister, logout as apiLogout, getMe, setAuthToken } from '../lib/api';
+import { login as apiLogin, register as apiRegister, logout as apiLogout, deleteAccount as apiDeleteAccount, getMe, setAuthToken } from '../lib/api';
+import { logSignUp } from '../lib/analytics';
 
 interface User {
   id: number;
@@ -16,6 +17,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   register: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
+  deleteAccount: () => Promise<{ success: boolean; error?: string }>;
   refreshUser: () => Promise<void>;
 }
 
@@ -64,9 +66,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (response.success && response.user && response.token) {
       await SecureStore.setItemAsync('auth_token', response.token);
       setUser(response.user);
+      await logSignUp();
       return { success: true };
     }
     return { success: false, error: response.error || 'Registration failed' };
+  }
+
+  async function deleteAccount() {
+    const response = await apiDeleteAccount();
+    if (response.success) {
+      try {
+        await SecureStore.deleteItemAsync('auth_token');
+      } catch {
+        // The server already removed the account. Drop the local session anyway.
+      }
+      setAuthToken(null);
+      setUser(null);
+      return { success: true };
+    }
+    return { success: false, error: response.error || 'Could not delete account' };
   }
 
   async function logout() {
@@ -91,6 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         register,
         logout,
+        deleteAccount,
         refreshUser,
       }}
     >

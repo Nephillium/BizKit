@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -9,16 +9,29 @@ import {
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import {
+  isAnalyticsConfigured,
+  readAnalyticsConsent,
+  writeAnalyticsConsent,
+} from '../lib/analytics';
+import type { AnalyticsConsent } from '../lib/analyticsPolicy';
 import { sellsCreditsInApp } from '../lib/playBilling';
 
 interface Props {
-  onNavigateToBuyCredits: () => void;
+  onNavigateToBuyCredits?: () => void;
 }
 
 export default function ProfileScreen({ onNavigateToBuyCredits }: Props) {
-  const { user, logout } = useAuth();
+  const { user, logout, deleteAccount } = useAuth();
   const { t, language, setLanguage } = useLanguage();
   const sellsInApp = sellsCreditsInApp(Platform.OS);
+  const analyticsAvailable = Platform.OS === 'android' && isAnalyticsConfigured();
+  const [analyticsConsent, setAnalyticsConsent] = useState<AnalyticsConsent | null>(null);
+
+  useEffect(() => {
+    if (!analyticsAvailable) return;
+    readAnalyticsConsent().then(setAnalyticsConsent).catch(() => setAnalyticsConsent(null));
+  }, [analyticsAvailable]);
 
   async function handleLogout() {
     Alert.alert(
@@ -29,6 +42,29 @@ export default function ProfileScreen({ onNavigateToBuyCredits }: Props) {
         { text: t.logout, style: 'destructive', onPress: () => logout() },
       ]
     );
+  }
+
+  function handleDeleteAccount() {
+    Alert.alert(t.deleteAccountTitle, t.deleteAccountBody, [
+      { text: t.cancel, style: 'cancel' },
+      {
+        text: t.deleteAccount,
+        style: 'destructive',
+        onPress: () => {
+          deleteAccount().then((result) => {
+            if (!result.success) {
+              Alert.alert(t.deleteAccount, result.error || t.deleteAccountFailed);
+            }
+          });
+        },
+      },
+    ]);
+  }
+
+  async function toggleAnalytics() {
+    const next = analyticsConsent === 'granted' ? 'denied' : 'granted';
+    await writeAnalyticsConsent(next);
+    setAnalyticsConsent(next);
   }
 
   if (!user) return null;
@@ -62,17 +98,18 @@ export default function ProfileScreen({ onNavigateToBuyCredits }: Props) {
             <Text style={styles.creditsValue}>
               {user.role === 'admin' ? t.unlimitedCredits : user.credits}
             </Text>
+            {!sellsInApp && (
+              <Text style={styles.creditsNote}>{t.creditsUnavailable}</Text>
+            )}
           </View>
 
-          {user.role !== 'admin' && (
+          {user.role !== 'admin' && sellsInApp && onNavigateToBuyCredits && (
             <TouchableOpacity
               style={styles.buyButton}
               onPress={onNavigateToBuyCredits}
               accessibilityRole="button"
             >
-              <Text style={styles.buyButtonText}>
-                {sellsInApp ? t.buyCredits : t.managePlanOnWeb}
-              </Text>
+              <Text style={styles.buyButtonText}>{t.buyCredits}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -89,10 +126,27 @@ export default function ProfileScreen({ onNavigateToBuyCredits }: Props) {
               {language === 'en' ? 'English' : 'Turkce'}
             </Text>
           </TouchableOpacity>
+
+          {analyticsAvailable && (
+            <TouchableOpacity style={styles.settingRow} onPress={toggleAnalytics} accessibilityRole="button">
+              <Text style={styles.settingLabel}>{t.analyticsTitle}</Text>
+              <Text style={styles.settingValue}>
+                {analyticsConsent === 'granted' ? t.analyticsOn : t.analyticsOff}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Text style={styles.logoutButtonText}>{t.logout}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={handleDeleteAccount}
+          accessibilityRole="button"
+        >
+          <Text style={styles.deleteButtonText}>{t.deleteAccount}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -182,6 +236,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#6366f1',
   },
+  creditsNote: {
+    marginTop: 8,
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#64748b',
+    textAlign: 'center',
+  },
   buyButton: {
     width: '100%',
     marginTop: 16,
@@ -237,6 +298,18 @@ const styles = StyleSheet.create({
   logoutButtonText: {
     color: '#ef4444',
     fontSize: 16,
+    fontWeight: '600',
+  },
+  deleteButton: {
+    marginTop: 12,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 14,
+    alignItems: 'center',
+  },
+  deleteButtonText: {
+    color: '#64748b',
+    fontSize: 15,
     fontWeight: '600',
   },
 });

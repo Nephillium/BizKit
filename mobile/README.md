@@ -6,7 +6,7 @@ React Native app for PitchCrafter (this repository is still BizKit). It drafts c
 
 - **Content Generation**: Create cold emails, proposals, contracts, and social media content
 - **User Authentication**: Secure login and registration
-- **Credits**: On Android, credit packs are not sold in the app. Manage the plan on the website. Other platforms can open the existing Stripe checkout. See `docs/ANDROID.md`.
+- **Credits**: Android hides credit purchases. It does not show prices or a link to the website. The credit balance is still shown. iOS can open the existing Stripe checkout. See `docs/ANDROID.md`.
 - **Bilingual Support**: English and Turkish languages
 - **Native Experience**: Runs on iOS and Android
 

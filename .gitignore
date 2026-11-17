@@ -16,6 +16,10 @@ vite.config.ts.*
 *.p12
 *.mobileprovision
 
+# Firebase client config. Download from the Firebase console. Do not commit it.
+google-services.json
+GoogleService-Info.plist
+
 # Build output
 .next/
 out/

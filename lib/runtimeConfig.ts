@@ -13,7 +13,21 @@ export const DEFAULT_LMSTUDIO_MODEL = 'local-model';
 export const AI_NOT_CONFIGURED_ERROR = 'ai_not_configured';
 
 export const AI_NOT_CONFIGURED_MESSAGE =
-  'AI generation is unavailable in production until HUGGINGFACE_API_KEY or LMSTUDIO_API_URL is set. Set DEMO_MODE=1 to serve labelled sample output. No credit was deducted.';
+  'AI generation is unavailable in production until AI_PROVIDER is set with its credentials, or HUGGINGFACE_API_KEY or LMSTUDIO_API_URL is set. Set DEMO_MODE=1 to serve labelled sample output. No credit was deducted.';
+
+/** Connection failures name the provider that generationGate selected. */
+export function providerConnectionError(provider: string): string {
+  if (provider === 'lmstudio') {
+    return 'Cannot connect to LM Studio. Make sure it is running and accessible.';
+  }
+  if (provider === 'huggingface') {
+    return 'Cannot connect to Hugging Face. The Hugging Face API is unreachable.';
+  }
+  if (provider === 'openai-compatible') {
+    return 'Cannot connect to the OpenAI-compatible provider. Make sure it is running and accessible.';
+  }
+  return `Cannot connect to ${provider}. Make sure it is running and accessible.`;
+}
 
 export function demoModeRequested(): boolean {
   const flag = (process.env.DEMO_MODE || '').trim().toLowerCase();

@@ -54,8 +54,7 @@ export default function BuyCreditsScreen({ onGoBack }: Props) {
     }
   }
 
-  // TODO(play-billing): Android must not start Stripe checkout. Sell credits
-  // with Google Play Billing when Play Console products exist. See playBilling.ts.
+  // Android must not show prices or a link to buy credits on the web.
   if (!sellsInApp) {
     return (
       <View style={styles.container}>
@@ -63,10 +62,10 @@ export default function BuyCreditsScreen({ onGoBack }: Props) {
           <TouchableOpacity onPress={onGoBack} style={styles.backButton} accessibilityRole="button">
             <Text style={styles.backText}>{t.backToHome}</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>{t.managePlanOnWeb}</Text>
+          <Text style={styles.title}>{t.credits}</Text>
         </View>
         <View style={styles.content}>
-          <Text style={styles.notice}>{t.managePlanOnWebDetail}</Text>
+          <Text style={styles.notice}>{t.creditsUnavailable}</Text>
         </View>
       </View>
     );

@@ -1,14 +1,19 @@
 /**
- * Credits are digital goods. Google Play requires Play Billing, or an
- * approved alternative, for a purchase that starts inside the Android app.
- * Credit packs stay on Stripe in the website (`pages/buy-credits.tsx` and
- * `pages/api/stripe`). The Android client must not open that checkout.
+ * Credits are digital goods. On Android this app must not sell credit packs,
+ * show pack prices, or link to a website checkout.
+ *
+ * iOS may still open the existing Stripe checkout. Web Stripe
+ * (`pages/buy-credits.tsx` and `pages/api/stripe`) is unchanged.
  *
  * TODO(play-billing): When Play Console in-app products exist, sell credit
  * packs with Google Play Billing and grant the same credits on the server.
- * Do not route Android purchases through Stripe. Leave the web Stripe flow
- * in place for browsers.
+ * After a completed purchase, call logCreditPurchase in
+ * mobile/src/lib/analytics.ts. Do not log any other analytics event, and do
+ * not send Android purchases through Stripe or a browser.
  */
+export const ANDROID_CREDITS_UNAVAILABLE_MESSAGE =
+  "Credit purchases aren't available in this version";
+
 export function sellsCreditsInApp(os: string): boolean {
   return os !== 'android';
 }

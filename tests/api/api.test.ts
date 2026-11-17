@@ -18,6 +18,7 @@ import generateHandler from '../../pages/api/generate';
 import generationByIdHandler from '../../pages/api/generations/[id]';
 import generationsHandler from '../../pages/api/generations/index';
 import checkoutHandler from '../../pages/api/stripe/create-checkout';
+import deleteAccountHandler from '../../pages/api/account/delete';
 import { cookieHeaderFromSetCookie, invoke } from './invoke';
 
 const coldEmail = {
@@ -708,6 +709,126 @@ describe('generation history', () => {
       assert.equal(badId.body.error, 'invalid_id');
     } finally {
       await deleteUser(ownerEmail);
+      await deleteUser(otherEmail);
+      env.restore();
+    }
+  });
+});
+
+describe('POST /api/account/delete', () => {
+  test('deletes the user, history, and credits in one account and logs that session out', async () => {
+    const env = snapshotEnv();
+    const email = `delete-${randomBytes(4).toString('hex')}@example.com`;
+    const otherEmail = `keep-${randomBytes(4).toString('hex')}@example.com`;
+    const password = 'delete-account-password';
+    const previousBase = process.env.APP_BASE_URL;
+    try {
+      setEnv('NODE_ENV', 'production');
+      setEnv('APP_BASE_URL', undefined);
+      const registered = await invoke(registerHandler, {
+        method: 'POST',
+        body: { email, password },
+        headers: { [MOBILE_CLIENT_HEADER]: MOBILE_CLIENT_VALUE },
+      });
+      const other = await invoke(registerHandler, {
+        method: 'POST',
+        body: { email: otherEmail, password },
+      });
+      assert.equal(registered.status, 200);
+      assert.equal(other.status, 200);
+      const userId = registered.body.user.id as string;
+      const token = registered.body.token as string;
+      const otherCookie = cookieHeaderFromSetCookie(other.headers['set-cookie']);
+
+      await query(
+        `INSERT INTO generations (user_id, tool_type, inputs, output)
+         VALUES ($1, 'cold_email', '{"target":"clinics"}'::jsonb, 'private draft')`,
+        [userId],
+      );
+      await query(
+        `INSERT INTO credit_transactions (user_id, amount, reason)
+         VALUES ($1, 10, 'Purchased 10 credits via Stripe')`,
+        [userId],
+      );
+      await query('UPDATE users SET credits = 10 WHERE id = $1', [userId]);
+      await query(
+        `INSERT INTO generations (user_id, tool_type, inputs, output)
+         VALUES ($1, 'proposal', '{}'::jsonb, 'other draft')`,
+        [other.body.user.id],
+      );
+
+      const anonymous = await invoke(deleteAccountHandler, {
+        method: 'POST',
+        body: { confirm: true },
+      });
+      assert.equal(anonymous.status, 401);
+
+      const unconfirmed = await invoke(deleteAccountHandler, {
+        method: 'POST',
+        body: {},
+        headers: { authorization: `Bearer ${token}` },
+      });
+      assert.equal(unconfirmed.status, 400);
+      const stillThere = await query('SELECT credits FROM users WHERE id = $1', [userId]);
+      assert.equal(stillThere.length, 1);
+
+      const cookie = cookieHeaderFromSetCookie(registered.headers['set-cookie']);
+      const crossOrigin = await invoke(deleteAccountHandler, {
+        method: 'POST',
+        body: { confirm: true },
+        headers: {
+          cookie,
+          host: 'pitchcrafter.glmlabs.io',
+          'x-forwarded-proto': 'https',
+          origin: 'https://evil.example',
+        },
+      });
+      assert.equal(crossOrigin.status, 403);
+      assert.equal(crossOrigin.body.error, 'cross_origin');
+      assert.equal((await query('SELECT id FROM users WHERE id = $1', [userId])).length, 1);
+
+      const deleted = await invoke(deleteAccountHandler, {
+        method: 'POST',
+        body: { confirm: true },
+        headers: {
+          cookie,
+          host: 'pitchcrafter.glmlabs.io',
+          'x-forwarded-proto': 'https',
+          origin: 'https://pitchcrafter.glmlabs.io',
+        },
+      });
+      assert.equal(deleted.status, 200);
+      assert.equal(deleted.body.ok, true);
+      assert.equal(cookieHeaderFromSetCookie(deleted.headers['set-cookie']), 'bizkit_token=');
+
+      assert.equal((await query('SELECT id FROM users WHERE id = $1', [userId])).length, 0);
+      assert.equal((await query('SELECT id FROM generations WHERE user_id = $1', [userId])).length, 0);
+      assert.equal(
+        (await query('SELECT id FROM credit_transactions WHERE user_id = $1', [userId])).length,
+        0,
+      );
+
+      const staleMe = await invoke(meHandler, {
+        method: 'GET',
+        headers: { authorization: `Bearer ${token}` },
+      });
+      assert.equal(staleMe.status, 401);
+      const staleHistory = await invoke(generationsHandler, {
+        method: 'GET',
+        headers: { authorization: `Bearer ${token}` },
+      });
+      assert.equal(staleHistory.status, 401);
+
+      const otherStill = await invoke(generationsHandler, {
+        method: 'GET',
+        headers: { cookie: otherCookie },
+      });
+      assert.equal(otherStill.status, 200);
+      assert.equal(otherStill.body.length, 1);
+      assert.equal(otherStill.body[0].output, 'other draft');
+    } finally {
+      setEnv('APP_BASE_URL', previousBase);
+      await deleteUser(email);
       await deleteUser(otherEmail);
       env.restore();
     }

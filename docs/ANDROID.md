@@ -2,7 +2,7 @@
 
 PitchCrafter is the public name of the Expo app in `mobile/`. The repository is still BizKit. The company is GLM Labs (`glmlabs.io`). The planned web origin is `https://pitchcrafter.glmlabs.io`. The Android application id is `com.glmlabs.pitchcrafter`.
 
-Store builds use EAS remote credentials. Do not commit a keystore, `.jks`, upload certificate, or Play service-account JSON.
+Store builds use EAS remote credentials. Do not commit a keystore, `.jks`, upload certificate, Play service-account JSON, or `google-services.json`.
 
 ## Build
 
@@ -37,7 +37,9 @@ Do not enable EAS `autoIncrement` while version code is committed in git. Commit
 
 ## Data safety
 
-Use this when filling in the Play Data safety form. The Android app does not ship an ads SDK, crash reporter, or analytics SDK.
+Use this when filling in the Play Data safety form. The Android app does not ship an ads SDK or a crash reporter.
+
+Firebase Analytics is optional and off by default. A build without `google-services.json` does not link the Firebase SDK, so that build collects no analytics. When the file is present, collection stays off until the person accepts the in-app consent prompt. The default is denied. This app logs only `sign_up` (account created) and `purchase` (a credit purchase). It does not log screen views, and advertising-id collection is turned off. After consent, Firebase may also send its automatic session events (such as `session_start`) while collection is on. Android does not sell credits in this version, so a purchase event is not sent until Play Billing exists. Change the choice later under Settings. Declining or dismissing the prompt keeps analytics off.
 
 Collected and sent to the PitchCrafter API over HTTPS:
 
@@ -53,13 +55,31 @@ Collected and sent to the PitchCrafter API over HTTPS:
 Stored only on the device:
 
 - UI language (`en` or `tr`) in AsyncStorage.
+- Analytics consent (`granted` or `denied`) in AsyncStorage. An unset choice is treated as denied.
 
 Not collected by this Android app:
 
-- Location, contacts, photos, microphone, advertising id, health or financial data, and payment card data.
-- In-app purchases. Credit packs are sold with Stripe on the website. The Android UI does not start checkout. See the Play Billing TODO in `mobile/src/lib/playBilling.ts`.
+- Location, contacts, photos, microphone, advertising id, health data, and payment card data.
+- Credit purchases. Android hides the buy-credits entry points. The screen does not show prices or a link to the website. It can say that credit purchases are not available in this version. The credit balance is still shown. See `mobile/src/lib/playBilling.ts`. Web Stripe and iOS checkout are unchanged.
+
+Account deletion for the Play Console “Delete account URL” field:
+
+`https://pitchcrafter.glmlabs.io/account/delete`
+
+That page explains deletion, lets a signed-in person confirm and delete, and lists `admin@glmlabs.io` when they cannot sign in. The Android app deletes from Settings on the profile screen, with a confirmation step, by calling `POST /api/account/delete`. Deletion removes the account, saved generations, credit balance, and credit history, and signs the person out. PitchCrafter does not store card numbers. Payment records Stripe already holds for a completed purchase stay in Stripe when tax or accounting rules require that record. This app does not delete those Stripe records.
 
 The only Android permission the app keeps is `android.permission.INTERNET`. Storage, vibrate, and system-alert-window permissions that the Expo template adds are blocked in `app.json`.
+
+## Firebase Analytics
+
+Analytics stays disabled unless both of these are true: the person has accepted the consent prompt, and this build included a Firebase Android config.
+
+1. In the Firebase console, register Android app id `com.glmlabs.pitchcrafter` and download `google-services.json`.
+2. For a local build, put that file at `mobile/google-services.json`. It is gitignored.
+3. For EAS, create a file environment variable named `GOOGLE_SERVICES_JSON` whose value is that file. Do not commit the JSON or paste it into the repo.
+4. Rebuild. `mobile/app.config.ts` links `@react-native-firebase/app` and `@react-native-firebase/analytics` only when that file is present, and sets `extra.firebaseAnalytics`. `mobile/react-native.config.js` leaves those native modules unlinked when the file is absent, so `eas build` still succeeds and analytics cannot start.
+
+No Firebase API secret belongs in the app. `mobile/firebase.json` keeps collection off until consent, turns off automatic screen reporting, and turns off advertising-id collection. After the person consents, Firebase's automatic session events may still be sent. The app itself only logs `sign_up` and `purchase`.
 
 ## Privacy policy
 

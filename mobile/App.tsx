@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaView, StyleSheet, ActivityIndicator, View, TouchableOpacity } from 'react-native';
+import { SafeAreaView, StyleSheet, ActivityIndicator, View, TouchableOpacity, Platform } from 'react-native';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { LanguageProvider } from './src/contexts/LanguageContext';
+import AnalyticsConsent from './src/components/AnalyticsConsent';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import BuyCreditsScreen from './src/screens/BuyCreditsScreen';
+import { sellsCreditsInApp } from './src/lib/playBilling';
 
 type Screen = 'login' | 'register' | 'home' | 'profile' | 'buyCredits';
 
@@ -52,9 +54,18 @@ function AppContent({ currentScreen, setCurrentScreen }: { currentScreen: Screen
   switch (currentScreen) {
     case 'profile':
       return (
-        <ProfileScreen onNavigateToBuyCredits={() => setCurrentScreen('buyCredits')} />
+        <ProfileScreen
+          onNavigateToBuyCredits={
+            sellsCreditsInApp(Platform.OS) ? () => setCurrentScreen('buyCredits') : undefined
+          }
+        />
       );
     case 'buyCredits':
+      if (!sellsCreditsInApp(Platform.OS)) {
+        return (
+          <ProfileScreen />
+        );
+      }
       return <BuyCreditsScreen onGoBack={() => setCurrentScreen('profile')} />;
     default:
       return <HomeScreen />;
@@ -83,6 +94,7 @@ export default function App() {
     <LanguageProvider>
       <AuthProvider>
         <MainApp />
+        <AnalyticsConsent />
       </AuthProvider>
     </LanguageProvider>
   );

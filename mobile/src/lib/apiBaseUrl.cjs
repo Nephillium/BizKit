@@ -5,6 +5,20 @@ function stripTrailingSlash(url) {
   return url.replace(/\/$/, '');
 }
 
+/** 10.0.0.0/8 (includes the emulator alias 10.0.2.2), 192.168.0.0/16, and 172.16.0.0/12. */
+function isPrivateLanHost(host) {
+  const match = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
+  if (!match) return false;
+  const octets = match.slice(1).map((part) => Number(part));
+  if (octets.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) return false;
+  const a = octets[0];
+  const b = octets[1];
+  if (a === 10) return true;
+  if (a === 192 && b === 168) return true;
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  return false;
+}
+
 /** Hosts that belong to a developer machine, not the public PitchCrafter origin. */
 function isLocalApiUrl(value) {
   try {
@@ -13,7 +27,8 @@ function isLocalApiUrl(value) {
       host === 'localhost' ||
       host === '127.0.0.1' ||
       host === '0.0.0.0' ||
-      host === '::1'
+      host === '::1' ||
+      isPrivateLanHost(host)
     );
   } catch {
     return false;
@@ -52,6 +67,7 @@ module.exports = {
   LOCAL_API_BASE_URL,
   stripTrailingSlash,
   isLocalApiUrl,
+  isPrivateLanHost,
   resolveApiBaseUrl,
   resolveConfigApiBaseUrl,
 };
