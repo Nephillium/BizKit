@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSessionFromRequest } from '../../../lib/session';
+import { findUserById } from '../../../lib/users';
 import { deleteGeneration } from '../../../lib/generations';
 
 // Deletes only the signed-in user's row. A matching id owned by someone else
@@ -19,6 +20,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const id = Number(req.query.id);
   if (!Number.isInteger(id) || id < 1) {
     return res.status(400).json({ ok: false, error: 'invalid_id' });
+  }
+
+  if (!(await findUserById(user.id))) {
+    return res.status(401).json({ ok: false, error: 'not_authenticated' });
   }
 
   const removed = await deleteGeneration(user.id, id);

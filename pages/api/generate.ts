@@ -1,9 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { getUserFromRequest, getUserCredits, addCredits, incrementUserUsage } from '../../lib/users'
+import { getUserFromRequest, findUserById, addCredits, incrementUserUsage } from '../../lib/users'
 import { claimAnonymousGeneration, releaseAnonymousGeneration } from '../../lib/anonymousQuota'
 import { buildDemoOutput, isGenerationTool } from '../../lib/demoContent'
 import { createGeneration } from '../../lib/generations'
-import { creditDeltaAfterGeneration, generationGate, modelForProvider, stripeSecretConfigured } from '../../lib/runtimeConfig'
+import { creditDeltaAfterGeneration, generationGate, modelForProvider, providerConnectionError, stripeSecretConfigured } from '../../lib/runtimeConfig'
 
 type LengthOption = 'short' | 'standard' | 'detailed'
 type Tool = 'cold_email' | 'proposal' | 'contract' | 'social_pack'
@@ -296,12 +296,15 @@ export default async function handler(
   }
 
   const jwtPayload = getUserFromRequest(req.headers.cookie, req.headers.authorization)
-  
-  const isLoggedIn = !!jwtPayload
-  const isAdmin = jwtPayload?.role === 'admin'
-  const userId = jwtPayload?.id
+  const dbUser = jwtPayload ? await findUserById(jwtPayload.id) : null
+  if (jwtPayload && !dbUser) {
+    return res.status(401).json({ ok: false, error: 'not_authenticated' })
+  }
 
-  const userCredits = isLoggedIn && userId ? await getUserCredits(userId) : 0
+  const isLoggedIn = !!dbUser
+  const isAdmin = dbUser?.role === 'admin'
+  const userId = dbUser?.id
+  const userCredits = dbUser?.credits ?? 0
 
   if (isLoggedIn && !isAdmin && userCredits <= 0) {
     return res.status(403).json({
@@ -412,15 +415,9 @@ export default async function handler(
     }
 
     if (errorMessage.includes('ECONNREFUSED') || errorMessage.includes('fetch failed')) {
-      if (gate.outcome === 'provider' && gate.provider === 'openai-compatible') {
-        return res.status(500).json({
-          ok: false,
-          error: 'Cannot connect to the configured AI provider.',
-        })
-      }
-      return res.status(500).json({ 
-        ok: false, 
-        error: 'Cannot connect to LM Studio. Make sure it is running and accessible.' 
+      return res.status(500).json({
+        ok: false,
+        error: providerConnectionError(gate.provider),
       })
     }
 

@@ -3,6 +3,7 @@ import Head from 'next/head'
 import { jsPDF } from 'jspdf'
 import { Document, Packer, Paragraph, TextRun } from 'docx'
 import { useAuth } from '../hooks/useAuth'
+import { ACCOUNT_DELETION_PATH } from '../lib/accountDeletionCopy'
 import type { Generation } from '../shared/schema'
 import { translations, getTranslation, type Language } from '../lib/translations'
 import { HistoryPanel, type HistoryToolFilter } from '../components/HistoryPanel'
@@ -958,6 +959,21 @@ export default function Home() {
                     {t.buyCredits}
                   </button>
                 )}
+                <a
+                  href={ACCOUNT_DELETION_PATH}
+                  style={{
+                    padding: '8px 14px',
+                    fontSize: '0.8125rem',
+                    fontWeight: 500,
+                    color: 'rgb(239, 68, 68)',
+                    backgroundColor: 'rgb(254, 242, 242)',
+                    borderRadius: '6px',
+                    textDecoration: 'none',
+                  }}
+                  data-testid="link-delete-account"
+                >
+                  {t.deleteAccount}
+                </a>
                 <button
                   type="button"
                   onClick={() => logout()}
@@ -2384,6 +2400,15 @@ export default function Home() {
             data-testid="text-footer"
           >
             BizKit AI – Beta v1.0
+          </p>
+          <p style={{ marginTop: '8px' }}>
+            <a
+              href={ACCOUNT_DELETION_PATH}
+              style={{ fontSize: '0.875rem', color: 'rgb(100, 116, 139)' }}
+              data-testid="link-footer-delete-account"
+            >
+              {t.deleteAccount}
+            </a>
           </p>
         </footer>
 

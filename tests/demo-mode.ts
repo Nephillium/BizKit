@@ -9,6 +9,7 @@ import {
   creditDeltaAfterGeneration,
   generationGate,
   isDemoMode,
+  providerConnectionError,
   publicDemoLogin,
   publicRuntimeConfig,
   resolveProvider,
@@ -98,6 +99,7 @@ function testProviderSelection() {
     assert.equal(blocked.status, 503);
     assert.equal(blocked.error, 'ai_not_configured');
     assert.match(blocked.message, /No credit was deducted/);
+    assert.match(blocked.message, /AI_PROVIDER/);
     assert.equal(resolveProvider().id, 'unconfigured');
     assert.equal(publicRuntimeConfig().demoMode, false);
     assert.equal(publicRuntimeConfig().provider, 'unconfigured');
@@ -287,6 +289,14 @@ async function releaseDevSampleClaim(): Promise<void> {
   } as NextApiRequest);
 }
 
+function testProviderConnectionError() {
+  assert.match(providerConnectionError('lmstudio'), /LM Studio/);
+  assert.match(providerConnectionError('huggingface'), /Hugging Face/);
+  assert.match(providerConnectionError('openai-compatible'), /OpenAI-compatible/);
+  assert.doesNotMatch(providerConnectionError('huggingface'), /LM Studio/);
+  assert.doesNotMatch(providerConnectionError('openai-compatible'), /LM Studio/);
+}
+
 function testDatabaseSsl() {
   assert.equal(databaseSsl('postgres://bizkit:bizkit@localhost:5432/bizkit'), false);
   assert.equal(databaseSsl('postgres://bizkit:bizkit@127.0.0.1:5432/bizkit'), false);
@@ -355,6 +365,7 @@ function testExplicitAiProvider() {
 testDemoCopy();
 testProviderSelection();
 testExplicitAiProvider();
+testProviderConnectionError();
 await testProductionGenerateReturns503WithoutCharging();
 testDatabaseSsl();
 await pool.end();

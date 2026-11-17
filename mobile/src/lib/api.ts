@@ -162,6 +162,25 @@ export async function getMe(): Promise<AuthResponse> {
   return { success: false, error: result.error || 'Not authenticated' };
 }
 
+export async function deleteAccount(): Promise<{ success: boolean; error?: string }> {
+  const result = await apiRequest<{ ok?: boolean; error?: string }>('/api/account/delete', {
+    method: 'POST',
+    body: JSON.stringify({ confirm: true }),
+  });
+
+  if (result.ok && result.data?.ok) {
+    setAuthToken(null);
+    return { success: true };
+  }
+
+  if (result.error === 'not_authenticated') {
+    setAuthToken(null);
+    return { success: true };
+  }
+
+  return { success: false, error: result.error || 'Could not delete account' };
+}
+
 export async function logout(): Promise<{ success: boolean }> {
   const result = await apiRequest<{ ok: boolean }>('/api/auth/logout', { method: 'POST' });
   setAuthToken(null);

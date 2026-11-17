@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSessionFromRequest } from '../../../lib/session';
+import { findUserById } from '../../../lib/users';
 import { createGeneration, listGenerations, parseGenerationListFilter } from '../../../lib/generations';
 
 function firstQueryValue(value: string | string[] | undefined): string | undefined {
@@ -21,11 +22,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!parsed.ok) {
       return res.status(400).json({ ok: false, error: parsed.error });
     }
+    if (!(await findUserById(user.id))) {
+      return res.status(401).json({ ok: false, error: 'not_authenticated' });
+    }
     const generations = await listGenerations(user.id, parsed.filter);
     return res.status(200).json(generations);
   }
 
   if (req.method === 'POST') {
+    if (!(await findUserById(user.id))) {
+      return res.status(401).json({ ok: false, error: 'not_authenticated' });
+    }
     const { toolType, inputs, output } = req.body ?? {};
     const result = await createGeneration(user.id, toolType, inputs, output);
     if (result.error || !result.generation) {

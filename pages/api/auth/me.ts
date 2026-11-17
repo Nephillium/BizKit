@@ -1,12 +1,14 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getUserFromRequest, findUserById } from '../../../lib/users';
+import { sessionCookie } from '../../../lib/authResponse';
+import { getSessionFromRequest } from '../../../lib/session';
+import { findUserById } from '../../../lib/users';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
     return res.status(405).json({ ok: false, error: 'Method not allowed' });
   }
 
-  const jwtPayload = getUserFromRequest(req.headers.cookie, req.headers.authorization);
+  const jwtPayload = getSessionFromRequest(req);
 
   if (!jwtPayload) {
     return res.status(401).json({ ok: false, user: null, error: 'Not authenticated' });
@@ -15,14 +17,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const user = await findUserById(jwtPayload.id);
 
   if (!user) {
-    return res.status(200).json({ 
-      ok: true, 
-      user: {
-        id: jwtPayload.id,
-        email: jwtPayload.email,
-        role: jwtPayload.role,
-      }
-    });
+    res.setHeader('Set-Cookie', sessionCookie('', 0));
+    return res.status(401).json({ ok: false, user: null, error: 'Not authenticated' });
   }
 
   const { password_hash, ...userWithoutPassword } = user;
