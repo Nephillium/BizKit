@@ -19,8 +19,8 @@ export const translations = {
     
     welcomeBack: 'Welcome Back',
     createAccount: 'Create Account',
-    loginAccess: 'Log in to access unlimited generations',
-    registerAccess: 'Register for free unlimited access',
+    loginAccess: 'Log in to continue drafting',
+    registerAccess: 'Create your free account to start drafting',
     email: 'Email',
     password: 'Password',
     emailPlaceholder: 'your@email.com',
@@ -29,7 +29,7 @@ export const translations = {
     noAccount: "Don't have an account? Register",
     hasAccount: 'Already have an account? Log in',
     cancel: 'Cancel',
-    freeTrialUsed: 'Your free trial is used. Register or log in for unlimited access.',
+    freeTrialUsed: 'Your free trial is used. Create a free account or log in to keep drafting.',
     
     coldEmail: 'Cold Email',
     proposal: 'Proposal',
@@ -140,8 +140,8 @@ export const translations = {
     
     welcomeBack: 'Tekrar Hoş Geldiniz',
     createAccount: 'Hesap Oluştur',
-    loginAccess: 'Sınırsız içerik oluşturmak için giriş yapın',
-    registerAccess: 'Ücretsiz sınırsız erişim için kayıt olun',
+    loginAccess: 'Taslak hazırlamaya devam etmek için giriş yapın',
+    registerAccess: 'Taslak hazırlamaya başlamak için ücretsiz hesabınızı oluşturun',
     email: 'E-posta',
     password: 'Şifre',
     emailPlaceholder: 'ornek@email.com',
@@ -150,7 +150,7 @@ export const translations = {
     noAccount: 'Hesabınız yok mu? Kayıt olun',
     hasAccount: 'Zaten hesabınız var mı? Giriş yapın',
     cancel: 'İptal',
-    freeTrialUsed: 'Ücretsiz denemeniz kullanıldı. Sınırsız erişim için kayıt olun veya giriş yapın.',
+    freeTrialUsed: 'Ücretsiz denemeniz kullanıldı. Taslak hazırlamaya devam etmek için ücretsiz hesap oluşturun veya giriş yapın.',
     
     coldEmail: 'Soğuk E-posta',
     proposal: 'Teklif',

@@ -330,7 +330,7 @@ export default async function handler(
       if (claim === 'used') {
         return res.status(403).json({
           ok: false,
-          error: 'Free quota used. Please register or login for unlimited access.',
+          error: 'Free quota used. Please create a free account or log in to keep drafting.',
           requiresLogin: true,
           freeUsed: true,
         })
