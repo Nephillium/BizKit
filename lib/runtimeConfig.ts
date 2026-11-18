@@ -1,8 +1,9 @@
 import { demoSeedConfig, demoSeedRefusal } from './demoSeedPolicy';
+import { DEFAULT_OPENAI_MODEL, openaiApiKey } from './openaiClient';
 
-export type ProviderId = 'demo' | 'huggingface' | 'lmstudio' | 'openai-compatible' | 'unconfigured';
+export type ProviderId = 'demo' | 'huggingface' | 'lmstudio' | 'openai' | 'openai-compatible' | 'unconfigured';
 
-export type LiveProviderId = 'huggingface' | 'lmstudio' | 'openai-compatible';
+export type LiveProviderId = 'huggingface' | 'lmstudio' | 'openai' | 'openai-compatible';
 
 /** Hugging Face model used when AI_MODEL is unset. */
 export const DEFAULT_HUGGINGFACE_MODEL = 'mistralai/Mistral-7B-Instruct-v0.3';
@@ -10,10 +11,13 @@ export const DEFAULT_HUGGINGFACE_MODEL = 'mistralai/Mistral-7B-Instruct-v0.3';
 /** LM Studio model used when AI_MODEL and LMSTUDIO_MODEL are unset. */
 export const DEFAULT_LMSTUDIO_MODEL = 'local-model';
 
+/** OpenAI model used when AI_MODEL is unset. */
+export { DEFAULT_OPENAI_MODEL };
+
 export const AI_NOT_CONFIGURED_ERROR = 'ai_not_configured';
 
 export const AI_NOT_CONFIGURED_MESSAGE =
-  'AI generation is unavailable in production until AI_PROVIDER is set with its credentials, or HUGGINGFACE_API_KEY or LMSTUDIO_API_URL is set. Set DEMO_MODE=1 to serve labelled sample output. No credit was deducted.';
+  'AI generation is unavailable in production until AI_PROVIDER is set with its credentials, or OPENAI_API_KEY, HUGGINGFACE_API_KEY, or LMSTUDIO_API_URL is set. Set DEMO_MODE=1 to serve labelled sample output. No credit was deducted.';
 
 /** Connection failures name the provider that generationGate selected. */
 export function providerConnectionError(provider: string): string {
@@ -22,6 +26,9 @@ export function providerConnectionError(provider: string): string {
   }
   if (provider === 'huggingface') {
     return 'Cannot connect to Hugging Face. The Hugging Face API is unreachable.';
+  }
+  if (provider === 'openai') {
+    return 'Cannot connect to OpenAI. The OpenAI API is unreachable.';
   }
   if (provider === 'openai-compatible') {
     return 'Cannot connect to the OpenAI-compatible provider. Make sure it is running and accessible.';
@@ -39,13 +46,15 @@ function explicitAiProvider(): LiveProviderId | 'invalid' | null {
   if (!raw) return null;
   if (raw === 'huggingface' || raw === 'hugging-face' || raw === 'hf') return 'huggingface';
   if (raw === 'lmstudio' || raw === 'lm-studio') return 'lmstudio';
-  if (raw === 'openai' || raw === 'openai-compatible') return 'openai-compatible';
+  if (raw === 'openai') return 'openai';
+  if (raw === 'openai-compatible') return 'openai-compatible';
   return 'invalid';
 }
 
 function credentialsReady(provider: LiveProviderId): boolean {
   if (provider === 'lmstudio') return Boolean(process.env.LMSTUDIO_API_URL);
   if (provider === 'huggingface') return Boolean(process.env.HUGGINGFACE_API_KEY);
+  if (provider === 'openai') return Boolean(openaiApiKey());
   return Boolean(
     (process.env.AI_BASE_URL || '').trim() &&
       (process.env.AI_API_KEY || '').trim() &&
@@ -55,16 +64,18 @@ function credentialsReady(provider: LiveProviderId): boolean {
 
 /**
  * Single server-side choice of AI brand and model.
- * Leave AI_PROVIDER unset to keep the historical default: LM Studio when
- * LMSTUDIO_API_URL is set, otherwise Hugging Face. Set AI_PROVIDER and
- * AI_MODEL to switch brands without a code change. openai-compatible calls
- * AI_BASE_URL/chat/completions with AI_API_KEY. An unknown AI_PROVIDER is
- * not configured.
+ * Leave AI_PROVIDER unset to use OpenAI when OPENAI_API_KEY is set, otherwise
+ * the historical default: LM Studio when LMSTUDIO_API_URL is set, otherwise
+ * Hugging Face. Set AI_PROVIDER and AI_MODEL to switch brands without a code
+ * change. openai uses OPENAI_API_KEY and defaults to gpt-5-mini.
+ * openai-compatible calls AI_BASE_URL/chat/completions with AI_API_KEY.
+ * An unknown AI_PROVIDER is not configured.
  */
 function selectedLiveProvider(): LiveProviderId | null {
   const explicit = explicitAiProvider();
   if (explicit === 'invalid') return null;
   if (explicit) return credentialsReady(explicit) ? explicit : null;
+  if (openaiApiKey()) return 'openai';
   if (process.env.LMSTUDIO_API_URL) return 'lmstudio';
   if (process.env.HUGGINGFACE_API_KEY) return 'huggingface';
   return null;
@@ -77,6 +88,7 @@ export function modelForProvider(provider: LiveProviderId): string {
     return (process.env.LMSTUDIO_MODEL || '').trim() || DEFAULT_LMSTUDIO_MODEL;
   }
   if (provider === 'huggingface') return DEFAULT_HUGGINGFACE_MODEL;
+  if (provider === 'openai') return DEFAULT_OPENAI_MODEL;
   return '';
 }
 
@@ -84,7 +96,7 @@ export function aiProviderConfigured(): boolean {
   const explicit = explicitAiProvider();
   if (explicit === 'invalid') return false;
   if (explicit) return credentialsReady(explicit);
-  return Boolean(process.env.LMSTUDIO_API_URL || process.env.HUGGINGFACE_API_KEY);
+  return Boolean(openaiApiKey() || process.env.LMSTUDIO_API_URL || process.env.HUGGINGFACE_API_KEY);
 }
 
 /**
@@ -180,6 +192,13 @@ export function resolveProvider(): { id: ProviderId; label: string; detail: stri
       id: 'lmstudio',
       label: 'LM Studio',
       detail: modelForProvider('lmstudio'),
+    };
+  }
+  if (gate.provider === 'openai') {
+    return {
+      id: 'openai',
+      label: 'OpenAI',
+      detail: modelForProvider('openai'),
     };
   }
   if (gate.provider === 'openai-compatible') {

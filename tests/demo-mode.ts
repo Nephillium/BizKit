@@ -50,6 +50,7 @@ function testProviderSelection() {
     AI_MODEL: process.env.AI_MODEL,
     AI_BASE_URL: process.env.AI_BASE_URL,
     AI_API_KEY: process.env.AI_API_KEY,
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
     NODE_ENV: process.env.NODE_ENV,
     DEMO_USER_EMAIL: process.env.DEMO_USER_EMAIL,
     DEMO_USER_PASSWORD: process.env.DEMO_USER_PASSWORD,
@@ -64,6 +65,7 @@ function testProviderSelection() {
     setEnv('AI_MODEL', undefined);
     setEnv('AI_BASE_URL', undefined);
     setEnv('AI_API_KEY', undefined);
+    setEnv('OPENAI_API_KEY', undefined);
     setEnv('NODE_ENV', 'development');
     assert.equal(isDemoMode(), true);
     assert.equal(resolveProvider().id, 'demo');
@@ -213,6 +215,7 @@ async function testProductionGenerateReturns503WithoutCharging() {
     AI_MODEL: process.env.AI_MODEL,
     AI_BASE_URL: process.env.AI_BASE_URL,
     AI_API_KEY: process.env.AI_API_KEY,
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
     NODE_ENV: process.env.NODE_ENV,
   };
   try {
@@ -224,6 +227,7 @@ async function testProductionGenerateReturns503WithoutCharging() {
     setEnv('AI_MODEL', undefined);
     setEnv('AI_BASE_URL', undefined);
     setEnv('AI_API_KEY', undefined);
+    setEnv('OPENAI_API_KEY', undefined);
 
     const blocked = await postGenerate(
       {
@@ -294,6 +298,8 @@ function testProviderConnectionError() {
   assert.match(providerConnectionError('huggingface'), /Hugging Face API is unreachable/);
   assert.doesNotMatch(providerConnectionError('huggingface'), /running/);
   assert.match(providerConnectionError('openai-compatible'), /OpenAI-compatible/);
+  assert.match(providerConnectionError('openai'), /OpenAI API is unreachable/);
+  assert.doesNotMatch(providerConnectionError('openai'), /compatible/);
   assert.doesNotMatch(providerConnectionError('huggingface'), /LM Studio/);
   assert.doesNotMatch(providerConnectionError('openai-compatible'), /LM Studio/);
 }
@@ -316,6 +322,7 @@ function testExplicitAiProvider() {
     AI_MODEL: process.env.AI_MODEL,
     AI_BASE_URL: process.env.AI_BASE_URL,
     AI_API_KEY: process.env.AI_API_KEY,
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
     NODE_ENV: process.env.NODE_ENV,
   };
   try {
@@ -325,6 +332,7 @@ function testExplicitAiProvider() {
     setEnv('AI_MODEL', undefined);
     setEnv('AI_BASE_URL', undefined);
     setEnv('AI_API_KEY', undefined);
+    setEnv('OPENAI_API_KEY', undefined);
     setEnv('HUGGINGFACE_API_KEY', 'hf_test');
     setEnv('LMSTUDIO_API_URL', 'http://localhost:1234/v1');
     setEnv('LMSTUDIO_MODEL', 'demo-local');
@@ -356,6 +364,35 @@ function testExplicitAiProvider() {
     setEnv('AI_API_KEY', 'test-key');
     assert.equal(generationGate().outcome, 'unavailable');
     assert.equal(generationGate().chargesCredit, false);
+
+    setEnv('AI_PROVIDER', undefined);
+    setEnv('AI_API_KEY', undefined);
+    setEnv('AI_BASE_URL', undefined);
+    setEnv('AI_MODEL', undefined);
+    setEnv('HUGGINGFACE_API_KEY', undefined);
+    setEnv('LMSTUDIO_API_URL', undefined);
+    setEnv('OPENAI_API_KEY', 'sk-test');
+    const implied = generationGate();
+    assert.equal(implied.outcome, 'provider');
+    assert.equal(implied.provider, 'openai');
+    assert.equal(resolveProvider().id, 'openai');
+    assert.equal(resolveProvider().label, 'OpenAI');
+    assert.equal(resolveProvider().detail, 'gpt-5-mini');
+
+    setEnv('AI_MODEL', 'gpt-4.1-mini');
+    assert.equal(resolveProvider().detail, 'gpt-4.1-mini');
+
+    setEnv('AI_PROVIDER', 'openai');
+    setEnv('AI_MODEL', undefined);
+    setEnv('OPENAI_API_KEY', undefined);
+    assert.equal(generationGate().outcome, 'unavailable');
+    assert.equal(generationGate().chargesCredit, false);
+
+    setEnv('OPENAI_API_KEY', 'sk-test');
+    setEnv('HUGGINGFACE_API_KEY', 'hf_test');
+    setEnv('AI_PROVIDER', 'huggingface');
+    assert.equal(generationGate().provider, 'huggingface');
+    assert.equal(resolveProvider().detail, 'mistralai/Mistral-7B-Instruct-v0.3');
   } finally {
     for (const [key, value] of Object.entries(previous)) {
       setEnv(key, value);

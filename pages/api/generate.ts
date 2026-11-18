@@ -4,6 +4,7 @@ import { claimAnonymousGeneration, releaseAnonymousGeneration } from '../../lib/
 import { buildDemoOutput, isGenerationTool } from '../../lib/demoContent'
 import { createGeneration } from '../../lib/generations'
 import { creditDeltaAfterGeneration, generationGate, modelForProvider, providerConnectionError, stripeSecretConfigured } from '../../lib/runtimeConfig'
+import { callOpenAI, ProviderRequestError } from '../../lib/openaiClient'
 
 type LengthOption = 'short' | 'standard' | 'detailed'
 type Tool = 'cold_email' | 'proposal' | 'contract' | 'social_pack'
@@ -187,9 +188,8 @@ async function callHuggingFace(prompt: string, maxTokens: number, temperature: n
   )
 
   if (!response.ok) {
-    const errorText = await response.text()
-    console.error('Hugging Face API error:', errorText)
-    throw new Error(`Hugging Face API error: ${response.status}`)
+    console.error('Hugging Face API error:', response.status)
+    throw new ProviderRequestError()
   }
 
   const result = await response.json()
@@ -225,9 +225,8 @@ async function callLMStudio(prompt: string, maxTokens: number, temperature: numb
   })
 
   if (!response.ok) {
-    const errorText = await response.text()
-    console.error('LM Studio API error:', errorText)
-    throw new Error(`LM Studio API error: ${response.status}`)
+    console.error('LM Studio API error:', response.status)
+    throw new ProviderRequestError()
   }
 
   const result = await response.json()
@@ -236,7 +235,7 @@ async function callLMStudio(prompt: string, maxTokens: number, temperature: numb
     return result.choices[0].message.content
   }
   
-  throw new Error('Invalid LM Studio response')
+  throw new ProviderRequestError()
 }
 
 async function callOpenAICompatible(prompt: string, maxTokens: number, temperature: number, model: string): Promise<string> {
@@ -264,9 +263,8 @@ async function callOpenAICompatible(prompt: string, maxTokens: number, temperatu
   })
 
   if (!response.ok) {
-    const errorText = await response.text()
-    console.error('AI provider HTTP error:', response.status, errorText)
-    throw new Error(`AI provider HTTP error: ${response.status}`)
+    console.error('AI provider HTTP error:', response.status)
+    throw new ProviderRequestError()
   }
 
   const result = await response.json()
@@ -275,7 +273,7 @@ async function callOpenAICompatible(prompt: string, maxTokens: number, temperatu
     return result.choices[0].message.content
   }
 
-  throw new Error('Invalid AI provider response')
+  throw new ProviderRequestError()
 }
 
 export default async function handler(
@@ -367,6 +365,8 @@ export default async function handler(
       })
     } else if (gate.provider === 'lmstudio') {
       content = await callLMStudio(prompt, maxTokens, temperature, modelForProvider(gate.provider))
+    } else if (gate.provider === 'openai') {
+      content = await callOpenAI(prompt, maxTokens, temperature, modelForProvider(gate.provider))
     } else if (gate.provider === 'openai-compatible') {
       content = await callOpenAICompatible(prompt, maxTokens, temperature, modelForProvider(gate.provider))
     } else {
@@ -414,10 +414,19 @@ export default async function handler(
       })
     }
 
-    if (errorMessage.includes('ECONNREFUSED') || errorMessage.includes('fetch failed')) {
-      return res.status(500).json({
+    if (error instanceof ProviderRequestError) {
+      return res.status(error.status).json({
         ok: false,
-        error: providerConnectionError(gate.provider),
+        error: error.error,
+        message: error.message,
+      })
+    }
+
+    if (errorMessage.includes('ECONNREFUSED') || errorMessage.includes('fetch failed')) {
+      return res.status(502).json({
+        ok: false,
+        error: 'provider_error',
+        message: providerConnectionError(gate.provider),
       })
     }
 
