@@ -41,6 +41,7 @@ const ENV_KEYS = [
   'AI_MODEL',
   'AI_BASE_URL',
   'AI_API_KEY',
+  'OPENAI_API_KEY',
   'TRUST_PROXY',
   'STRIPE_SECRET_KEY',
   'STRIPE_WEBHOOK_SECRET',
@@ -120,6 +121,7 @@ describe('POST /api/generate', () => {
       setEnv('DEMO_MODE', '1');
       setEnv('HUGGINGFACE_API_KEY', undefined);
       setEnv('LMSTUDIO_API_URL', undefined);
+      setEnv('OPENAI_API_KEY', undefined);
       setEnv('TRUST_PROXY', undefined);
       await deleteSubject(remoteAddress);
       await deleteSubject(otherAddress);
@@ -195,6 +197,7 @@ describe('POST /api/generate', () => {
       setEnv('DEMO_MODE', '1');
       setEnv('HUGGINGFACE_API_KEY', undefined);
       setEnv('LMSTUDIO_API_URL', undefined);
+      setEnv('OPENAI_API_KEY', undefined);
       setEnv('TRUST_PROXY', undefined);
       await deleteSubject(remoteAddress);
 
@@ -266,6 +269,7 @@ describe('POST /api/generate', () => {
       setEnv('AI_MODEL', undefined);
       setEnv('AI_BASE_URL', undefined);
       setEnv('AI_API_KEY', undefined);
+      setEnv('OPENAI_API_KEY', undefined);
 
       const registered = await invoke(registerHandler, {
         method: 'POST',

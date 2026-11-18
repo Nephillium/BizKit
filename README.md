@@ -46,9 +46,10 @@ Copy `.env.example` to `.env`. Never commit `.env`.
 | `JWT_SECRET` | Optional. Dev uses an insecure fallback if unset. | Required. 32+ random characters. The example placeholder is rejected. |
 | `APP_BASE_URL` | `http://localhost:5000` | Required. Public origin. Stripe return URLs use it. |
 | `DEMO_MODE` | Optional. `1` forces sample output. Empty AI keys also use samples. | Leave unset for live generation. `1` keeps samples (the private `bizkit-demo` preview does this). Unset, with no AI key, `POST /api/generate` returns 503 and does not spend credits. |
-| `HUGGINGFACE_API_KEY` | Leave empty for the demo. | One of this or `LMSTUDIO_API_URL`. |
-| `LMSTUDIO_API_URL` / `LMSTUDIO_MODEL` | Leave empty for the demo. | Local OpenAI-compatible server. Used before Hugging Face when both are set and `AI_PROVIDER` is unset. |
-| `AI_PROVIDER`, `AI_MODEL`, `AI_BASE_URL`, `AI_API_KEY` | Leave empty. The default provider rule stays. | Optional. Set `AI_PROVIDER` and `AI_MODEL` to switch the live brand without a code change. `openai-compatible` also needs `AI_BASE_URL` and `AI_API_KEY`. |
+| `OPENAI_API_KEY` | Leave empty for the demo. | Official OpenAI key. With `AI_PROVIDER` unset, this selects OpenAI. |
+| `HUGGINGFACE_API_KEY` | Leave empty for the demo. | One of this, `OPENAI_API_KEY`, or `LMSTUDIO_API_URL`. |
+| `LMSTUDIO_API_URL` / `LMSTUDIO_MODEL` | Leave empty for the demo. | Local OpenAI-compatible server. Used after OpenAI and before Hugging Face when `AI_PROVIDER` is unset. |
+| `AI_PROVIDER`, `AI_MODEL`, `AI_BASE_URL`, `AI_API_KEY` | Leave empty. The default provider rule stays. | Optional. Set `AI_PROVIDER` to switch the live brand without a code change. `openai` uses `OPENAI_API_KEY` and defaults to `gpt-5-mini`. `openai-compatible` also needs `AI_BASE_URL` and `AI_API_KEY`. |
 | `DEMO_USER_*` | Seed only. Refused in production. | Do not rely on these. |
 | `DEMO_SIGNUP_CREDITS` | Starter credits for local signups. Default 5. | Ignored. New accounts start at 0. |
 | `DB_INIT_TOKEN` | Optional. | Required for `POST /api/init-db`. |
@@ -61,9 +62,9 @@ Copy `.env.example` to `.env`. Never commit `.env`.
 
 ### AI
 
-`POST /api/generate` uses labelled demo samples when `DEMO_MODE` is `1`, `true`, or `yes`. It also uses samples when `NODE_ENV` is not `production` and no AI provider is configured. In production, if no provider is configured and `DEMO_MODE` is not enabled, the route returns HTTP 503 with `ai_not_configured` and does not deduct a credit or record a generation. With `AI_PROVIDER` unset, LM Studio wins when `LMSTUDIO_API_URL` is set (`LMSTUDIO_MODEL` defaults to `local-model`). Otherwise the route calls Hugging Face Inference (`mistralai/Mistral-7B-Instruct-v0.3`).
+`POST /api/generate` uses labelled demo samples when `DEMO_MODE` is `1`, `true`, or `yes`. It also uses samples when `NODE_ENV` is not `production` and no AI provider is configured. In production, if no provider is configured and `DEMO_MODE` is not enabled, the route returns HTTP 503 with `ai_not_configured` and does not deduct a credit or record a generation. With `AI_PROVIDER` unset, OpenAI wins when `OPENAI_API_KEY` is set (`AI_MODEL` defaults to `gpt-5-mini`). Otherwise LM Studio wins when `LMSTUDIO_API_URL` is set (`LMSTUDIO_MODEL` defaults to `local-model`). Otherwise the route calls Hugging Face Inference (`mistralai/Mistral-7B-Instruct-v0.3`).
 
-`AI_PROVIDER` and `AI_MODEL` are the single switch for the live brand. Leave both unset to keep the rule above. `AI_PROVIDER` may be `huggingface`, `lmstudio`, or `openai-compatible`. `AI_MODEL` overrides the model id. `openai-compatible` calls `${AI_BASE_URL}/chat/completions` with `AI_API_KEY`, so another chat-completions brand does not require a code change. An unknown `AI_PROVIDER` is treated as not configured. The home page shows the active provider. There is no in-app model picker.
+`AI_PROVIDER` is the single switch for the live brand. Leave it unset to keep the rule above. `AI_PROVIDER` may be `openai`, `huggingface`, `lmstudio`, or `openai-compatible`. `AI_MODEL` overrides the model id. `openai` calls `https://api.openai.com/v1/chat/completions` with `OPENAI_API_KEY`. `openai-compatible` calls `${AI_BASE_URL}/chat/completions` with `AI_API_KEY`, so another chat-completions brand does not require a code change. An unknown `AI_PROVIDER` is treated as not configured. Live provider failures return HTTP 502 without provider details. The home page shows the active provider. There is no in-app model picker.
 
 ### Stripe
 
@@ -181,7 +182,7 @@ If `DATABASE_URL` is unset, `npm run test:api` uses `postgres://bizkit:bizkit@12
 `npm run test:security` runs `tests/security-hardening.ts`, `tests/demo-mode.ts`, `tests/auth-session.ts`, `tests/generation-history.ts`, and `tests/mobile-api-base-url.ts`. That covers anonymous-quota decisions, admin-promotion rules, demo-mode selection, the production 503 when no AI provider is configured, the `AI_PROVIDER` switch, the production seed refusal, the rule that login and register omit the session token unless the request sends `X-BizKit-Client: mobile`, history search text as a bound parameter scoped with `user_id`, and the mobile API base URL plus the Android credit-purchase gate. `npm run test:api` calls the route handlers and checks:
 
 - Anonymous free generation is one row in `anonymous_generations`, keyed by the server-observed address. Dropping cookies or sending `X-Forwarded-For` without `TRUST_PROXY` does not grant another try. A signed-in caller on that same address is not blocked by the anonymous row.
-- In production, with `HUGGINGFACE_API_KEY` and `LMSTUDIO_API_URL` unset and `DEMO_MODE` unset, `POST /api/generate` returns 503 `ai_not_configured` and does not change credits, usage, history, or the anonymous quota. `DEMO_MODE=1` returns labelled sample output and then deducts one credit.
+- In production, with `OPENAI_API_KEY`, `HUGGINGFACE_API_KEY`, and `LMSTUDIO_API_URL` unset and `DEMO_MODE` unset, `POST /api/generate` returns 503 `ai_not_configured` and does not change credits, usage, history, or the anonymous quota. `DEMO_MODE=1` returns labelled sample output and then deducts one credit.
 - Register, login, and logout against Postgres. Web clients get the httpOnly cookie and no `token` field, even if the JSON body asks for one. `X-BizKit-Client: mobile` also returns `token`. `GET /api/auth/me`, `/api/generations`, and `POST /api/stripe/create-checkout` reject missing or invalid credentials and accept either the cookie or `Authorization: Bearer`.
 - History list and delete stay on the signed-in user for both the cookie and `Authorization: Bearer`. `q` and `tool` only narrow that user's rows. Deleting another user's id returns 404 and leaves the row in place.
 
