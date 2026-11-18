@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PitchCrafter Privacy Policy — GLM Labs</title>
+  <meta name="description" content="Privacy policy for PitchCrafter, an AI writing app from GLM Labs. How we collect, use, share, and retain information, and how you can ask us to delete it.">
+  <style>
+    :root {
+      --bg: #0b1020;
+      --ink: #f8fafc;
+      --muted: #94a3b8;
+      --line: rgba(148, 163, 184, 0.18);
+      --primary: #818cf8;
+      --primary-soft: rgba(99, 102, 241, 0.16);
+      --accent: #38bdf8;
+      --warn: #fbbf24;
+      --warn-soft: rgba(251, 191, 36, 0.12);
+      --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      color: var(--ink);
+      background: var(--bg);
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      padding: 32px 20px 64px;
+    }
+    .bg {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      background:
+        radial-gradient(700px 360px at 18% 12%, rgba(99, 102, 241, 0.28), transparent 70%),
+        radial-gradient(560px 320px at 85% 8%, rgba(14, 165, 233, 0.22), transparent 70%),
+        radial-gradient(520px 280px at 55% 100%, rgba(16, 185, 129, 0.10), transparent 70%),
+        var(--bg);
+    }
+    .wrap {
+      width: min(760px, 100%);
+      margin: 0 auto;
+    }
+    .top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      font-size: 17px;
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .logo {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      color: #fff;
+      font-weight: 800;
+      font-size: 16px;
+      background: linear-gradient(135deg, #6366f1, #0ea5e9);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    }
+    .back {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .back:hover { color: var(--ink); }
+    .card {
+      background: rgba(18, 24, 43, 0.78);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 36px 32px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 20px 50px -28px rgba(0, 0, 0, 0.7);
+    }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--primary);
+      background: var(--primary-soft);
+      border: 1px solid rgba(129, 140, 248, 0.28);
+      padding: 6px 12px;
+      border-radius: 999px;
+      margin-bottom: 18px;
+    }
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(28px, 5vw, 40px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+    }
+    .meta {
+      margin: 0 0 28px;
+      color: var(--muted);
+      font-size: 15px;
+    }
+    .lead {
+      margin: 0 0 28px;
+      color: var(--muted);
+      font-size: 17px;
+    }
+    nav.toc {
+      margin: 0 0 36px;
+      padding: 18px 20px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.02);
+    }
+    nav.toc p {
+      margin: 0 0 10px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--primary);
+    }
+    nav.toc ol {
+      margin: 0;
+      padding-left: 20px;
+      color: var(--muted);
+    }
+    nav.toc li { margin: 4px 0; }
+    nav.toc a {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    nav.toc a:hover { color: var(--accent); }
+    h2 {
+      margin: 36px 0 12px;
+      padding-top: 8px;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.3;
+    }
+    h2:first-of-type { margin-top: 8px; }
+    p, li { font-size: 15.5px; }
+    p { margin: 0 0 14px; }
+    ul, ol { margin: 0 0 16px; padding-left: 22px; }
+    li { margin: 0 0 8px; color: var(--ink); }
+    li strong { font-weight: 650; }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.92em;
+      color: #e2e8f0;
+    }
+    a { color: var(--accent); }
+    a:hover { text-decoration: underline; }
+    button.linkish {
+      background: none;
+      border: 0;
+      padding: 0;
+      color: var(--accent);
+      font: inherit;
+      cursor: pointer;
+    }
+    button.linkish:hover { text-decoration: underline; }
+    .confirm {
+      display: inline;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-transform: none;
+      color: var(--warn);
+      background: var(--warn-soft);
+      border: 1px solid rgba(251, 191, 36, 0.35);
+      padding: 2px 7px;
+      border-radius: 999px;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+    .note {
+      margin: 0 0 16px;
+      padding: 14px 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(251, 191, 36, 0.28);
+      background: var(--warn-soft);
+      color: #fde68a;
+      font-size: 14.5px;
+    }
+    .note p { margin: 0 0 10px; color: inherit; font-size: inherit; }
+    .note p:last-child { margin-bottom: 0; }
+    .note strong { color: #fef3c7; }
+    .foot {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid var(--line);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .contact {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--ink);
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 500;
+      padding: 12px 16px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.03);
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .contact:hover {
+      border-color: rgba(129, 140, 248, 0.45);
+      background: rgba(99, 102, 241, 0.08);
+      text-decoration: none;
+    }
+    .contact span { color: var(--accent); }
+    .copy {
+      color: var(--muted);
+      font-size: 13px;
+    }
+    @media (max-width: 640px) {
+      .card { padding: 26px 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg" aria-hidden="true"></div>
+  <div class="wrap">
+    <div class="top">
+      <a class="brand" href="https://pitchcrafter.glmlabs.io">
+        <div class="logo" aria-hidden="true">G</div>
+        <span>GLM Labs</span>
+      </a>
+      <a class="back" href="https://pitchcrafter.glmlabs.io">Back to PitchCrafter</a>
+    </div>
+    <article class="card">
+      <div class="eyebrow">PitchCrafter</div>
+      <h1>Privacy Policy</h1>
+      <p class="meta">Effective date: 18 November 2026. Last updated: 18 November 2026.</p>
+      <p class="lead">This policy explains what information PitchCrafter collects, how we use it, who we share it with, and the choices you have. It covers the PitchCrafter website and the Android app (application id <code>com.glmlabs.pitchcrafter</code>).</p>
+
+      <nav class="toc" aria-label="Contents">
+        <p>Contents</p>
+        <ol>
+          <li><a href="#who">Who we are</a></li>
+          <li><a href="#waitlist">PitchCrafter website and waitlist</a></li>
+          <li><a href="#collect">What we collect</a></li>
+          <li><a href="#use">How we use it</a></li>
+          <li><a href="#ai">AI processing</a></li>
+          <li><a href="#payments">Payments</a></li>
+          <li><a href="#cookies">Cookies and device storage</a></li>
+          <li><a href="#sharing">Sharing</a></li>
+          <li><a href="#retention">How long we keep information</a></li>
+          <li><a href="#rights">Your rights, including deletion</a></li>
+          <li><a href="#analytics">Analytics</a></li>
+          <li><a href="#children">Children</a></li>
+          <li><a href="#laws">Privacy laws (GDPR and KVKK)</a></li>
+          <li><a href="#changes">Changes</a></li>
+        </ol>
+      </nav>
+
+      <h2 id="who">Who we are</h2>
+      <p>PitchCrafter is a product of GLM Labs. It is an AI writing tool that helps people draft cold emails, proposals, contracts, and social posts.</p>
+      <p>For privacy questions, account deletion, or other requests about your information, email us at <a href="mailto:admin@glmlabs.io">admin@glmlabs.io</a>.</p>
+
+      <h2 id="waitlist">PitchCrafter website and waitlist</h2>
+      <p>If you join the PitchCrafter waitlist, we collect the email address you enter in the waitlist form. We use that email to tell you when PitchCrafter opens, plus occasional product news. You can ask us to unsubscribe you or to delete your waitlist email by writing to <a href="mailto:admin@glmlabs.io">admin@glmlabs.io</a>.</p>
+      <p>Waitlist emails are stored in a database operated for GLM Labs (Neon Postgres). We store only the email address, the sign-up time, and a consent flag. If you don't create an account, we delete your waitlist email 12 months after you signed up, or sooner if you ask us to remove you. Every email we send has an unsubscribe link, and unsubscribing deletes your address.</p>
+      <p>The waitlist pages show a cookie consent banner. If you accept, Google Ads measurement tags may record that you joined the waitlist. If you do not consent, no Google tags load. Your choice is stored in your browser on those waitlist pages.</p>
+
+      <h2 id="collect">What we collect</h2>
+      <p>Depending on how you use PitchCrafter, we may collect the following:</p>
+      <ul>
+        <li><strong>Account details.</strong> If you create an account, we store your email address and a hashed password. We also store your account role, credit balance, usage count, and the date the account was created. You can create an account with email and password, or sign in with Google as described below.</li>
+        <li><strong>Signing in with Google.</strong> If you choose to sign in with Google, Google shares your name and email address with us so we can create and identify your account. We do not receive your Google password. You can remove PitchCrafter’s access at any time in your Google Account settings.</li>
+        <li><strong>Content you submit and content we generate.</strong> When you are signed in and you generate a draft, we store the tool you used, the text you entered, and the generated output, so you can review that history later.</li>
+        <li><strong>Credit records.</strong> When credits are added or used, we store a record of the amount and the reason (for example, a purchase or a generation).</li>
+        <li><strong>Anonymous use.</strong> If you generate a draft without an account, we allow one free generation. To enforce that limit, we store a keyed hash of the network address we observe, not the address itself in clear text. That record can be reused after 365 days.</li>
+        <li><strong>Payment details on the website.</strong> If a payment is made on the PitchCrafter website, it is processed by Stripe. We send Stripe your email address and an internal account identifier so the payment can be completed and credits can be added. We do not store your card number on our servers.</li>
+        <li><strong>Session information.</strong> When you sign in on the website, we set a session cookie. When you sign in on the Android app, a session token is stored on your device.</li>
+        <li><strong>Language preference on Android.</strong> The Android app stores your chosen interface language (English or Turkish) on the device only.</li>
+      </ul>
+      <p>The Android app’s only requested system permission is internet access. The current app does not collect location, contacts, photos, microphone audio, or advertising identifiers. Advertising-id collection is turned off in this Android build. Firebase Analytics, which stays off until you agree, is described in the Analytics section below.</p>
+      <p>There is a field in our database for whether an email address has been verified, but the product does not currently send verification or other emails. We do not have an email-delivery provider configured in the product today.</p>
+
+      <h2 id="use">How we use it</h2>
+      <p>We use this information to:</p>
+      <ul>
+        <li>create and maintain your account, and keep you signed in;</li>
+        <li>generate drafts from the text you provide, and show your history when you are signed in;</li>
+        <li>count and enforce credits and the one free generation for people who are not signed in;</li>
+        <li>process credit purchases and add credits to the right account;</li>
+        <li>operate, secure, and troubleshoot the service.</li>
+      </ul>
+      <p>We do not sell your personal information, and we do not use your content to show you third-party advertising.</p>
+
+      <h2 id="ai">AI processing</h2>
+      <p>When you ask PitchCrafter to write a draft, the prompt built from your inputs (and any extra instructions you add) is sent to our AI provider, OpenAI, so a draft can be generated.</p>
+
+      <h2 id="payments">Payments</h2>
+      <p>The Android app is free to download. Purchases are not offered in the Android app, and the app does not use Google Play Billing. Paid plans are bought on the PitchCrafter website through Stripe. Stripe processes payment details. Stripe may collect billing information directly from you, such as your card details, under Stripe’s own privacy policy. We send Stripe your email address and an internal account identifier so the payment can be completed and credits can be added. We receive confirmation of the payment so we can add credits to your account. We do not store your card number on our servers.</p>
+
+      <h2 id="cookies">Cookies and device storage</h2>
+      <p>The website sets an httpOnly cookie named <code>bizkit_token</code> when you sign in or register. It holds a session token, lasts 7 days, is set with SameSite=Lax, and is marked Secure in production. Signing out clears that cookie. The website does not use advertising or analytics cookies today.</p>
+      <p>The Android app stores the session token in the device’s secure store and sends it as a bearer token on later requests. Signing out removes that token from the device. The app also stores your language choice on the device, and, on Android, your analytics consent choice (<code>granted</code> or <code>denied</code>). An unset choice is treated as denied.</p>
+      <p>The PitchCrafter website loads fonts from Google Fonts. That request may share your IP address and browser details with Google when you visit the site.</p>
+
+      <h2 id="sharing">Who we share information with</h2>
+      <p>We share information only as needed to run the product:</p>
+      <ul>
+        <li><strong>Our AI provider, OpenAI,</strong> which receives the prompt built from your inputs in order to generate a draft.</li>
+        <li><strong>Stripe,</strong> when a payment is made on the PitchCrafter website, which receives your email address, an internal account identifier, and payment information you provide to Stripe.</li>
+        <li><strong>Google,</strong> if you choose to sign in with Google, which shares your name and email address with us as described above; for the font files loaded by the website; and, on Android, for Firebase Analytics after you agree to the in-app consent prompt, as described in the Analytics section below.</li>
+        <li><strong>Our hosting and database providers.</strong> The PitchCrafter app is served at <a href="https://pitchcrafter.glmlabs.io">https://pitchcrafter.glmlabs.io</a> on Vercel. App server code runs in Vercel’s US East region (Washington, D.C.). Requests are processed on servers in the United States, so personal data is transferred to the US. User account data is stored in a Neon Postgres database in Frankfurt, Germany (EU). Data at rest is stored in the EU. That database holds accounts, history, credit records, and the hashed anonymous-use records.</li>
+      </ul>
+      <p>We may also disclose information if we are required to do so by law, or to protect the rights, safety, or security of GLM Labs, our users, or others.</p>
+
+      <h2 id="retention">How long we keep information</h2>
+      <p>Session cookies and tokens expire after 7 days, or sooner if you sign out.</p>
+      <p>The hashed record used to limit anonymous free generations is kept so the one-free-generation rule can be enforced for 365 days.</p>
+      <p>Signed-in generation history stays in your account until you delete an individual item in the product, or until the account is deleted. You can delete your account yourself, as described below. Accounts with no sign-in for 24 months are deleted.</p>
+
+      <h2 id="rights">Your rights, including deletion</h2>
+      <p>You can sign out at any time. If you are signed in, you can delete individual items from your generation history in the product.</p>
+      <p>You can delete your account from the profile screen in the Android app, or on the web at <a href="https://pitchcrafter.glmlabs.io/account/delete">https://pitchcrafter.glmlabs.io/account/delete</a>. If you cannot do that, email <a href="mailto:admin@glmlabs.io">admin@glmlabs.io</a>. We will need enough information to confirm that an email request comes from the account holder.</p>
+      <p>Deletion removes your account and your saved generations, and signs you out. We also remove the credit balance and credit history we store for that account. We do not store your card number. Payment records that Stripe already holds for a completed purchase may be kept where tax, accounting, or other legal rules require it.</p>
+      <p>To request access to the personal information we hold about you, or a correction, email <a href="mailto:admin@glmlabs.io">admin@glmlabs.io</a>.</p>
+      <p>Depending on where you live, you may also have the right to object to or restrict certain processing, or to ask for a copy of your information. Those rights are described in general terms in the section on privacy laws below.</p>
+
+      <h2 id="analytics">Analytics</h2>
+      <p>The Android app includes Firebase Analytics (provided by Google). It is off until you agree in the in-app consent prompt. The default is denied, and a build that is not configured with Firebase does not collect analytics. The website does not include an analytics or advertising SDK, and the Android app does not ship an ads SDK or a crash reporter.</p>
+      <p>After you consent, the app logs sign-up and purchase events. Firebase may also send its own automatic session events (such as session start) while collection is on. The app does not log screen views, and it does not log the text of your prompts or drafts. Advertising-id collection is turned off in this build, so the Android advertising ID is not collected. A purchase event is only sent if a purchase happens in the Android app; purchases are not offered in the Android app in this version, so that event is not sent today.</p>
+      <p>You can withdraw consent later in Settings on the profile screen, or decline the prompt when it first appears. You can also reset or delete your advertising ID in Android settings (Settings &gt; Google/Privacy &gt; Ads).</p>
+
+      <h2 id="children">Children</h2>
+      <p>PitchCrafter is not directed at children under 13, and we do not knowingly collect personal information from children under 13. If you believe a child under 13 has created an account or otherwise given us personal information, please email <a href="mailto:admin@glmlabs.io">admin@glmlabs.io</a> and we will take steps to delete it.</p>
+
+      <h2 id="laws">Privacy laws (GDPR and KVKK)</h2>
+      <p>If you are in the European Economic Area, the United Kingdom, or another place where the GDPR or a similar law applies, you may have rights to access, correct, delete, or receive a copy of your personal information, and to object to or restrict certain uses of it. If you are in Türkiye, Law No. 6698 on the Protection of Personal Data (KVKK) may give you similar rights, including the right to learn whether your personal data is being processed, to request information about that processing, and to ask for correction or deletion.</p>
+      <p>To exercise these rights, email <a href="mailto:admin@glmlabs.io">admin@glmlabs.io</a>. This section is a plain-language summary of rights that may apply to you. It is not legal advice, and it is not a claim that GLM Labs or PitchCrafter is certified, audited, or formally compliant under GDPR, KVKK, or any other privacy law.</p>
+
+      <h2 id="changes">Changes</h2>
+      <p>We may update this policy from time to time. When we do, we will change the effective date at the top of this page. If a change is significant, we will try to give additional notice, for example by an in-product message or an email if we have a reliable way to reach you.</p>
+      <p>If you have questions about this policy, contact <a href="mailto:admin@glmlabs.io">admin@glmlabs.io</a>.</p>
+
+      <div class="foot">
+        <a class="contact" href="mailto:admin@glmlabs.io">Contact <span>admin@glmlabs.io</span></a>
+        <p class="copy">GLM Labs · PitchCrafter</p>
+      </div>
+    </article>
+  </div>
+</body>
+</html>

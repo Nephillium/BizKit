@@ -178,6 +178,11 @@ export default function DeleteAccountPage() {
                 {t.createAccount}
               </a>
             </p>
+            <p style={{ marginTop: '8px' }}>
+              <a href="/privacy" style={{ color: 'rgb(100, 116, 139)' }} data-testid="link-sign-in-privacy">
+                Privacy
+              </a>
+            </p>
           </section>
         ) : (
           <section>

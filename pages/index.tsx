@@ -2403,6 +2403,15 @@ export default function Home() {
           </p>
           <p style={{ marginTop: '8px' }}>
             <a
+              href="/privacy"
+              style={{ fontSize: '0.875rem', color: 'rgb(100, 116, 139)' }}
+              data-testid="link-footer-privacy"
+            >
+              Privacy
+            </a>
+          </p>
+          <p style={{ marginTop: '8px' }}>
+            <a
               href={ACCOUNT_DELETION_PATH}
               style={{ fontSize: '0.875rem', color: 'rgb(100, 116, 139)' }}
               data-testid="link-footer-delete-account"
@@ -2793,6 +2802,15 @@ export default function Home() {
                 >
                   {authMode === 'login' ? t.noAccount : t.hasAccount}
                 </button>
+                <p style={{ textAlign: 'center', margin: '0 0 4px' }}>
+                  <a
+                    href="/privacy"
+                    style={{ fontSize: '0.875rem', color: 'rgb(100, 116, 139)' }}
+                    data-testid="link-auth-privacy"
+                  >
+                    Privacy
+                  </a>
+                </p>
               </form>
 
               <button

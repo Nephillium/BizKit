@@ -5,6 +5,14 @@ const nextConfig = {
     'localhost',
     '127.0.0.1',
   ],
+  async rewrites() {
+    return {
+      beforeFiles: [
+        { source: '/privacy', destination: '/privacy/index.html' },
+        { source: '/privacy/', destination: '/privacy/index.html' },
+      ],
+    }
+  },
 }
 
 export default nextConfig
