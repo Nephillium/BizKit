@@ -93,8 +93,6 @@ No Firebase API secret belongs in the app. `mobile/firebase.json` keeps collecti
 
 ## Privacy policy
 
-Placeholder, not a published page yet:
-
 `https://pitchcrafter.glmlabs.io/privacy`
 
-Play Console requires a public privacy policy URL before a closed test can be rolled out. Replace this placeholder after the page exists, and paste that same URL into the store listing. Do not mark the closed test ready until that page answers the data-safety notes above.
+Play Console requires this public privacy policy URL before a closed test can be rolled out. Paste that same URL into the store listing.
