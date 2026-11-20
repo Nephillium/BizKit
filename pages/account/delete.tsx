@@ -1,14 +1,16 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import Head from 'next/head'
+import { ContinueWithGoogle } from '../../components/ContinueWithGoogle'
 import { useAuth } from '../../hooks/useAuth'
 import { ACCOUNT_DELETION_EMAIL } from '../../lib/accountDeletionCopy'
+import { googleSignInErrorMessage } from '../../lib/googleAuthCopy'
 import { type Language } from '../../lib/translations'
 
 const copy = {
   en: {
     title: 'Delete your PitchCrafter account',
     intro:
-      'You can delete your PitchCrafter account from this page after you sign in, or from Settings in the Android app. Deletion removes the account, saved generations, credit balance, and credit history stored by PitchCrafter, and signs you out.',
+      'You can delete your PitchCrafter account from this page after you sign in, or from Settings in the Android app. Deletion removes the account, saved generations, credit balance, credit history, and any Google sign-in link stored by PitchCrafter, and signs you out.',
     retained:
       'PitchCrafter does not store your card number. Payment records that Stripe already keeps for a completed purchase stay in Stripe when tax or accounting rules require that record.',
     fallback: 'If you cannot sign in, email',
@@ -34,7 +36,7 @@ const copy = {
   tr: {
     title: 'PitchCrafter hesabınızı silin',
     intro:
-      'Giriş yaptıktan sonra hesabınızı bu sayfadan veya Android uygulamasındaki Ayarlar ekranından silebilirsiniz. Silme işlemi PitchCrafter hesabını, kayıtlı üretimleri, kredi bakiyesini ve kredi geçmişini kaldırır ve oturumu kapatır.',
+      'Giriş yaptıktan sonra hesabınızı bu sayfadan veya Android uygulamasındaki Ayarlar ekranından silebilirsiniz. Silme işlemi PitchCrafter hesabını, kayıtlı üretimleri, kredi bakiyesini, kredi geçmişini ve varsa Google giriş bağlantısını kaldırır ve oturumu kapatır.',
     retained:
       'PitchCrafter kart numaranızı saklamaz. Tamamlanmış bir ödeme için Stripe’ın tuttuğu ödeme kayıtları, vergi veya muhasebe kuralları gerektirdiğinde Stripe’da kalır.',
     fallback: 'Giriş yapamıyorsanız e-posta gönderin:',
@@ -71,10 +73,21 @@ export default function DeleteAccountPage() {
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
   const [done, setDone] = useState(false)
+  const [googleAuth, setGoogleAuth] = useState(false)
 
   useEffect(() => {
     const saved = localStorage.getItem('bizkit_lang')
     if (saved === 'en' || saved === 'tr') setLang(saved)
+  }, [])
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const message = googleSignInErrorMessage(params.get('google_error'))
+    if (message) setAuthError(message)
+    fetch('/api/config')
+      .then((response) => response.json())
+      .then((data: { googleAuth?: boolean }) => setGoogleAuth(data?.googleAuth === true))
+      .catch(() => setGoogleAuth(false))
   }, [])
 
   const t = copy[lang]
@@ -139,6 +152,11 @@ export default function DeleteAccountPage() {
         ) : !isAuthenticated ? (
           <section id="sign-in">
             <h2 style={{ fontSize: '1.25rem', marginBottom: '16px' }}>{t.signInTitle}</h2>
+            {googleAuth && (
+              <div style={{ maxWidth: '420px' }}>
+                <ContinueWithGoogle href="/api/auth/google/start?return_to=account-delete" />
+              </div>
+            )}
             <form onSubmit={handleSignIn} style={{ display: 'grid', gap: '12px', maxWidth: '420px' }}>
               <label style={{ display: 'grid', gap: '6px', color: 'rgb(51, 65, 85)' }}>
                 {t.email}

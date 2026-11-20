@@ -1,4 +1,5 @@
 import { demoSeedConfig, demoSeedRefusal } from './demoSeedPolicy';
+import { googleAuthConfigured } from './googleOAuth';
 import { DEFAULT_OPENAI_MODEL, openaiApiKey } from './openaiClient';
 
 export type ProviderId = 'demo' | 'huggingface' | 'lmstudio' | 'openai' | 'openai-compatible' | 'unconfigured';
@@ -236,5 +237,6 @@ export function publicRuntimeConfig() {
     providerDetail: provider.detail,
     stripeEnabled: stripeSecretConfigured(),
     demoLogin: publicDemoLogin(),
+    googleAuth: googleAuthConfigured(),
   };
 }

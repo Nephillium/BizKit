@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { query, queryOne, pool } from './db';
@@ -30,7 +31,7 @@ const INSECURE_JWT_SECRETS = new Set([
   'replace-with-at-least-32-random-characters',
 ]);
 
-function getJwtSecret(): string {
+export function getJwtSecret(): string {
   const secret = process.env.JWT_SECRET || process.env.SESSION_SECRET;
   if (!secret) {
     if (process.env.NODE_ENV === 'production') {
@@ -48,7 +49,7 @@ function getJwtSecret(): string {
 }
 
 /** New accounts start at 0 in production. Local demo signups can receive a small starter balance. */
-function developmentSignupCredits(): number {
+export function signupCredits(): number {
   if (process.env.NODE_ENV === 'production') return 0;
   const raw = process.env.DEMO_SIGNUP_CREDITS;
   if (raw === undefined || raw.trim() === '') return 5;
@@ -61,6 +62,11 @@ const MIN_PASSWORD_LENGTH = 10;
 
 async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, SALT_ROUNDS);
+}
+
+/** Password login cannot succeed with this hash. Google-only accounts have no chosen password. */
+export async function unusablePasswordHash(): Promise<string> {
+  return hashPassword(randomBytes(32).toString('base64url'));
 }
 
 async function verifyPassword(password: string, hash: string): Promise<boolean> {
@@ -99,7 +105,7 @@ export async function registerUser(
   
   const passwordHash = await hashPassword(password);
   const role: UserRole = 'user';
-  const credits = developmentSignupCredits();
+  const credits = signupCredits();
   
   const result = await queryOne<User>(
     `INSERT INTO users (email, password_hash, role, credits, usage_count) 

@@ -51,6 +51,15 @@ CREATE TABLE IF NOT EXISTS waitlist_signups (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Google sign-in link. Subject id, email, and name only. No profile photo.
+CREATE TABLE IF NOT EXISTS google_accounts (
+  google_sub TEXT PRIMARY KEY,
+  user_id VARCHAR NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+  email TEXT NOT NULL,
+  name TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- Existing databases: users may predate last_sign_in_at.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS last_sign_in_at TIMESTAMPTZ;
 UPDATE users SET last_sign_in_at = NOW() WHERE last_sign_in_at IS NULL;

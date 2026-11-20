@@ -12,6 +12,9 @@ function isReleaseConfig(): boolean {
 export default ({ config }: ConfigContext): ExpoConfig => {
   const googleServicesFile = resolveGoogleServicesFile(process.env.GOOGLE_SERVICES_JSON);
   const plugins = [...(config.plugins ?? [])];
+  if (!plugins.includes('expo-web-browser')) {
+    plugins.push('expo-web-browser');
+  }
   if (googleServicesFile) {
     plugins.push('@react-native-firebase/app', '@react-native-firebase/analytics');
   }
@@ -32,6 +35,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         isReleaseConfig(),
       ),
       firebaseAnalytics: Boolean(googleServicesFile),
+      googleAuthEnabled: (process.env.EXPO_PUBLIC_GOOGLE_AUTH || '').trim() === '1',
     },
   };
 };

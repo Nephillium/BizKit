@@ -4,7 +4,7 @@ import { query } from './db';
  * Stamp a successful sign-in on the account.
  *
  * Email/password login and registration call this. Continue with Google
- * should call it after the user row exists and before it issues a session:
+ * calls it after the user row is committed and before it issues a session:
  *
  *   import { recordSignIn } from './signInTracking';
  *   await recordSignIn(user.id);

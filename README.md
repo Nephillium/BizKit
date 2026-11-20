@@ -44,7 +44,8 @@ Copy `.env.example` to `.env`. Never commit `.env`.
 | --- | --- | --- |
 | `DATABASE_URL` | Required. The compose URL above. | Required. Hosted Postgres. |
 | `JWT_SECRET` | Optional. Dev uses an insecure fallback if unset. | Required. 32+ random characters. The example placeholder is rejected. |
-| `APP_BASE_URL` | `http://localhost:5000` | Required. Public origin. Stripe return URLs use it. |
+| `APP_BASE_URL` | `http://localhost:5000` | Required. Public origin. Stripe return URLs and the Google redirect URI use it. |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Leave empty. "Continue with Google" stays hidden. | Optional. Both must be set, with `APP_BASE_URL` on https, or the button stays hidden. Web application client only. |
 | `DEMO_MODE` | Optional. `1` forces sample output. Empty AI keys also use samples. | Leave unset for live generation. `1` keeps samples (the private `bizkit-demo` preview does this). Unset, with no AI key, `POST /api/generate` returns 503 and does not spend credits. |
 | `OPENAI_API_KEY` | Leave empty for the demo. | Official OpenAI key. With `AI_PROVIDER` unset, this selects OpenAI. |
 | `HUGGINGFACE_API_KEY` | Leave empty for the demo. | One of this, `OPENAI_API_KEY`, or `LMSTUDIO_API_URL`. |
@@ -85,6 +86,10 @@ Sign-in is email and password. A successful `POST /api/auth/login` or `POST /api
 The Expo app cannot read that cookie. On login and register it sends `X-BizKit-Client: mobile`. The value must be exactly `mobile` (capitalization and surrounding spaces are ignored; a list of values is ignored). Only then does the JSON also include `token`. The app stores that value and sends `Authorization: Bearer <token>` on later requests. `/api/auth/me`, `/api/generate`, `/api/generations`, and `/api/stripe/create-checkout` accept either the cookie or that bearer token. Any other client, including the web app, omits the header and receives `{ ok: true, user }` only. A field in the JSON body is ignored.
 
 Routes: `/api/auth/login`, `/api/auth/register`, `/api/auth/me`, `/api/auth/logout`.
+
+Google sign-in is off unless `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `APP_BASE_URL` are all set. Production also requires `APP_BASE_URL` to be https. The button is labeled "Continue with Google" and is hidden when that config is missing. The flow is the authorization-code grant with PKCE and a state cookie. The server checks the ID token signature, `aud`, `iss`, `exp`, and `email_verified`. Scopes are `openid email profile` only. A verified email links to the existing account; otherwise a new account is created with the same starting credits as a password signup. The Google row stores the subject id, email, and name. The profile photo is not stored. The session is the same `bizkit_token` cookie (and, for the Android app, the same bearer token). A successful Google sign-in or sign-up calls `recordSignIn`, which sets `last_sign_in_at` the same way a password login does. Account deletion removes the Google link. After deploying the schema change, call `POST /api/init-db` so `google_accounts` exists.
+
+The redirect URI is `${APP_BASE_URL}/api/auth/google/callback`. For production that is `https://pitchcrafter.glmlabs.io/api/auth/google/callback`. The Android app does not use a separate Google client. It opens the system browser on `/api/auth/google/start?client=mobile` and receives the bearer token at `pitchcrafter://auth/google`. Set `EXPO_PUBLIC_GOOGLE_AUTH=1` on the app build or the mobile button stays hidden. See `docs/ANDROID.md`.
 
 Public registration always creates a normal user. Admin is created only when `SUPER_USER_EMAIL` and `SUPER_USER_PASSWORD` are set and `POST /api/init-db` (or `npm run db:init`) runs. Login does not promote accounts. If that email already exists as a non-admin, it is left unchanged. `SUPER_USER_PASSWORD` is read only for that first create. After the admin row exists, remove the password. Keep `SUPER_USER_EMAIL` so public signup keeps rejecting that address.
 
@@ -150,7 +155,8 @@ Production (`NODE_ENV=production`) needs these environment variables:
 
 - `DATABASE_URL` — hosted Postgres. Include `sslmode=require` when the host requires TLS.
 - `JWT_SECRET` — 32 or more random characters. The example placeholder is rejected.
-- `APP_BASE_URL` — public origin. Stripe return URLs use it.
+- `APP_BASE_URL` — public origin. Stripe return URLs and the Google redirect URI use it.
+- `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` — optional. Both are required before "Continue with Google" appears. Use a Web application client. Do not commit the secret.
 - `DB_INIT_TOKEN` — bearer token required by `POST /api/init-db`.
 - `QUOTA_IP_SALT` — dedicated random value for the anonymous free-tier hash.
 - `CRON_SECRET` — bearer token for the daily retention cron. Leave it unset to keep that route closed.
@@ -207,12 +213,12 @@ npm run test:api
 
 If `DATABASE_URL` is unset, `npm run test:api` uses `postgres://bizkit:bizkit@127.0.0.1:5432/bizkit`. If `JWT_SECRET` is missing or shorter than 32 characters, the runner generates a throwaway secret for that process and does not print it. The same applies to an empty `QUOTA_IP_SALT`. Point this at a local or CI database. The suite applies `lib/initSchema.ts` and deletes only the users and anonymous-quota rows it creates. Retention tests delete the `retention-*` users and waitlist rows they insert. Before that, they move any other already-expired `last_sign_in_at` or waitlist `created_at` forward to the test clock so a shared local database is not wiped.
 
-`npm run test:security` runs `tests/security-hardening.ts`, `tests/demo-mode.ts`, `tests/auth-session.ts`, `tests/generation-history.ts`, and `tests/mobile-api-base-url.ts`. That covers anonymous-quota decisions, admin-promotion rules, demo-mode selection, the production 503 when no AI provider is configured, the `AI_PROVIDER` switch, the production seed refusal, the rule that login and register omit the session token unless the request sends `X-BizKit-Client: mobile`, history search text as a bound parameter scoped with `user_id`, and the mobile API base URL plus the Android credit-purchase gate. `npm run test:api` calls the route handlers and checks:
+`npm run test:security` runs `tests/security-hardening.ts`, `tests/demo-mode.ts`, `tests/auth-session.ts`, `tests/google-auth.ts`, `tests/generation-history.ts`, and `tests/mobile-api-base-url.ts`. That covers anonymous-quota decisions, admin-promotion rules, demo-mode selection, the production 503 when no AI provider is configured, the `AI_PROVIDER` switch, the production seed refusal, the rule that login and register omit the session token unless the request sends `X-BizKit-Client: mobile`, history search text as a bound parameter scoped with `user_id`, and the mobile API base URL plus the Android credit-purchase gate. `npm run test:api` calls the route handlers and checks:
 
 - Anonymous free generation is one row in `anonymous_generations`, keyed by the server-observed address. Dropping cookies or sending `X-Forwarded-For` without `TRUST_PROXY` does not grant another try. A signed-in caller on that same address is not blocked by the anonymous row.
 - In production, with `OPENAI_API_KEY`, `HUGGINGFACE_API_KEY`, and `LMSTUDIO_API_URL` unset and `DEMO_MODE` unset, `POST /api/generate` returns 503 `ai_not_configured` and does not change credits, usage, history, or the anonymous quota. `DEMO_MODE=1` returns labelled sample output and then deducts one credit.
 - Register, login, and logout against Postgres. Web clients get the httpOnly cookie and no `token` field, even if the JSON body asks for one. `X-BizKit-Client: mobile` also returns `token`. `GET /api/auth/me`, `/api/generations`, and `POST /api/stripe/create-checkout` reject missing or invalid credentials and accept either the cookie or `Authorization: Bearer`.
 - History list and delete stay on the signed-in user for both the cookie and `Authorization: Bearer`. `q` and `tool` only narrow that user's rows. Deleting another user's id returns 404 and leaves the row in place.
-- Retention deletes a waitlist row at 12 months only when that email has no account this run keeps, and deletes an account at 24 months without a newer sign-in, including its generations and credit transactions. One second younger than either cutoff is kept. A second run deletes nothing further. Dry-run and a missing `CRON_SECRET` delete nothing. Login and `recordSignIn` refresh `last_sign_in_at`.
+- Retention deletes a waitlist row at 12 months only when that email has no account this run keeps, and deletes an account at 24 months without a newer sign-in, including its generations and credit transactions. One second younger than either cutoff is kept. A second run deletes nothing further. Dry-run and a missing `CRON_SECRET` delete nothing. Login, Google sign-in, and `recordSignIn` refresh `last_sign_in_at`.
 
 These checks do not certify the whole app. Confirm database migrations and live provider keys in a controlled environment before a public launch.
