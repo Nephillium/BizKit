@@ -879,6 +879,10 @@ describe('Google account linking', () => {
       assert.equal(registered.status, 200);
       assert.equal(registered.body.user.credits, 0);
       const existingId = registered.body.user.id as string;
+      await query(
+        `UPDATE users SET last_sign_in_at = '2020-01-01T00:00:00.000Z' WHERE id = $1`,
+        [existingId],
+      );
 
       const linked = await signInWithGoogleProfile({
         sub: 'sub-existing',
@@ -897,6 +901,13 @@ describe('Google account linking', () => {
       );
       assert.equal(linkRow[0]?.email, existingEmail.toLowerCase());
       assert.equal(linkRow[0]?.name, 'Ada Lovelace');
+      const linkedStamp = await query<{ last_sign_in_at: Date | string }>(
+        'SELECT last_sign_in_at FROM users WHERE id = $1',
+        [existingId],
+      );
+      assert.ok(
+        new Date(linkedStamp[0]?.last_sign_in_at ?? 0).getTime() > Date.parse('2020-01-02T00:00:00.000Z'),
+      );
       const storedHash = await query<{ password_hash: string }>(
         'SELECT password_hash FROM users WHERE id = $1',
         [existingId],
@@ -957,6 +968,17 @@ describe('Google account linking', () => {
       });
       assert.equal(me.status, 200);
       assert.equal(me.body.user.email, createdEmail);
+      const createdStamp = await query<{ last_sign_in_at: Date | string }>(
+        'SELECT last_sign_in_at FROM users WHERE id = $1',
+        [created.user.id],
+      );
+      assert.ok(
+        new Date(createdStamp[0]?.last_sign_in_at ?? 0).getTime() > Date.parse('2020-01-02T00:00:00.000Z'),
+      );
+      await query(
+        `UPDATE users SET last_sign_in_at = '2020-01-01T00:00:00.000Z' WHERE id = $1`,
+        [created.user.id],
+      );
 
       const renamed = await signInWithGoogleProfile({
         sub: 'sub-created',
@@ -968,6 +990,13 @@ describe('Google account linking', () => {
       if ('error' in renamed) return;
       assert.equal(renamed.user.id, created.user.id);
       assert.equal(renamed.user.email, createdEmail);
+      const renamedStamp = await query<{ last_sign_in_at: Date | string }>(
+        'SELECT last_sign_in_at FROM users WHERE id = $1',
+        [created.user.id],
+      );
+      assert.ok(
+        new Date(renamedStamp[0]?.last_sign_in_at ?? 0).getTime() > Date.parse('2020-01-02T00:00:00.000Z'),
+      );
       const renamedRow = await query<{ email: string; name: string }>(
         'SELECT email, name FROM google_accounts WHERE google_sub = $1',
         ['sub-created'],

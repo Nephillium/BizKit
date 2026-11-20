@@ -1,4 +1,5 @@
 import { pool } from './db';
+import { recordSignIn } from './signInTracking';
 import { publicSignupBlockReason } from './superUserPolicy';
 import {
   generateToken,
@@ -83,6 +84,12 @@ function sessionFor(user: User, created: boolean): GoogleSignInResult {
   };
 }
 
+/** Stamp last_sign_in_at, then issue the session. Call only after the user row is committed. */
+async function finishGoogleSignIn(user: User, created: boolean): Promise<GoogleSignInResult> {
+  await recordSignIn(user.id);
+  return sessionFor(user, created);
+}
+
 /**
  * Link a Google subject to an existing account with the same verified email,
  * or create an account with the same starting credits as a password signup.
@@ -164,7 +171,7 @@ export async function signInWithGoogleProfile(profile: GoogleProfile): Promise<G
         [email, name, sub],
       );
       await client.query('COMMIT');
-      return sessionFor(user, false);
+      return finishGoogleSignIn(user, false);
     }
 
     if (plan.action === 'link_existing') {
@@ -184,7 +191,7 @@ export async function signInWithGoogleProfile(profile: GoogleProfile): Promise<G
         );
       }
       await client.query('COMMIT');
-      return sessionFor(emailUser, false);
+      return finishGoogleSignIn(emailUser, false);
     }
 
     const passwordHash = await unusablePasswordHash();
@@ -205,7 +212,7 @@ export async function signInWithGoogleProfile(profile: GoogleProfile): Promise<G
       [sub, createdUser.id, email, name],
     );
     await client.query('COMMIT');
-    return sessionFor(createdUser, true);
+    return finishGoogleSignIn(createdUser, true);
   } catch (error) {
     try {
       await client.query('ROLLBACK');

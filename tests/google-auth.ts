@@ -618,7 +618,9 @@ function testWebButton() {
   assert.match(home, /ContinueWithGoogle/);
   assert.match(deletion, /googleAuth &&/);
   assert.match(deletion, /return_to=account-delete/);
-  assert.match(readFileSync('lib/googleAccount.ts', 'utf8'), /picture is not stored|profile photo is not stored/i);
+  const account = readFileSync('lib/googleAccount.ts', 'utf8');
+  assert.match(account, /picture is not stored|profile photo is not stored/i);
+  assert.match(account, /recordSignIn\(user\.id\)/);
 }
 
 testIdToken();
