@@ -3,9 +3,10 @@ import { createSign, generateKeyPairSync, type KeyObject } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { MOBILE_CLIENT_HEADER } from '../lib/authResponse';
 import { CONTINUE_WITH_GOOGLE_LABEL } from '../components/ContinueWithGoogle';
 import { planGoogleLink } from '../lib/googleAccount';
-import { handleGoogleCallback, handleGoogleStart } from '../lib/googleAuthHandlers';
+import { handleGoogleCallback, handleGoogleMobileExchange, handleGoogleStart } from '../lib/googleAuthHandlers';
 import { googleSignInErrorMessage } from '../lib/googleAuthCopy';
 import {
   GOOGLE_ISSUERS,
@@ -15,6 +16,7 @@ import {
 } from '../lib/googleIdToken';
 import {
   GOOGLE_MOBILE_CALLBACK,
+  createPkceVerifier,
   googleAuthConfigured,
   googleRedirectUri,
   pkceChallenge,
@@ -28,8 +30,12 @@ const {
   GOOGLE_MOBILE_CALLBACK: mobileCallback,
   appGoogleAuthEnabled,
   googleButtonVisible,
+  base64ToBase64Url,
+  bytesToBase64,
   googleMobileErrorMessage,
+  mobileGoogleStartPath,
   readGoogleMobileResult,
+  requestMobileSession,
   resolveGoogleRedirectUri,
 } = require('../mobile/src/lib/googleRedirect.ts') as typeof import('../mobile/src/lib/googleRedirect');
 
@@ -412,6 +418,9 @@ async function testOAuthHandlers() {
             created_at: new Date('2026-01-01T00:00:00.000Z'),
           },
         }),
+        issueMobileCode: async () => {
+          throw new Error('web sign-in must not issue a mobile code');
+        },
       },
     );
     assert.equal(exchangedVerifier, flow.verifier);
@@ -426,9 +435,24 @@ async function testOAuthHandlers() {
     assert.match(joined, /bizkit_google_oauth=/);
     assert.match(joined, /HttpOnly/);
 
+    const missingChallenge = createResponse();
+    await handleGoogleStart(
+      { method: 'GET', query: { client: 'mobile' }, headers: {} } as unknown as NextApiRequest,
+      missingChallenge.res,
+    );
+    assert.equal(missingChallenge.result().statusCode, 400);
+    assert.equal(missingChallenge.result().location, undefined);
+    assert.equal((missingChallenge.result().jsonBody as { error: string }).error, 'invalid_code_challenge');
+
+    const appVerifier = createPkceVerifier();
+    const appChallenge = pkceChallenge(appVerifier);
     const mobileStart = createResponse();
     await handleGoogleStart(
-      { method: 'GET', query: { client: 'mobile', return_to: 'account-delete' }, headers: {} } as unknown as NextApiRequest,
+      {
+        method: 'GET',
+        query: { client: 'mobile', return_to: 'account-delete', code_challenge: appChallenge },
+        headers: {},
+      } as unknown as NextApiRequest,
       mobileStart.res,
     );
     const mobileCookie = cookiePair(mobileStart.result().setCookie);
@@ -436,6 +460,10 @@ async function testOAuthHandlers() {
     assert.ok(mobileFlow);
     assert.equal(mobileFlow.client, 'mobile');
     assert.equal(mobileFlow.returnTo, 'home');
+    assert.equal(mobileFlow.mobileChallenge, appChallenge);
+    const mobileAuthorize = new URL(String(mobileStart.result().location));
+    assert.equal(mobileAuthorize.searchParams.get('code_challenge'), pkceChallenge(mobileFlow.verifier));
+    assert.notEqual(mobileAuthorize.searchParams.get('code_challenge'), appChallenge);
     const mobile = createResponse();
     await handleGoogleCallback(
       {
@@ -467,14 +495,22 @@ async function testOAuthHandlers() {
             created_at: new Date('2026-01-01T00:00:00.000Z'),
           },
         }),
+        issueMobileCode: async (input) => {
+          assert.equal(input.codeChallenge, appChallenge);
+          assert.equal(input.userId, 'user-2');
+          assert.equal(input.created, true);
+          return 'a'.repeat(43);
+        },
       },
     );
     const mobileResult = mobile.result();
     assert.equal(mobileResult.statusCode, 302);
     const returned = new URL(String(mobileResult.location));
     assert.equal(`${returned.protocol}//${returned.host}${returned.pathname}`, GOOGLE_MOBILE_CALLBACK);
-    assert.equal(returned.searchParams.get('token'), 'mobile-bearer-token');
+    assert.equal(returned.searchParams.get('code'), 'a'.repeat(43));
+    assert.equal(returned.searchParams.get('token'), null);
     assert.equal(returned.searchParams.get('created'), '1');
+    assert.equal(String(mobileResult.location).includes('mobile-bearer-token'), false);
     assert.equal(mobileCallback, GOOGLE_MOBILE_CALLBACK);
 
     const unverified = createResponse();
@@ -490,6 +526,9 @@ async function testOAuthHandlers() {
         verifyIdToken: async () => ({ ok: false, error: 'email_not_verified' }),
         signIn: async () => {
           throw new Error('should not link an unverified email');
+        },
+        issueMobileCode: async () => {
+          throw new Error('should not issue a mobile code');
         },
       },
     );
@@ -514,6 +553,9 @@ async function testOAuthHandlers() {
         signIn: async () => {
           throw new Error('should not link');
         },
+        issueMobileCode: async () => {
+          throw new Error('should not issue a mobile code');
+        },
       },
     );
     assert.equal(mismatch.result().location, '/?google_error=invalid_state');
@@ -536,11 +578,88 @@ async function testOAuthHandlers() {
         signIn: async () => {
           throw new Error('should not link');
         },
+        issueMobileCode: async () => {
+          throw new Error('should not issue a mobile code');
+        },
       },
     );
     assert.equal(denied.result().location, '/?google_error=access_denied');
     assert.equal(googleSignInErrorMessage('access_denied'), 'Google sign-in was cancelled.');
     assert.equal(googleSignInErrorMessage('not-a-real-code'), 'Google sign-in failed. Try again.');
+
+    let redeemCalls = 0;
+    const noHeader = createResponse();
+    await handleGoogleMobileExchange(
+      { method: 'POST', body: { code: 'a'.repeat(43), code_verifier: appVerifier }, headers: {} } as unknown as NextApiRequest,
+      noHeader.res,
+      {
+        redeem: async () => {
+          redeemCalls += 1;
+          return { ok: false, error: 'invalid_code' };
+        },
+        findUser: async () => null,
+        generateToken: () => {
+          throw new Error('should not mint a token');
+        },
+      },
+    );
+    assert.equal(noHeader.result().statusCode, 400);
+    assert.equal(redeemCalls, 0);
+
+    const rejected = createResponse();
+    await handleGoogleMobileExchange(
+      {
+        method: 'POST',
+        body: { code: 'a'.repeat(43), code_verifier: 'wrong-verifier-value-0123456789abcdef' },
+        headers: { [MOBILE_CLIENT_HEADER]: 'mobile' },
+      } as unknown as NextApiRequest,
+      rejected.res,
+      {
+        redeem: async () => ({ ok: false, error: 'invalid_verifier' }),
+        findUser: async () => {
+          throw new Error('should not load a user');
+        },
+        generateToken: () => {
+          throw new Error('should not mint a token');
+        },
+      },
+    );
+    assert.equal(rejected.result().statusCode, 401);
+    assert.equal((rejected.result().jsonBody as { error: string }).error, 'invalid_verifier');
+    assert.equal(JSON.stringify(rejected.result().jsonBody).includes('token'), false);
+
+    const exchanged = createResponse();
+    await handleGoogleMobileExchange(
+      {
+        method: 'POST',
+        body: { code: 'a'.repeat(43), code_verifier: appVerifier },
+        headers: { [MOBILE_CLIENT_HEADER]: 'mobile' },
+      } as unknown as NextApiRequest,
+      exchanged.res,
+      {
+        redeem: async (input) => {
+          assert.equal(input.code, 'a'.repeat(43));
+          assert.equal(input.verifier, appVerifier);
+          return { ok: true, userId: 'user-2', created: true };
+        },
+        findUser: async () => ({
+          id: 'user-2',
+          email: 'new@example.com',
+          password_hash: 'hashed-password-must-not-leak',
+          role: 'user',
+          credits: 0,
+          usage_count: 0,
+          created_at: new Date('2026-01-01T00:00:00.000Z'),
+        }),
+        generateToken: () => 'exchanged-session-token',
+      },
+    );
+    assert.equal(exchanged.result().statusCode, 200);
+    const exchangeBody = exchanged.result().jsonBody as { token?: string; created?: boolean; user?: { password_hash?: string } };
+    assert.equal(exchangeBody.token, 'exchanged-session-token');
+    assert.equal(exchangeBody.created, true);
+    assert.equal(exchangeBody.user?.password_hash, undefined);
+    assert.match(String(exchanged.result().setCookie), /bizkit_token=exchanged-session-token/);
   });
 
   await withEnvAsync({ ...configuredEnv(), NODE_ENV: 'development' }, async () => {
@@ -562,7 +681,7 @@ async function withEnvAsync(values: Record<string, string | undefined>, run: () 
   }
 }
 
-function testMobileContract() {
+async function testMobileContract() {
   assert.equal(appGoogleAuthEnabled(undefined), false);
   assert.equal(appGoogleAuthEnabled(''), false);
   assert.equal(appGoogleAuthEnabled('true'), false);
@@ -573,20 +692,57 @@ function testMobileContract() {
   assert.equal(resolveGoogleRedirectUri('exp://127.0.0.1:8081/--/auth/google'), GOOGLE_MOBILE_CALLBACK);
   assert.equal(resolveGoogleRedirectUri(GOOGLE_MOBILE_CALLBACK), GOOGLE_MOBILE_CALLBACK);
 
-  const success = readGoogleMobileResult('pitchcrafter://auth/google?token=abc.def.ghi&created=1');
+  const oneTimeCode = 'b'.repeat(43);
+  const success = readGoogleMobileResult(`pitchcrafter://auth/google?code=${oneTimeCode}&created=1`);
   assert.equal(success.kind, 'success');
   if (success.kind === 'success') {
-    assert.equal(success.token, 'abc.def.ghi');
+    assert.equal(success.code, oneTimeCode);
     assert.equal(success.created, true);
+    assert.equal('token' in success, false);
   }
+  const intercepted = readGoogleMobileResult('pitchcrafter://auth/google?token=long-lived-session-token&created=1');
+  assert.equal(intercepted.kind, 'error');
+  assert.equal(JSON.stringify(intercepted).includes('long-lived-session-token'), false);
   const failed = readGoogleMobileResult('pitchcrafter://auth/google?error=email_not_verified&token=nope');
   assert.equal(failed.kind, 'error');
   if (failed.kind === 'error') {
     assert.equal(failed.error, googleMobileErrorMessage('email_not_verified'));
     assert.equal(failed.error.includes('nope'), false);
   }
-  assert.equal(readGoogleMobileResult('https://evil.example/auth/google?token=abc').kind, 'ignore');
+  assert.equal(readGoogleMobileResult('https://evil.example/auth/google?code=' + oneTimeCode).kind, 'ignore');
   assert.equal(googleMobileErrorMessage('<script>'), 'Google sign-in failed. Try again.');
+  assert.equal(pkceChallenge('dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk'), 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM');
+  assert.equal(base64ToBase64Url('abc+def/ghi='), 'abc-def_ghi');
+  assert.equal(bytesToBase64(Uint8Array.from([0, 1, 2])), 'AAEC');
+  const challenge = pkceChallenge(createPkceVerifier());
+  assert.equal(mobileGoogleStartPath(challenge), `/api/auth/google/start?client=mobile&code_challenge=${challenge}`);
+  assert.equal(mobileGoogleStartPath(challenge).includes('code_verifier'), false);
+
+  const verifier = 'verifier-secret-value-which-is-long-enough-1234';
+  let postedUrl = '';
+  let postedBody = '';
+  let postedHeader = '';
+  const session = await requestMobileSession(
+    'https://pitchcrafter.glmlabs.io',
+    oneTimeCode,
+    verifier,
+    async (url, init) => {
+      postedUrl = String(url);
+      postedBody = String(init?.body);
+      postedHeader = String((init?.headers as Record<string, string>)['X-BizKit-Client']);
+      return {
+        ok: true,
+        json: async () => ({ ok: true, token: 'session-from-exchange', created: false }),
+      } as Response;
+    },
+  );
+  assert.equal(postedUrl, 'https://pitchcrafter.glmlabs.io/api/auth/google/exchange');
+  assert.equal(postedUrl.includes(verifier), false);
+  assert.equal(postedUrl.includes(oneTimeCode), false);
+  assert.match(postedBody, new RegExp(`"code":"${oneTimeCode}"`));
+  assert.match(postedBody, new RegExp(`"code_verifier":"${verifier}"`));
+  assert.equal(postedHeader, 'mobile');
+  assert.equal('token' in session && session.token, 'session-from-exchange');
 
   const login = readFileSync('mobile/src/screens/LoginScreen.tsx', 'utf8');
   const register = readFileSync('mobile/src/screens/RegisterScreen.tsx', 'utf8');
@@ -627,6 +783,6 @@ testIdToken();
 testLinkPlan();
 testConfigGate();
 await testOAuthHandlers();
-testMobileContract();
+await testMobileContract();
 testWebButton();
 console.log('google auth tests passed');

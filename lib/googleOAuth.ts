@@ -25,7 +25,29 @@ export type GoogleOAuthState = {
   nonce: string;
   client: GoogleOAuthClient;
   returnTo: GoogleOAuthReturn;
+  /** S256 challenge from the Android app. Null for the web flow. */
+  mobileChallenge: string | null;
 };
+
+/** S256 PKCE challenge: 32 bytes, base64url, no padding. */
+export function mobileCodeChallenge(value: string): string | null {
+  const trimmed = value.trim();
+  if (!/^[A-Za-z0-9_-]{43}$/.test(trimmed)) return null;
+  return trimmed;
+}
+
+/** RFC 7636 code verifier, or the one-time mobile code (same unreserved alphabet, no dot or tilde). */
+export function mobileAuthCode(value: string): string | null {
+  const trimmed = value.trim();
+  if (!/^[A-Za-z0-9_-]{43,128}$/.test(trimmed)) return null;
+  return trimmed;
+}
+
+export function mobilePkceVerifier(value: string): string | null {
+  const trimmed = value.trim();
+  if (!/^[A-Za-z0-9._~-]{43,128}$/.test(trimmed)) return null;
+  return trimmed;
+}
 
 export function googleClientId(): string | null {
   const value = (process.env.GOOGLE_CLIENT_ID || '').trim();
@@ -99,12 +121,19 @@ export function readGoogleOAuthState(token: string): GoogleOAuthState | null {
       return null;
     }
     const returnTo: GoogleOAuthReturn = decoded.returnTo === 'account-delete' ? 'account-delete' : 'home';
+    let mobileChallenge: string | null = null;
+    if (decoded.client === 'mobile') {
+      if (typeof decoded.mobileChallenge !== 'string') return null;
+      mobileChallenge = mobileCodeChallenge(decoded.mobileChallenge);
+      if (!mobileChallenge) return null;
+    }
     return {
       state: decoded.state,
       verifier: decoded.verifier,
       nonce: decoded.nonce,
       client: decoded.client,
       returnTo: decoded.client === 'mobile' ? 'home' : returnTo,
+      mobileChallenge,
     };
   } catch {
     return null;
@@ -173,15 +202,16 @@ export function publicGoogleError(error: string): string {
 
 export function googleFinishLocation(
   flow: { client: GoogleOAuthClient; returnTo: GoogleOAuthReturn },
-  result: { ok: true; token: string; created: boolean } | { ok: false; error: string },
+  result: { ok: true; created: boolean; mobileCode?: string } | { ok: false; error: string },
 ): string {
   if (flow.client === 'mobile') {
     const url = new URL(GOOGLE_MOBILE_CALLBACK);
-    if (result.ok) {
-      url.searchParams.set('token', result.token);
+    const mobileCode = result.ok ? mobileAuthCode(result.mobileCode ?? '') : null;
+    if (result.ok && mobileCode) {
+      url.searchParams.set('code', mobileCode);
       if (result.created) url.searchParams.set('created', '1');
     } else {
-      url.searchParams.set('error', publicGoogleError(result.error));
+      url.searchParams.set('error', publicGoogleError(result.ok ? 'exchange_failed' : result.error));
     }
     return url.toString();
   }

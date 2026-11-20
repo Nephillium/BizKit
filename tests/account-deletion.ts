@@ -205,6 +205,7 @@ function testPublicDeletionCopy() {
   assert.match(sql, /DELETE FROM generations/);
   assert.match(sql, /DELETE FROM credit_transactions/);
   assert.match(sql, /DELETE FROM google_accounts/);
+  assert.match(sql, /DELETE FROM google_mobile_codes/);
   assert.match(sql, /DELETE FROM users/);
   assert.doesNotMatch(sql, /stripe\.(customers|charges)/);
 }
