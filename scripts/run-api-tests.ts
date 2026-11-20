@@ -25,16 +25,25 @@ if (blank('QUOTA_IP_SALT')) {
   console.log('Generated a throwaway QUOTA_IP_SALT for this test process.');
 }
 
-const child = spawn(
-  process.execPath,
-  ['--import', 'tsx', '--test', '--test-concurrency=1', 'tests/api/api.test.ts'],
-  { stdio: 'inherit', env: process.env }
-);
+function runTestFile(file: string): Promise<number | null> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(
+      process.execPath,
+      ['--import', 'tsx', '--test', '--test-concurrency=1', file],
+      { stdio: 'inherit', env: process.env }
+    );
+    child.on('error', reject);
+    child.on('exit', (code, signal) => {
+      if (signal) {
+        process.kill(process.pid, signal);
+        return;
+      }
+      resolve(code);
+    });
+  });
+}
 
-child.on('exit', (code, signal) => {
-  if (signal) {
-    process.kill(process.pid, signal);
-    return;
-  }
-  process.exit(code ?? 1);
-});
+for (const file of ['tests/api/api.test.ts', 'tests/api/retention.test.ts']) {
+  const code = await runTestFile(file);
+  if (code) process.exit(code);
+}

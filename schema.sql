@@ -14,7 +14,8 @@ CREATE TABLE IF NOT EXISTS users (
   credits INTEGER DEFAULT 0,
   usage_count INTEGER DEFAULT 0,
   email_verified BOOLEAN NOT NULL DEFAULT FALSE,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  last_sign_in_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- Credit transactions table for audit trail
@@ -42,7 +43,24 @@ CREATE TABLE IF NOT EXISTS generations (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Waitlist addresses. PitchCrafter does not collect these yet.
+-- Retention deletes a row 12 months after created_at when no users.email matches.
+CREATE TABLE IF NOT EXISTS waitlist_signups (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  email VARCHAR NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Existing databases: users may predate last_sign_in_at.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_sign_in_at TIMESTAMPTZ;
+UPDATE users SET last_sign_in_at = NOW() WHERE last_sign_in_at IS NULL;
+ALTER TABLE users ALTER COLUMN last_sign_in_at SET DEFAULT NOW();
+ALTER TABLE users ALTER COLUMN last_sign_in_at SET NOT NULL;
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_last_sign_in_at ON users (last_sign_in_at);
 CREATE INDEX IF NOT EXISTS idx_credit_transactions_user_id ON credit_transactions(user_id);
 CREATE INDEX IF NOT EXISTS idx_generations_user_created ON generations (user_id, created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_waitlist_signups_email ON waitlist_signups (lower(btrim(email)));
+CREATE INDEX IF NOT EXISTS idx_waitlist_signups_created_at ON waitlist_signups (created_at);

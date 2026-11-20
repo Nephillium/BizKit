@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { query, queryOne, pool } from './db';
 import { publicSignupBlockReason, roleAfterAuthentication, superUserEmail } from './superUserPolicy';
 import { demoSeedConfig, demoSeedRefusal } from './demoSeedPolicy';
+import { recordSignIn } from './signInTracking';
 
 export { isUserSuperUser, publicSignupBlockReason, roleAfterAuthentication } from './superUserPolicy';
 
@@ -110,7 +111,8 @@ export async function registerUser(
   if (!result) {
     return { error: 'Failed to create user' };
   }
-  
+
+  await recordSignIn(result.id);
   return result;
 }
 
@@ -131,7 +133,8 @@ export async function loginUser(
   }
 
   const role = roleAfterAuthentication(user.role, normalizedEmail);
-  
+  await recordSignIn(user.id);
+
   const token = generateToken({ ...user, role });
   const { password_hash, ...userWithoutPassword } = { ...user, role };
   return { token, user: userWithoutPassword };

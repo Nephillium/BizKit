@@ -25,7 +25,8 @@ export async function initSchema(): Promise<void> {
         credits INTEGER DEFAULT 0,
         usage_count INTEGER DEFAULT 0,
         email_verified BOOLEAN NOT NULL DEFAULT FALSE,
-        created_at TIMESTAMPTZ DEFAULT NOW()
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        last_sign_in_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `);
 
@@ -60,6 +61,42 @@ export async function initSchema(): Promise<void> {
       ALTER TABLE users
       ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT FALSE
     `);
+
+    // Existing accounts had no sign-in history. Stamp them at migration time
+    // so the 24-month job does not treat "unknown" as "inactive for years".
+    await client.query(`
+      ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS last_sign_in_at TIMESTAMPTZ
+    `);
+    await client.query(`
+      UPDATE users SET last_sign_in_at = NOW() WHERE last_sign_in_at IS NULL
+    `);
+    await client.query(`
+      ALTER TABLE users ALTER COLUMN last_sign_in_at SET DEFAULT NOW()
+    `);
+    await client.query(`
+      ALTER TABLE users ALTER COLUMN last_sign_in_at SET NOT NULL
+    `);
+    await client.query(
+      'CREATE INDEX IF NOT EXISTS idx_users_last_sign_in_at ON users (last_sign_in_at)'
+    );
+
+    // No waitlist form exists yet. Rows land here when one is added.
+    // Retention deletes an address 12 months after created_at if it never became an account.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS waitlist_signups (
+        id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+        email VARCHAR NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_waitlist_signups_email
+      ON waitlist_signups (lower(btrim(email)))
+    `);
+    await client.query(
+      'CREATE INDEX IF NOT EXISTS idx_waitlist_signups_created_at ON waitlist_signups (created_at)'
+    );
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS anonymous_generations (
