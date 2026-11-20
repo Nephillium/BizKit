@@ -60,6 +60,18 @@ CREATE TABLE IF NOT EXISTS google_accounts (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- One-time Android sign-in codes. The raw code and the bearer token are not stored.
+-- code_hash is SHA-256 of the code. code_challenge is the app's S256 PKCE challenge.
+-- expires_at is at most 60 seconds after creation.
+CREATE TABLE IF NOT EXISTS google_mobile_codes (
+  code_hash TEXT PRIMARY KEY,
+  code_challenge TEXT NOT NULL,
+  user_id VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_account BOOLEAN NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- Existing databases: users may predate last_sign_in_at.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS last_sign_in_at TIMESTAMPTZ;
 UPDATE users SET last_sign_in_at = NOW() WHERE last_sign_in_at IS NULL;

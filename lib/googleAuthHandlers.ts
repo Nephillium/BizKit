@@ -1,7 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { sessionCookie } from './authResponse';
+import { clientRequestsSessionToken, sessionCookie } from './authResponse';
 import { signInWithGoogleProfile, type GoogleSignInResult } from './googleAccount';
 import { verifyGoogleIdTokenForClient, type GoogleIdTokenResult } from './googleIdToken';
+import { createMobileAuthCode, redeemMobileAuthCode, saveMobileAuthCode, type RedeemMobileCodeResult } from './googleMobileCode';
 import {
   buildGoogleAuthorizeUrl,
   createGoogleOAuthSecrets,
@@ -11,6 +12,7 @@ import {
   googleFinishLocation,
   googleOAuthCookie,
   googleRedirectUri,
+  mobileCodeChallenge,
   pkceChallenge,
   readGoogleOAuthState,
   readOAuthCookie,
@@ -19,6 +21,7 @@ import {
   type GoogleOAuthReturn,
   type GoogleOAuthState,
 } from './googleOAuth';
+import { findUserById, generateToken, roleAfterAuthentication, type User } from './users';
 
 type ExchangeResult = { idToken: string } | { error: 'exchange_failed' };
 
@@ -30,12 +33,25 @@ export type GoogleAuthDeps = {
   }) => Promise<ExchangeResult>;
   verifyIdToken: (idToken: string, nonce: string) => Promise<GoogleIdTokenResult>;
   signIn: typeof signInWithGoogleProfile;
+  issueMobileCode: (input: { codeChallenge: string; userId: string; created: boolean }) => Promise<string>;
 };
+
+async function issueMobileCode(input: { codeChallenge: string; userId: string; created: boolean }): Promise<string> {
+  const code = createMobileAuthCode();
+  await saveMobileAuthCode({
+    code,
+    codeChallenge: input.codeChallenge,
+    userId: input.userId,
+    created: input.created,
+  });
+  return code;
+}
 
 const defaultDeps: GoogleAuthDeps = {
   exchangeCode: (input) => exchangeGoogleCode(input),
   verifyIdToken: (idToken, nonce) => verifyGoogleIdTokenForClient(idToken, nonce),
   signIn: signInWithGoogleProfile,
+  issueMobileCode,
 };
 
 function queryValue(value: string | string[] | undefined): string {
@@ -46,7 +62,7 @@ function queryValue(value: string | string[] | undefined): string {
 function finish(
   res: NextApiResponse,
   flow: { client: GoogleOAuthState['client']; returnTo: GoogleOAuthReturn },
-  result: { ok: true; token: string; created: boolean } | { ok: false; error: string },
+  result: { ok: true; created: boolean; mobileCode?: string } | { ok: false; error: string },
   sessionToken?: string,
 ) {
   res.setHeader('Cache-Control', 'no-store');
@@ -74,10 +90,14 @@ export async function handleGoogleStart(req: NextApiRequest, res: NextApiRespons
   const client = queryValue(req.query.client) === 'mobile' ? 'mobile' : 'web';
   const returnTo: GoogleOAuthReturn =
     client === 'web' && queryValue(req.query.return_to) === 'account-delete' ? 'account-delete' : 'home';
+  const mobileChallenge = client === 'mobile' ? mobileCodeChallenge(queryValue(req.query.code_challenge)) : null;
+  if (client === 'mobile' && !mobileChallenge) {
+    return res.status(400).json({ ok: false, error: 'invalid_code_challenge' });
+  }
   const secrets = createGoogleOAuthSecrets();
   let signed: string;
   try {
-    signed = signGoogleOAuthState({ ...secrets, client, returnTo });
+    signed = signGoogleOAuthState({ ...secrets, client, returnTo, mobileChallenge });
   } catch {
     return res.status(503).json({ ok: false, error: 'google_auth_disabled' });
   }
@@ -112,6 +132,7 @@ export async function handleGoogleCallback(
     state: '',
     verifier: '',
     nonce: '',
+    mobileChallenge: null,
   };
   const signedFlow = flow.state ? flow : null;
 
@@ -169,10 +190,103 @@ export async function handleGoogleCallback(
     return finish(res, signedFlow, { ok: false, error: signedIn.error });
   }
 
-  return finish(
-    res,
-    signedFlow,
-    { ok: true, token: signedIn.token, created: signedIn.created },
-    signedIn.token,
-  );
+  if (signedFlow.client === 'mobile') {
+    if (!signedFlow.mobileChallenge) {
+      return finish(res, signedFlow, { ok: false, error: 'exchange_failed' });
+    }
+    let mobileCode: string;
+    try {
+      mobileCode = await deps.issueMobileCode({
+        codeChallenge: signedFlow.mobileChallenge,
+        userId: signedIn.user.id,
+        created: signedIn.created,
+      });
+    } catch {
+      return finish(res, signedFlow, { ok: false, error: 'exchange_failed' });
+    }
+    return finish(
+      res,
+      signedFlow,
+      { ok: true, created: signedIn.created, mobileCode },
+      signedIn.token,
+    );
+  }
+
+  return finish(res, signedFlow, { ok: true, created: signedIn.created }, signedIn.token);
+}
+
+function exchangeBody(req: NextApiRequest): { code?: unknown; code_verifier?: unknown } {
+  if (!req.body || typeof req.body !== 'object') return {};
+  return req.body as { code?: unknown; code_verifier?: unknown };
+}
+
+export type GoogleMobileExchangeDeps = {
+  redeem: typeof redeemMobileAuthCode;
+  findUser: typeof findUserById;
+  generateToken: typeof generateToken;
+};
+
+const defaultExchangeDeps: GoogleMobileExchangeDeps = {
+  redeem: redeemMobileAuthCode,
+  findUser: findUserById,
+  generateToken,
+};
+
+function publicUser(user: User, role: User['role']) {
+  return {
+    id: user.id,
+    email: user.email,
+    role,
+    credits: user.credits,
+    usage_count: user.usage_count,
+    created_at: user.created_at,
+  };
+}
+
+/** Trade a one-time mobile code and the app's PKCE verifier for the session token. */
+export async function handleGoogleMobileExchange(
+  req: NextApiRequest,
+  res: NextApiResponse,
+  deps: GoogleMobileExchangeDeps = defaultExchangeDeps,
+) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ ok: false, error: 'method_not_allowed' });
+  }
+  res.setHeader('Cache-Control', 'no-store');
+  if (!googleAuthConfigured()) {
+    return res.status(404).json({ ok: false, error: 'google_auth_disabled' });
+  }
+  if (!clientRequestsSessionToken(req.headers)) {
+    return res.status(400).json({ ok: false, error: 'mobile_client_required' });
+  }
+  const body = exchangeBody(req);
+  const code = typeof body.code === 'string' ? body.code : '';
+  const verifier = typeof body.code_verifier === 'string' ? body.code_verifier : '';
+  if (!code || !verifier) {
+    return res.status(400).json({ ok: false, error: 'invalid_code' });
+  }
+
+  let redeemed: RedeemMobileCodeResult;
+  try {
+    redeemed = await deps.redeem({ code, verifier });
+  } catch {
+    return res.status(500).json({ ok: false, error: 'exchange_failed' });
+  }
+  if (!redeemed.ok) {
+    return res.status(401).json({ ok: false, error: redeemed.error });
+  }
+
+  const user = await deps.findUser(redeemed.userId);
+  if (!user) {
+    return res.status(401).json({ ok: false, error: 'invalid_code' });
+  }
+  const role = roleAfterAuthentication(user.role, user.email);
+  const token = deps.generateToken({ id: user.id, email: user.email, role });
+  res.setHeader('Set-Cookie', sessionCookie(token));
+  return res.status(200).json({
+    ok: true,
+    token,
+    created: redeemed.created,
+    user: publicUser(user, role),
+  });
 }

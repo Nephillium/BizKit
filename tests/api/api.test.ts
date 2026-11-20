@@ -3,6 +3,8 @@ import { randomBytes, randomInt } from 'node:crypto';
 import { after, before, describe, test } from 'node:test';
 import type { NextApiRequest } from 'next';
 import { signInWithGoogleProfile } from '../../lib/googleAccount';
+import { hashMobileCode, redeemMobileAuthCode, saveMobileAuthCode } from '../../lib/googleMobileCode';
+import { createPkceVerifier, pkceChallenge } from '../../lib/googleOAuth';
 import { anonymousSubject } from '../../lib/anonymousQuota';
 import { pool, query } from '../../lib/db';
 import { initSchema } from '../../lib/initSchema';
@@ -11,6 +13,7 @@ import {
   AI_NOT_CONFIGURED_ERROR,
   AI_NOT_CONFIGURED_MESSAGE,
 } from '../../lib/runtimeConfig';
+import exchangeHandler from '../../pages/api/auth/google/exchange';
 import loginHandler from '../../pages/api/auth/login';
 import logoutHandler from '../../pages/api/auth/logout';
 import meHandler from '../../pages/api/auth/me';
@@ -1037,6 +1040,136 @@ describe('Google account linking', () => {
       await deleteUser(createdEmail);
       await deleteUser(blockedEmail);
       await deleteUser(otherEmail);
+      env.restore();
+    }
+  });
+});
+
+describe('Google mobile code exchange', () => {
+  test('stores only a hash and rejects a wrong verifier, an expired code, and a replay', async () => {
+    const env = snapshotEnv();
+    const previousClient = process.env.GOOGLE_CLIENT_ID;
+    const previousSecret = process.env.GOOGLE_CLIENT_SECRET;
+    const previousBase = process.env.APP_BASE_URL;
+    const email = `mobile-code-${randomBytes(4).toString('hex')}@example.com`;
+    const password = 'mobile-code-password';
+    try {
+      setEnv('NODE_ENV', 'production');
+      setEnv('GOOGLE_CLIENT_ID', 'test-google-client');
+      setEnv('GOOGLE_CLIENT_SECRET', 'test-google-secret');
+      setEnv('APP_BASE_URL', 'https://pitchcrafter.glmlabs.io');
+
+      const registered = await invoke(registerHandler, {
+        method: 'POST',
+        body: { email, password },
+      });
+      assert.equal(registered.status, 200);
+      const userId = registered.body.user.id as string;
+      const columns = await query<{ column_name: string }>(
+        `SELECT column_name FROM information_schema.columns
+         WHERE table_schema = 'public' AND table_name = 'google_mobile_codes'
+         ORDER BY column_name`,
+      );
+      assert.deepEqual(columns.map((row) => row.column_name), [
+        'code_challenge',
+        'code_hash',
+        'created_account',
+        'created_at',
+        'expires_at',
+        'user_id',
+      ]);
+
+      const issuedAt = new Date('2026-01-01T00:00:00.000Z');
+      const verifier = createPkceVerifier();
+      const code = createPkceVerifier();
+      await saveMobileAuthCode({
+        code,
+        codeChallenge: pkceChallenge(verifier),
+        userId,
+        created: true,
+        now: issuedAt,
+      });
+      const stored = await query<{ code_hash: string; code_challenge: string }>(
+        'SELECT code_hash, code_challenge FROM google_mobile_codes WHERE user_id = $1',
+        [userId],
+      );
+      assert.equal(stored[0]?.code_hash, hashMobileCode(code));
+      assert.notEqual(stored[0]?.code_hash, code);
+      assert.equal(stored[0]?.code_challenge, pkceChallenge(verifier));
+      assert.equal(JSON.stringify(stored).includes(code), false);
+
+      const wrong = await redeemMobileAuthCode({
+        code,
+        verifier: createPkceVerifier(),
+        now: new Date(issuedAt.getTime() + 1000),
+      });
+      assert.deepEqual(wrong, { ok: false, error: 'invalid_verifier' });
+      assert.equal(
+        (await query('SELECT code_hash FROM google_mobile_codes WHERE user_id = $1', [userId])).length,
+        1,
+      );
+
+      const expired = await redeemMobileAuthCode({
+        code,
+        verifier,
+        now: new Date(issuedAt.getTime() + 60_000),
+      });
+      assert.deepEqual(expired, { ok: false, error: 'expired' });
+      assert.equal(
+        (await query('SELECT code_hash FROM google_mobile_codes WHERE code_hash = $1', [hashMobileCode(code)])).length,
+        0,
+      );
+
+      const liveVerifier = createPkceVerifier();
+      const liveCode = createPkceVerifier();
+      await saveMobileAuthCode({
+        code: liveCode,
+        codeChallenge: pkceChallenge(liveVerifier),
+        userId,
+        created: false,
+        now: new Date(),
+      });
+      const httpWrong = await invoke(exchangeHandler, {
+        method: 'POST',
+        body: { code: liveCode, code_verifier: createPkceVerifier() },
+        headers: { [MOBILE_CLIENT_HEADER]: MOBILE_CLIENT_VALUE },
+      });
+      assert.equal(httpWrong.status, 401);
+      assert.equal(httpWrong.body.error, 'invalid_verifier');
+      assert.equal(httpWrong.body.token, undefined);
+
+      const httpOk = await invoke(exchangeHandler, {
+        method: 'POST',
+        body: { code: liveCode, code_verifier: liveVerifier },
+        headers: { [MOBILE_CLIENT_HEADER]: MOBILE_CLIENT_VALUE },
+      });
+      assert.equal(httpOk.status, 200);
+      assert.equal(typeof httpOk.body.token, 'string');
+      assert.equal(httpOk.body.token.length > 20, true);
+      assert.equal(httpOk.body.created, false);
+      assert.equal(httpOk.body.user.password_hash, undefined);
+      assert.equal(httpOk.body.user.id, userId);
+      const me = await invoke(meHandler, {
+        method: 'GET',
+        headers: { authorization: `Bearer ${httpOk.body.token}` },
+      });
+      assert.equal(me.status, 200);
+      assert.equal(me.body.user.email, email);
+
+      const replay = await invoke(exchangeHandler, {
+        method: 'POST',
+        body: { code: liveCode, code_verifier: liveVerifier },
+        headers: { [MOBILE_CLIENT_HEADER]: MOBILE_CLIENT_VALUE },
+      });
+      assert.equal(replay.status, 401);
+      assert.equal(replay.body.error, 'invalid_code');
+      assert.equal(replay.body.token, undefined);
+      assert.equal(JSON.stringify(replay.body).includes(liveCode), false);
+    } finally {
+      setEnv('GOOGLE_CLIENT_ID', previousClient);
+      setEnv('GOOGLE_CLIENT_SECRET', previousSecret);
+      setEnv('APP_BASE_URL', previousBase);
+      await deleteUser(email);
       env.restore();
     }
   });

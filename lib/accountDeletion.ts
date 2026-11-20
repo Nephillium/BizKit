@@ -15,8 +15,9 @@ export type RetentionGuard = {
 
 /**
  * Delete one account and the data stored for it.
- * Generations, credit balance, credit history, and the Google sign-in link
- * go away with the user row. Auth is a stateless JWT, so there is no session
+ * Generations, credit balance, credit history, the Google sign-in link,
+ * and any pending mobile sign-in code go away with the user row. Auth is a
+ * stateless JWT, so there is no session
  * table to delete; the route clears the cookie after this commits. Payment
  * records that Stripe already holds are not stored in this database and are
  * not deleted here.
@@ -58,6 +59,12 @@ export async function deleteUserAccountDetail(
     );
     if (googleTable.rows[0]?.rel) {
       await client.query('DELETE FROM google_accounts WHERE user_id = $1', [userId]);
+    }
+    const mobileCodes = await client.query<{ rel: string | null }>(
+      `SELECT to_regclass('public.google_mobile_codes') AS rel`,
+    );
+    if (mobileCodes.rows[0]?.rel) {
+      await client.query('DELETE FROM google_mobile_codes WHERE user_id = $1', [userId]);
     }
     const deleted = await client.query('DELETE FROM users WHERE id = $1', [userId]);
     if ((deleted.rowCount ?? 0) === 0) {
