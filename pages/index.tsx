@@ -2,8 +2,10 @@ import { useState, FormEvent, useRef, useEffect, useCallback } from 'react'
 import Head from 'next/head'
 import { jsPDF } from 'jspdf'
 import { Document, Packer, Paragraph, TextRun } from 'docx'
+import { ContinueWithGoogle } from '../components/ContinueWithGoogle'
 import { useAuth } from '../hooks/useAuth'
 import { ACCOUNT_DELETION_PATH } from '../lib/accountDeletionCopy'
+import { googleSignInErrorMessage } from '../lib/googleAuthCopy'
 import type { Generation } from '../shared/schema'
 import { translations, getTranslation, type Language } from '../lib/translations'
 import { HistoryPanel, type HistoryToolFilter } from '../components/HistoryPanel'
@@ -26,6 +28,7 @@ interface RuntimeConfig {
   providerDetail: string
   stripeEnabled: boolean
   demoLogin: { email: string; password: string } | null
+  googleAuth?: boolean
 }
 
 function generationErrorText(data: { error?: string; message?: string }): string {
@@ -478,6 +481,18 @@ export default function Home() {
       .then((response) => response.json())
       .then((data: RuntimeConfig) => setRuntime(data))
       .catch(() => setRuntime(null))
+  }, [])
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const message = googleSignInErrorMessage(params.get('google_error'))
+    if (!message) return
+    setAuthMode('login')
+    setShowAuthModal(true)
+    setAuthError(message)
+    params.delete('google_error')
+    const next = params.toString()
+    window.history.replaceState(null, '', next ? `/?${next}` : '/')
   }, [])
 
   const toggleLanguage = () => {
@@ -2636,6 +2651,26 @@ export default function Home() {
               >
                 {authMode === 'login' ? t.loginAccess : t.registerAccess}
               </p>
+
+              {runtime?.googleAuth === true && (
+                <>
+                  <ContinueWithGoogle href="/api/auth/google/start" />
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      margin: '0 0 16px',
+                      color: 'rgb(100, 116, 139)',
+                      fontSize: '0.75rem',
+                    }}
+                  >
+                    <span style={{ flex: 1, height: '1px', backgroundColor: 'rgb(226, 232, 240)' }} />
+                    {t.or}
+                    <span style={{ flex: 1, height: '1px', backgroundColor: 'rgb(226, 232, 240)' }} />
+                  </div>
+                </>
+              )}
 
               {authError && (
                 <div

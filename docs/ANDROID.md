@@ -56,7 +56,8 @@ Collected and sent to the PitchCrafter API over HTTPS:
 | Data | What happens to it |
 | --- | --- |
 | Email address | Account identifier. Stored on the server. |
-| Password | Sent only to register or log in. The server stores a hash. The app does not keep the password. |
+| Google subject id and name | Stored only when the person uses Continue with Google. The profile photo is not stored. |
+| Password | Sent only to register or log in with a password. The server stores a hash. The app does not keep the password. Google sign-in does not send a password. |
 | Account id, role, and credit balance | Returned by the API and shown in the app. |
 | Session token | Stored on the device in Expo SecureStore under `auth_token`. Sent as `Authorization: Bearer` on later requests. The `expo-secure-store` config plugin excludes that store from Android backup and device transfer. |
 | Generator text | Prompts the person types, and the generated draft. Signed-in generations are stored in Postgres for that account (history). |
@@ -76,7 +77,7 @@ Account deletion for the Play Console “Delete account URL” field:
 
 `https://pitchcrafter.glmlabs.io/account/delete`
 
-That page explains deletion, lets a signed-in person confirm and delete, and lists `admin@glmlabs.io` when they cannot sign in. The Android app deletes from Settings on the profile screen, with a confirmation step, by calling `POST /api/account/delete`. Deletion removes the account, saved generations, credit balance, and credit history, and signs the person out. PitchCrafter does not store card numbers. Payment records Stripe already holds for a completed purchase stay in Stripe when tax or accounting rules require that record. This app does not delete those Stripe records.
+That page explains deletion, lets a signed-in person confirm and delete, and lists `admin@glmlabs.io` when they cannot sign in. The Android app deletes from Settings on the profile screen, with a confirmation step, by calling `POST /api/account/delete`. Deletion removes the account, saved generations, credit balance, credit history, and the Google sign-in link, and signs the person out. PitchCrafter does not store card numbers. Payment records Stripe already holds for a completed purchase stay in Stripe when tax or accounting rules require that record. This app does not delete those Stripe records.
 
 The only Android permission the app keeps is `android.permission.INTERNET`. Storage, vibrate, and system-alert-window permissions that the Expo template adds are blocked in `app.json`.
 
@@ -90,6 +91,17 @@ Analytics stays disabled unless both of these are true: the person has accepted 
 4. Rebuild. `mobile/app.config.ts` links `@react-native-firebase/app` and `@react-native-firebase/analytics` only when that file is present, and sets `extra.firebaseAnalytics`. `mobile/react-native.config.js` leaves those native modules unlinked when the file is absent, so `eas build` still succeeds and analytics cannot start.
 
 No Firebase API secret belongs in the app. `mobile/firebase.json` keeps collection off until consent, turns off automatic screen reporting, and turns off advertising-id collection. After the person consents, Firebase's automatic session events may still be sent. The app itself only logs `sign_up` and `purchase`.
+
+## Continue with Google
+
+The Android button is hidden unless both of these are true:
+
+1. The EAS build (or `mobile/.env` for a local build) sets `EXPO_PUBLIC_GOOGLE_AUTH=1`.
+2. The API reports `googleAuth: true`, which happens only when `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and an https `APP_BASE_URL` are set on the server.
+
+This build does not use an Android OAuth client. The button opens the system browser (`expo-web-browser` / `expo-auth-session`) to `GET /api/auth/google/start?client=mobile` on the API origin. Google redirects to the web callback. The server then redirects to `pitchcrafter://auth/google` with the same bearer token the password login already stores in SecureStore. The label is the English string "Continue with Google". Expo Go does not register that scheme, so the return path needs an EAS or development build that includes `scheme: pitchcrafter`.
+
+No SHA-1 is required for this sign-in. The Play application id is `com.glmlabs.pitchcrafter`. An Android OAuth client, and that package plus the Play app-signing SHA-1, would be required only for a future native Google Sign-In SDK. This version does not add one.
 
 ## Privacy policy
 

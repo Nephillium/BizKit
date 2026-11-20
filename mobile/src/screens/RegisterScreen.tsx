@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import ContinueWithGoogleButton from '../components/ContinueWithGoogleButton';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -19,11 +20,21 @@ interface Props {
 }
 
 export default function RegisterScreen({ onNavigateToLogin }: Props) {
-  const { register } = useAuth();
+  const { register, continueWithGoogle, googleAuthEnabled } = useAuth();
   const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  async function handleGoogle() {
+    setIsLoading(true);
+    const result = await continueWithGoogle();
+    setIsLoading(false);
+    if (result.cancelled) return;
+    if (!result.success) {
+      Alert.alert('Error', result.error || 'Google sign-in failed');
+    }
+  }
 
   async function handleRegister() {
     if (!email || !password) {
@@ -58,6 +69,9 @@ export default function RegisterScreen({ onNavigateToLogin }: Props) {
         </View>
 
         <View style={styles.form}>
+          {googleAuthEnabled && (
+            <ContinueWithGoogleButton onPress={handleGoogle} disabled={isLoading} />
+          )}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>{t.email}</Text>
             <TextInput

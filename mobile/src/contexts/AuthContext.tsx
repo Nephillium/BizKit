@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import * as SecureStore from 'expo-secure-store';
 import { login as apiLogin, register as apiRegister, logout as apiLogout, deleteAccount as apiDeleteAccount, getMe, setAuthToken } from '../lib/api';
 import { logSignUp } from '../lib/analytics';
+import { resolveGoogleButtonVisible, startGoogleSignIn } from '../lib/googleSignIn';
 
 interface User {
   id: number;
@@ -16,6 +17,8 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   register: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  continueWithGoogle: () => Promise<{ success: boolean; error?: string; cancelled?: boolean }>;
+  googleAuthEnabled: boolean;
   logout: () => Promise<void>;
   deleteAccount: () => Promise<{ success: boolean; error?: string }>;
   refreshUser: () => Promise<void>;
@@ -26,9 +29,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [googleAuthEnabled, setGoogleAuthEnabled] = useState(false);
 
   useEffect(() => {
     loadStoredAuth();
+    resolveGoogleButtonVisible()
+      .then((enabled) => setGoogleAuthEnabled(enabled))
+      .catch(() => setGoogleAuthEnabled(false));
   }, []);
 
   async function loadStoredAuth() {
@@ -72,6 +79,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { success: false, error: response.error || 'Registration failed' };
   }
 
+  async function continueWithGoogle() {
+    const outcome = await startGoogleSignIn();
+    if ('cancelled' in outcome && outcome.cancelled) {
+      return { success: false, cancelled: true };
+    }
+    if (!('token' in outcome) || !outcome.token) {
+      return { success: false, error: 'error' in outcome ? outcome.error : 'Google sign-in failed' };
+    }
+    try {
+      await SecureStore.setItemAsync('auth_token', outcome.token);
+    } catch {
+      return { success: false, error: 'Could not store the Google session' };
+    }
+    setAuthToken(outcome.token);
+    const response = await getMe();
+    if (response.success && response.user) {
+      setUser(response.user);
+      if (outcome.created) await logSignUp();
+      return { success: true };
+    }
+    try {
+      await SecureStore.deleteItemAsync('auth_token');
+    } catch {
+      // Drop the in-memory token even if SecureStore is unavailable.
+    }
+    setAuthToken(null);
+    setUser(null);
+    return { success: false, error: 'Google sign-in did not return an account' };
+  }
+
   async function deleteAccount() {
     const response = await apiDeleteAccount();
     if (response.success) {
@@ -108,6 +145,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!user,
         login,
         register,
+        continueWithGoogle,
+        googleAuthEnabled,
         logout,
         deleteAccount,
         refreshUser,

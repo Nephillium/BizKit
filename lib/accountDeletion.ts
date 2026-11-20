@@ -15,10 +15,11 @@ export type RetentionGuard = {
 
 /**
  * Delete one account and the data stored for it.
- * Generations, credit balance, and credit history go away with the user row.
- * Auth is a stateless JWT, so there is no session table to delete; the route
- * clears the cookie after this commits. Payment records that Stripe already
- * holds are not stored in this database and are not deleted here.
+ * Generations, credit balance, credit history, and the Google sign-in link
+ * go away with the user row. Auth is a stateless JWT, so there is no session
+ * table to delete; the route clears the cookie after this commits. Payment
+ * records that Stripe already holds are not stored in this database and are
+ * not deleted here.
  *
  * Pass a retention guard to skip the delete when last_sign_in_at is newer
  * than the cutoff. The check runs in the same transaction as the delete, so
@@ -52,6 +53,12 @@ export async function deleteUserAccountDetail(
 
     const generations = await client.query('DELETE FROM generations WHERE user_id = $1', [userId]);
     const credits = await client.query('DELETE FROM credit_transactions WHERE user_id = $1', [userId]);
+    const googleTable = await client.query<{ rel: string | null }>(
+      `SELECT to_regclass('public.google_accounts') AS rel`,
+    );
+    if (googleTable.rows[0]?.rel) {
+      await client.query('DELETE FROM google_accounts WHERE user_id = $1', [userId]);
+    }
     const deleted = await client.query('DELETE FROM users WHERE id = $1', [userId]);
     if ((deleted.rowCount ?? 0) === 0) {
       await client.query('ROLLBACK');

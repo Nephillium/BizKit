@@ -71,6 +71,10 @@ export function setApiBaseUrl(url: string) {
   API_BASE_URL = url;
 }
 
+export function getApiBaseUrl() {
+  return API_BASE_URL;
+}
+
 async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {}

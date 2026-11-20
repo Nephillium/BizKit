@@ -105,6 +105,16 @@ export async function initSchema(): Promise<void> {
       )
     `);
 
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS google_accounts (
+        google_sub TEXT PRIMARY KEY,
+        user_id VARCHAR NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+        email TEXT NOT NULL,
+        name TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+
     await client.query(GENERATIONS_DDL);
     await client.query(
       'CREATE INDEX IF NOT EXISTS idx_generations_user_created ON generations (user_id, created_at DESC)'

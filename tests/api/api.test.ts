@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { randomBytes, randomInt } from 'node:crypto';
 import { after, before, describe, test } from 'node:test';
 import type { NextApiRequest } from 'next';
+import { signInWithGoogleProfile } from '../../lib/googleAccount';
 import { anonymousSubject } from '../../lib/anonymousQuota';
 import { pool, query } from '../../lib/db';
 import { initSchema } from '../../lib/initSchema';
@@ -754,6 +755,11 @@ describe('POST /api/account/delete', () => {
          VALUES ($1, 10, 'Purchased 10 credits via Stripe')`,
         [userId],
       );
+      await query(
+        `INSERT INTO google_accounts (google_sub, user_id, email, name)
+         VALUES ($1, $2, $3, 'Delete Me')`,
+        [`google-sub-${userId}`, userId, email.toLowerCase()],
+      );
       await query('UPDATE users SET credits = 10 WHERE id = $1', [userId]);
       await query(
         `INSERT INTO generations (user_id, tool_type, inputs, output)
@@ -806,6 +812,7 @@ describe('POST /api/account/delete', () => {
       assert.equal(cookieHeaderFromSetCookie(deleted.headers['set-cookie']), 'bizkit_token=');
 
       assert.equal((await query('SELECT id FROM users WHERE id = $1', [userId])).length, 0);
+      assert.equal((await query('SELECT google_sub FROM google_accounts WHERE user_id = $1', [userId])).length, 0);
       assert.equal((await query('SELECT id FROM generations WHERE user_id = $1', [userId])).length, 0);
       assert.equal(
         (await query('SELECT id FROM credit_transactions WHERE user_id = $1', [userId])).length,
@@ -833,6 +840,173 @@ describe('POST /api/account/delete', () => {
     } finally {
       setEnv('APP_BASE_URL', previousBase);
       await deleteUser(email);
+      await deleteUser(otherEmail);
+      env.restore();
+    }
+  });
+});
+
+describe('Google account linking', () => {
+  test('links a verified email, creates with the same credits, and deletion removes the link', async () => {
+    const env = snapshotEnv();
+    const previousCredits = process.env.DEMO_SIGNUP_CREDITS;
+    const previousSuper = process.env.SUPER_USER_EMAIL;
+    const password = 'google-link-password';
+    const existingEmail = `link-${randomBytes(4).toString('hex')}@example.com`;
+    const createdEmail = `new-${randomBytes(4).toString('hex')}@example.com`;
+    const blockedEmail = `admin-${randomBytes(4).toString('hex')}@example.com`;
+    const otherEmail = `other-${randomBytes(4).toString('hex')}@example.com`;
+    try {
+      setEnv('NODE_ENV', 'production');
+      setEnv('DEMO_SIGNUP_CREDITS', '7');
+      const columns = await query<{ column_name: string }>(
+        `SELECT column_name FROM information_schema.columns
+         WHERE table_schema = 'public' AND table_name = 'google_accounts'
+         ORDER BY column_name`,
+      );
+      assert.deepEqual(columns.map((row) => row.column_name), [
+        'created_at',
+        'email',
+        'google_sub',
+        'name',
+        'user_id',
+      ]);
+
+      const registered = await invoke(registerHandler, {
+        method: 'POST',
+        body: { email: existingEmail, password },
+      });
+      assert.equal(registered.status, 200);
+      assert.equal(registered.body.user.credits, 0);
+      const existingId = registered.body.user.id as string;
+
+      const linked = await signInWithGoogleProfile({
+        sub: 'sub-existing',
+        email: existingEmail.toUpperCase(),
+        emailVerified: true,
+        name: 'Ada Lovelace',
+      });
+      assert.equal('error' in linked, false);
+      if ('error' in linked) return;
+      assert.equal(linked.created, false);
+      assert.equal(linked.user.id, existingId);
+      assert.equal(linked.user.credits, 0);
+      const linkRow = await query<{ email: string; name: string }>(
+        'SELECT email, name FROM google_accounts WHERE google_sub = $1',
+        ['sub-existing'],
+      );
+      assert.equal(linkRow[0]?.email, existingEmail.toLowerCase());
+      assert.equal(linkRow[0]?.name, 'Ada Lovelace');
+      const storedHash = await query<{ password_hash: string }>(
+        'SELECT password_hash FROM users WHERE id = $1',
+        [existingId],
+      );
+      assert.equal(JSON.stringify(linked).includes(storedHash[0].password_hash), false);
+
+      const passwordLogin = await invoke(loginHandler, {
+        method: 'POST',
+        body: { email: existingEmail, password },
+      });
+      assert.equal(passwordLogin.status, 200);
+
+      const conflict = await signInWithGoogleProfile({
+        sub: 'sub-other',
+        email: existingEmail,
+        emailVerified: true,
+        name: 'Someone Else',
+      });
+      assert.deepEqual(conflict, { error: 'identity_conflict' });
+      assert.equal(
+        (await query('SELECT google_sub FROM google_accounts WHERE user_id = $1', [existingId])).length,
+        1,
+      );
+
+      const unverified = await signInWithGoogleProfile({
+        sub: 'sub-unverified',
+        email: `unverified-${randomBytes(4).toString('hex')}@example.com`,
+        emailVerified: false,
+        name: null,
+      });
+      assert.deepEqual(unverified, { error: 'email_not_verified' });
+
+      setEnv('SUPER_USER_EMAIL', blockedEmail);
+      const blocked = await signInWithGoogleProfile({
+        sub: 'sub-blocked',
+        email: blockedEmail,
+        emailVerified: true,
+        name: 'Admin',
+      });
+      assert.deepEqual(blocked, { error: 'signup_blocked' });
+      assert.equal((await query('SELECT id FROM users WHERE email = $1', [blockedEmail])).length, 0);
+      setEnv('SUPER_USER_EMAIL', previousSuper);
+
+      const created = await signInWithGoogleProfile({
+        sub: 'sub-created',
+        email: createdEmail,
+        emailVerified: true,
+        name: 'New Person',
+      });
+      assert.equal('error' in created, false);
+      if ('error' in created) return;
+      assert.equal(created.created, true);
+      assert.equal(created.user.credits, 0);
+      assert.equal(created.user.role, 'user');
+      const me = await invoke(meHandler, {
+        method: 'GET',
+        headers: { authorization: `Bearer ${created.token}` },
+      });
+      assert.equal(me.status, 200);
+      assert.equal(me.body.user.email, createdEmail);
+
+      const renamed = await signInWithGoogleProfile({
+        sub: 'sub-created',
+        email: otherEmail,
+        emailVerified: true,
+        name: 'Renamed',
+      });
+      assert.equal('error' in renamed, false);
+      if ('error' in renamed) return;
+      assert.equal(renamed.user.id, created.user.id);
+      assert.equal(renamed.user.email, createdEmail);
+      const renamedRow = await query<{ email: string; name: string }>(
+        'SELECT email, name FROM google_accounts WHERE google_sub = $1',
+        ['sub-created'],
+      );
+      assert.equal(renamedRow[0]?.email, otherEmail);
+      assert.equal(renamedRow[0]?.name, 'Renamed');
+      assert.equal(
+        (await query<{ email: string }>('SELECT email FROM users WHERE id = $1', [created.user.id]))[0]?.email,
+        createdEmail,
+      );
+
+      setEnv('NODE_ENV', 'development');
+      setEnv('DEMO_SIGNUP_CREDITS', '7');
+      const demoEmail = `demo-google-${randomBytes(4).toString('hex')}@example.com`;
+      const demo = await signInWithGoogleProfile({
+        sub: 'sub-demo-credits',
+        email: demoEmail,
+        emailVerified: true,
+        name: null,
+      });
+      assert.equal('error' in demo, false);
+      if ('error' in demo) return;
+      assert.equal(demo.user.credits, 7);
+      const passwordEmail = `demo-password-${randomBytes(4).toString('hex')}@example.com`;
+      const passwordSignup = await invoke(registerHandler, {
+        method: 'POST',
+        body: { email: passwordEmail, password },
+      });
+      assert.equal(passwordSignup.status, 200);
+      assert.equal(passwordSignup.body.user.credits, demo.user.credits);
+
+      await deleteUser(demoEmail);
+      await deleteUser(passwordEmail);
+    } finally {
+      setEnv('DEMO_SIGNUP_CREDITS', previousCredits);
+      setEnv('SUPER_USER_EMAIL', previousSuper);
+      await deleteUser(existingEmail);
+      await deleteUser(createdEmail);
+      await deleteUser(blockedEmail);
       await deleteUser(otherEmail);
       env.restore();
     }
