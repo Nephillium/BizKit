@@ -15,6 +15,19 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   if (!plugins.includes('expo-web-browser')) {
     plugins.push('expo-web-browser');
   }
+  const googleSignInPlugin = '@react-native-google-signin/google-signin';
+  const hasGoogleSignIn = plugins.some((plugin) => (
+    plugin === googleSignInPlugin
+    || (Array.isArray(plugin) && plugin[0] === googleSignInPlugin)
+  ));
+  if (!hasGoogleSignIn) {
+    // The plugin requires an iOS URL scheme even for an Android build.
+    // This value is not an OAuth client id. Android does not read it.
+    plugins.push([
+      googleSignInPlugin,
+      { iosUrlScheme: 'com.googleusercontent.apps.pitchcrafter' },
+    ]);
+  }
   if (googleServicesFile) {
     plugins.push('@react-native-firebase/app', '@react-native-firebase/analytics');
   }
@@ -36,6 +49,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ),
       firebaseAnalytics: Boolean(googleServicesFile),
       googleAuthEnabled: (process.env.EXPO_PUBLIC_GOOGLE_AUTH || '').trim() === '1',
+      googleWebClientId: (process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '').trim(),
     },
   };
 };

@@ -5,7 +5,7 @@ React Native app for PitchCrafter (this repository is still BizKit). It drafts c
 ## Features
 
 - **Content Generation**: Create cold emails, proposals, contracts, and social media content
-- **User Authentication**: Email and password. "Continue with Google" appears only when `EXPO_PUBLIC_GOOGLE_AUTH=1` and the server has Google sign-in configured. It opens the system browser. There is no Android OAuth client id.
+- **User Authentication**: Email and password. "Continue with Google" appears only when `EXPO_PUBLIC_GOOGLE_AUTH=1` and the server has Google sign-in configured. On Android, `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` (the Web client id) opens the device account picker and sends the Google ID token to `POST /api/auth/google/native`. The browser PKCE flow remains the fallback. See `docs/ANDROID.md`.
 - **Credits**: Android hides credit purchases. It does not show prices or a link to the website. The credit balance is still shown. iOS can open the existing Stripe checkout. See `docs/ANDROID.md`.
 - **Bilingual Support**: English and Turkish languages
 - **Native Experience**: Runs on iOS and Android

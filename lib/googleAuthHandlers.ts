@@ -1,7 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { allowAuthAttempt, clientAddressFromRequest } from './authRateLimit';
 import { clientRequestsSessionToken, sessionCookie } from './authResponse';
 import { signInWithGoogleProfile, type GoogleSignInResult } from './googleAccount';
-import { verifyGoogleIdTokenForClient, type GoogleIdTokenResult } from './googleIdToken';
+import { verifyGoogleIdTokenForClient, verifyGoogleNativeIdToken, type GoogleIdTokenResult } from './googleIdToken';
 import { createMobileAuthCode, redeemMobileAuthCode, saveMobileAuthCode, type RedeemMobileCodeResult } from './googleMobileCode';
 import {
   buildGoogleAuthorizeUrl,
@@ -288,5 +289,92 @@ export async function handleGoogleMobileExchange(
     token,
     created: redeemed.created,
     user: publicUser(user, role),
+  });
+}
+
+export const GOOGLE_NATIVE_RATE_ROUTE = 'google-native';
+
+export type GoogleNativeDeps = {
+  verifyIdToken: (idToken: string) => Promise<GoogleIdTokenResult>;
+  signIn: typeof signInWithGoogleProfile;
+};
+
+const defaultNativeDeps: GoogleNativeDeps = {
+  verifyIdToken: (idToken) => verifyGoogleNativeIdToken(idToken),
+  signIn: signInWithGoogleProfile,
+};
+
+function nativeIdToken(req: NextApiRequest): string {
+  if (!req.body || typeof req.body !== 'object') return '';
+  const value = (req.body as { id_token?: unknown }).id_token;
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function nativeFailureStatus(error: string): number {
+  if (error === 'signup_blocked') return 403;
+  if (error === 'identity_conflict') return 409;
+  return 401;
+}
+
+/**
+ * Trade a Google ID token from the Android account picker for the same
+ * bearer session the browser code exchange returns.
+ * The token is verified and then discarded. It is not logged or stored.
+ */
+export async function handleGoogleNative(
+  req: NextApiRequest,
+  res: NextApiResponse,
+  deps: GoogleNativeDeps = defaultNativeDeps,
+) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ ok: false, error: 'method_not_allowed' });
+  }
+  res.setHeader('Cache-Control', 'no-store');
+  if (!allowAuthAttempt(GOOGLE_NATIVE_RATE_ROUTE, clientAddressFromRequest(req))) {
+    res.setHeader('Retry-After', '60');
+    return res.status(429).json({ ok: false, error: 'rate_limited' });
+  }
+  if (!googleAuthConfigured()) {
+    return res.status(404).json({ ok: false, error: 'google_auth_disabled' });
+  }
+  if (!clientRequestsSessionToken(req.headers)) {
+    return res.status(400).json({ ok: false, error: 'mobile_client_required' });
+  }
+  const idToken = nativeIdToken(req);
+  if (!idToken) {
+    return res.status(400).json({ ok: false, error: 'invalid_token' });
+  }
+
+  let verified: GoogleIdTokenResult;
+  try {
+    verified = await deps.verifyIdToken(idToken);
+  } catch {
+    return res.status(401).json({ ok: false, error: 'token_invalid' });
+  }
+  if (!verified.ok) {
+    const error = verified.error === 'bad_audience'
+      || verified.error === 'expired'
+      || verified.error === 'email_not_verified'
+      ? verified.error
+      : 'token_invalid';
+    return res.status(401).json({ ok: false, error });
+  }
+
+  let signedIn: GoogleSignInResult;
+  try {
+    signedIn = await deps.signIn(verified.identity);
+  } catch {
+    return res.status(500).json({ ok: false, error: 'google_sign_in_failed' });
+  }
+  if ('error' in signedIn) {
+    return res.status(nativeFailureStatus(signedIn.error)).json({ ok: false, error: signedIn.error });
+  }
+
+  res.setHeader('Set-Cookie', sessionCookie(signedIn.token));
+  return res.status(200).json({
+    ok: true,
+    token: signedIn.token,
+    created: signedIn.created,
+    user: signedIn.user,
   });
 }

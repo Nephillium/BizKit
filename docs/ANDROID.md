@@ -56,7 +56,7 @@ Collected and sent to the PitchCrafter API over HTTPS:
 | Data | What happens to it |
 | --- | --- |
 | Email address | Account identifier. Stored on the server. |
-| Google subject id and name | Stored only when the person uses Continue with Google. The profile photo is not stored. |
+| Google subject id and name | Stored only when the person uses Continue with Google. The profile photo is not stored. The Android app sends Google's ID token to the API over HTTPS and does not keep that token on the device. |
 | Password | Sent only to register or log in with a password. The server stores a hash. The app does not keep the password. Google sign-in does not send a password. |
 | Account id, role, and credit balance | Returned by the API and shown in the app. |
 | Session token | Stored on the device in Expo SecureStore under `auth_token`. Sent as `Authorization: Bearer` on later requests. The `expo-secure-store` config plugin excludes that store from Android backup and device transfer. |
@@ -99,9 +99,32 @@ The Android button is hidden unless both of these are true:
 1. The EAS build (or `mobile/.env` for a local build) sets `EXPO_PUBLIC_GOOGLE_AUTH=1`.
 2. The API reports `googleAuth: true`, which happens only when `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and an https `APP_BASE_URL` are set on the server.
 
-This build does not use an Android OAuth client. The button opens the system browser (`expo-web-browser` / `expo-auth-session`) to `GET /api/auth/google/start?client=mobile&code_challenge=...` on the API origin. The challenge is the S256 hash of a verifier that stays on the device. Google redirects to the web callback. The server then redirects to `pitchcrafter://auth/google` with a single-use code that expires in 60 seconds, not the session token. The app POSTs the code and its verifier to `/api/auth/google/exchange`, with `X-BizKit-Client: mobile`, and stores the bearer token from that response in SecureStore. Another app that registers the same scheme can see the code, but it cannot redeem the code without the verifier. The label is the English string "Continue with Google". Expo Go does not register that scheme, so the return path needs an EAS or development build that includes `scheme: pitchcrafter`.
+The label is the English string "Continue with Google", using Google's button colors (white fill, `#747775` border, `#1f1f1f` label, four-color G). The session is still the bearer token in SecureStore under `auth_token`.
 
-No SHA-1 is required for this sign-in. The Play application id is `com.glmlabs.pitchcrafter`. An Android OAuth client, and that package plus the Play app-signing SHA-1, would be required only for a future native Google Sign-In SDK. This version does not add one.
+### Native account picker
+
+Native sign-in is on only when `EXPO_PUBLIC_GOOGLE_AUTH=1` and `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` is set. That second value is the Web client id, the same string as the server's `GOOGLE_CLIENT_ID`. It is public. Do not commit a real value.
+
+The app uses `@react-native-google-signin/google-signin` (config plugin in `mobile/app.config.ts`, so EAS prebuild links it). `GoogleSignin.configure({ webClientId })` requests an ID token for that Web client. The button asks Android for the account picker. On success the app POSTs `{ id_token }` to `/api/auth/google/native` with `X-BizKit-Client: mobile`. The server checks the signature with Google's certificates, `iss`, `aud == GOOGLE_CLIENT_ID`, `exp`, and `email_verified`, then links or creates the user the same way as the browser callback. The response is the same bearer shape as `/api/auth/google/exchange`. The Google ID token is not stored and is not logged.
+
+Cancel, a device with no Google account, and missing or outdated Play services show a message and do not open the browser.
+
+The browser PKCE flow is the automatic fallback when the native module is missing (Expo Go), the platform is not Android, or Google returns a developer/config error (`DEVELOPER_ERROR`, including a SHA-1 that is not registered). That flow opens the system browser (`expo-web-browser` / `expo-auth-session`) on `GET /api/auth/google/start?client=mobile&code_challenge=...`. The challenge is the S256 hash of a verifier that stays on the device. Google redirects to the web callback. The server then redirects to `pitchcrafter://auth/google` with a single-use code that expires in 60 seconds, not the session token. The app POSTs the code and its verifier to `/api/auth/google/exchange`. Another app that registers the same scheme can see the code, but it cannot redeem the code without the verifier. Expo Go does not register that scheme, so the browser return path needs an EAS or development build that includes `scheme: pitchcrafter`.
+
+### Android OAuth clients
+
+Create these in the same Google Cloud project as the Web client. Nothing new goes on Vercel. An Android OAuth client has no secret.
+
+1. Play Console → Test and release → App integrity → App signing key certificate. Copy the SHA-1.
+2. From `mobile/`, run `eas credentials` and copy the SHA-1 of the EAS upload key.
+3. Google Cloud → APIs & Services → Credentials → Create credentials → OAuth client ID → Android.
+4. Package name: `com.glmlabs.pitchcrafter`.
+5. Google Cloud accepts one SHA-1 on each Android client. Create one client with the Play App Signing SHA-1 and a second client with the EAS upload-key SHA-1. Use the same package name on both.
+6. Set `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` on the EAS build to the Web client id (`GOOGLE_CLIENT_ID`).
+
+A build signed by a different certificate (a local debug keystore, for example) gets `DEVELOPER_ERROR` from Google and falls back to the browser. Play-installed builds are signed by the Play App Signing key, so that SHA-1 is the one those installs use. The upload-key SHA-1 covers an APK or AAB that is still signed by EAS, before Play re-signs it.
+
+The config plugin also writes an iOS URL scheme `com.googleusercontent.apps.pitchcrafter`. That string is not an OAuth client id. Android does not read it. The plugin requires some scheme value even for an Android build. Replace it with the reversed iOS client id before shipping native Google sign-in on iOS. iOS keeps the browser flow.
 
 ## Privacy policy
 

@@ -118,6 +118,7 @@ function assertPrivacyLinks() {
 }
 
 assert.match(policyHtml, /Privacy/);
+assert.match(policyHtml, /Google shares your name and email address with us/);
 assertPrivacyLinks();
 
 const port = await reservePort();
