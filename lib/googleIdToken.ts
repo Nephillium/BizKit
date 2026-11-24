@@ -70,9 +70,22 @@ function emailIsVerified(value: unknown): boolean {
   return value === true || value === 'true';
 }
 
-function audienceAccepted(claims: TokenClaims, clientId: string): boolean {
+function audienceAccepted(
+  claims: TokenClaims,
+  clientId: string,
+  allowDifferentAuthorizedParty = false,
+): boolean {
   const aud = claims.aud;
   const azp = claims.azp;
+  if (allowDifferentAuthorizedParty) {
+    const audOk = typeof aud === 'string'
+      ? aud === clientId
+      : Array.isArray(aud) && aud.some((item) => item === clientId);
+    if (!audOk) return false;
+    // Android Sign-In sets `aud` to the Web client and `azp` to the Android client.
+    if (azp === undefined) return true;
+    return typeof azp === 'string' && azp.length > 0 && azp.length <= 512;
+  }
   if (typeof aud === 'string') {
     if (aud !== clientId) return false;
     return azp === undefined || azp === clientId;
@@ -93,6 +106,11 @@ export function verifyGoogleIdToken(
     keys: readonly GoogleJwk[];
     nonce?: string;
     now?: number;
+    /**
+     * Native Android ID tokens use the Web client as `aud` and the Android
+     * client as `azp`. The browser flow keeps the stricter check.
+     */
+    allowDifferentAuthorizedParty?: boolean;
   },
 ): GoogleIdTokenResult {
   if (typeof token !== 'string' || token.length < 20 || token.length > 8192) {
@@ -153,7 +171,7 @@ export function verifyGoogleIdToken(
   if (typeof claims.iss !== 'string' || !GOOGLE_ISSUERS.includes(claims.iss as (typeof GOOGLE_ISSUERS)[number])) {
     return { ok: false, error: 'bad_issuer' };
   }
-  if (!options.clientId || !audienceAccepted(claims, options.clientId)) {
+  if (!options.clientId || !audienceAccepted(claims, options.clientId, options.allowDifferentAuthorizedParty === true)) {
     return { ok: false, error: 'bad_audience' };
   }
   if (typeof claims.exp !== 'number' || !Number.isFinite(claims.exp) || now > claims.exp + CLOCK_SKEW_SECONDS) {
@@ -225,6 +243,34 @@ export async function verifyGoogleIdTokenForClient(
     clearGoogleJwksCache();
     keys = await fetchGoogleJwks(fetchImpl);
     result = verifyGoogleIdToken(idToken, { clientId, keys, nonce });
+  }
+  return result;
+}
+
+/**
+ * Verify an ID token from the Android account picker.
+ * There is no server nonce. `aud` must be this server's Web client id.
+ * `azp` may be the Android OAuth client in the same Google Cloud project.
+ */
+export async function verifyGoogleNativeIdToken(
+  idToken: string,
+  fetchImpl: typeof fetch = fetch,
+  now?: number,
+): Promise<GoogleIdTokenResult> {
+  const clientId = (process.env.GOOGLE_CLIENT_ID || '').trim();
+  if (!clientId) return { ok: false, error: 'bad_audience' };
+  const verify = (keys: GoogleJwk[]) => verifyGoogleIdToken(idToken, {
+    clientId,
+    keys,
+    now,
+    allowDifferentAuthorizedParty: true,
+  });
+  let keys = await fetchGoogleJwks(fetchImpl);
+  let result = verify(keys);
+  if (!result.ok && result.error === 'unknown_kid') {
+    clearGoogleJwksCache();
+    keys = await fetchGoogleJwks(fetchImpl);
+    result = verify(keys);
   }
   return result;
 }

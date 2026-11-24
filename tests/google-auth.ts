@@ -3,15 +3,24 @@ import { createSign, generateKeyPairSync, type KeyObject } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { AUTH_RATE_LIMIT, allowAuthAttempt, resetAuthRateLimits } from '../lib/authRateLimit';
 import { MOBILE_CLIENT_HEADER } from '../lib/authResponse';
 import { CONTINUE_WITH_GOOGLE_LABEL } from '../components/ContinueWithGoogle';
-import { planGoogleLink } from '../lib/googleAccount';
-import { handleGoogleCallback, handleGoogleMobileExchange, handleGoogleStart } from '../lib/googleAuthHandlers';
+import { planGoogleLink, type GoogleProfile } from '../lib/googleAccount';
+import {
+  GOOGLE_NATIVE_RATE_ROUTE,
+  handleGoogleCallback,
+  handleGoogleMobileExchange,
+  handleGoogleNative,
+  handleGoogleStart,
+} from '../lib/googleAuthHandlers';
 import { googleSignInErrorMessage } from '../lib/googleAuthCopy';
 import {
   GOOGLE_ISSUERS,
   GOOGLE_SCOPE_PARAM,
+  clearGoogleJwksCache,
   verifyGoogleIdToken,
+  verifyGoogleNativeIdToken,
   type GoogleJwk,
 } from '../lib/googleIdToken';
 import {
@@ -38,6 +47,24 @@ const {
   requestMobileSession,
   resolveGoogleRedirectUri,
 } = require('../mobile/src/lib/googleRedirect.ts') as typeof import('../mobile/src/lib/googleRedirect');
+const {
+  GOOGLE_CANCELLED_MESSAGE,
+  GOOGLE_DEVELOPER_ERROR,
+  GOOGLE_FAILED_MESSAGE,
+  GOOGLE_NO_ACCOUNT_MESSAGE,
+  GOOGLE_NO_SAVED_CREDENTIAL,
+  GOOGLE_NULL_PRESENTER,
+  GOOGLE_PLAY_SERVICES_MESSAGE,
+  GOOGLE_PLAY_SERVICES_NOT_AVAILABLE,
+  GOOGLE_RATE_LIMIT_MESSAGE,
+  GOOGLE_SIGN_IN_CANCELLED,
+  GOOGLE_SIGN_IN_FAILED,
+  GOOGLE_SIGN_IN_REQUIRED,
+  classifyNativeGoogleError,
+  nativeGoogleAuthEnabled,
+  requestNativeGoogleSession,
+  shouldUseNativeGoogleSignIn,
+} = require('../mobile/src/lib/googleNative.ts') as typeof import('../mobile/src/lib/googleNative');
 
 const CLIENT_ID = 'test-google-client-id';
 const CLIENT_SECRET = 'test-google-client-secret-not-in-urls';
@@ -166,6 +193,26 @@ function testIdToken() {
     { clientId: CLIENT_ID, keys, nonce: 'nonce-1', now: NOW },
   );
   assert.equal(plainIssuer.ok, true);
+
+  const androidPresenter = signToken(
+    claims({ azp: 'android-client-id', nonce: undefined }),
+    privateKey,
+  );
+  const strictPresenter = verifyGoogleIdToken(androidPresenter, {
+    clientId: CLIENT_ID,
+    keys,
+    nonce: 'nonce-1',
+    now: NOW,
+  });
+  assert.equal(strictPresenter.ok, false);
+  if (!strictPresenter.ok) assert.equal(strictPresenter.error, 'bad_audience');
+  const nativePresenter = verifyGoogleIdToken(androidPresenter, {
+    clientId: CLIENT_ID,
+    keys,
+    now: NOW,
+    allowDifferentAuthorizedParty: true,
+  });
+  assert.equal(nativePresenter.ok, true);
 
   const verifiedString = verifyGoogleIdToken(
     signToken(claims({ email_verified: 'true' }), privateKey),
@@ -754,8 +801,96 @@ async function testMobileContract() {
   assert.match(button, /Continue with Google/);
   assert.match(button, /#747775/);
   assert.match(appJson, /"scheme": "pitchcrafter"/);
-  assert.match(appJson, /"versionCode": 4/);
+  assert.match(appJson, /"versionCode": 5/);
   assert.match(appConfig, /EXPO_PUBLIC_GOOGLE_AUTH/);
+  assert.match(appConfig, /EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID/);
+  assert.match(appConfig, /@react-native-google-signin\/google-signin/);
+  const mobilePackage = readFileSync('mobile/package.json', 'utf8');
+  assert.match(mobilePackage, /@react-native-google-signin\/google-signin/);
+  const signInSource = readFileSync('mobile/src/lib/googleSignIn.ts', 'utf8');
+  assert.match(signInSource, /startBrowserGoogleSignIn/);
+  assert.match(signInSource, /attemptNativeGoogleSignIn/);
+  assert.match(signInSource, /hasPlayServices/);
+  assert.match(signInSource, /webClientId/);
+  assert.match(readFileSync('pages/api/auth/google/native.ts', 'utf8'), /handleGoogleNative/);
+  const handlerSource = readFileSync('lib/googleAuthHandlers.ts', 'utf8');
+  const nativeHandler = handlerSource.slice(handlerSource.indexOf('export async function handleGoogleNative'));
+  assert.equal(nativeHandler.includes('console.'), false);
+
+  assert.equal(nativeGoogleAuthEnabled('1', 'web-client-id'), true);
+  assert.equal(nativeGoogleAuthEnabled('1', '  '), false);
+  assert.equal(nativeGoogleAuthEnabled('1', undefined), false);
+  assert.equal(nativeGoogleAuthEnabled(undefined, 'web-client-id'), false);
+  assert.equal(nativeGoogleAuthEnabled('true', 'web-client-id'), false);
+  assert.equal(shouldUseNativeGoogleSignIn({
+    platform: 'android',
+    authFlag: '1',
+    webClientId: 'web-client-id',
+  }), true);
+  assert.equal(shouldUseNativeGoogleSignIn({
+    platform: 'ios',
+    authFlag: '1',
+    webClientId: 'web-client-id',
+  }), false);
+  assert.equal(shouldUseNativeGoogleSignIn({
+    platform: 'android',
+    authFlag: '1',
+    webClientId: '',
+  }), false);
+
+  const cancelledDecision = classifyNativeGoogleError({ code: GOOGLE_SIGN_IN_CANCELLED });
+  assert.equal(cancelledDecision.action, 'cancelled');
+  if (cancelledDecision.action === 'cancelled') {
+    assert.equal(cancelledDecision.message, GOOGLE_CANCELLED_MESSAGE);
+  }
+  const noAccount = classifyNativeGoogleError({ code: GOOGLE_SIGN_IN_REQUIRED });
+  assert.equal(noAccount.action, 'message');
+  if (noAccount.action === 'message') assert.equal(noAccount.message, GOOGLE_NO_ACCOUNT_MESSAGE);
+  const noCredential = classifyNativeGoogleError({ code: GOOGLE_NO_SAVED_CREDENTIAL });
+  if (noCredential.action === 'message') assert.equal(noCredential.message, GOOGLE_NO_ACCOUNT_MESSAGE);
+  const noAccountText = classifyNativeGoogleError({ message: 'No Google account on this device' });
+  if (noAccountText.action === 'message') assert.equal(noAccountText.message, GOOGLE_NO_ACCOUNT_MESSAGE);
+  const playServices = classifyNativeGoogleError({ code: GOOGLE_PLAY_SERVICES_NOT_AVAILABLE });
+  if (playServices.action === 'message') assert.equal(playServices.message, GOOGLE_PLAY_SERVICES_MESSAGE);
+  assert.equal(classifyNativeGoogleError({ code: GOOGLE_DEVELOPER_ERROR }).action, 'fallback');
+  assert.equal(classifyNativeGoogleError({ code: GOOGLE_SIGN_IN_FAILED, message: 'DEVELOPER_ERROR' }).action, 'fallback');
+  assert.equal(classifyNativeGoogleError({ code: GOOGLE_NULL_PRESENTER }).action, 'fallback');
+  assert.equal(classifyNativeGoogleError({ message: 'Cannot find native module' }).action, 'fallback');
+  const unknownCode = classifyNativeGoogleError({ code: '999' });
+  if (unknownCode.action === 'message') assert.equal(unknownCode.message, GOOGLE_FAILED_MESSAGE);
+
+  const nativeIdToken = 'header.payload.signature';
+  let nativeUrl = '';
+  let nativeBody = '';
+  let nativeHeader = '';
+  const nativeSession = await requestNativeGoogleSession(
+    'https://pitchcrafter.glmlabs.io',
+    nativeIdToken,
+    async (url, init) => {
+      nativeUrl = String(url);
+      nativeBody = String(init?.body);
+      nativeHeader = String((init?.headers as Record<string, string>)['X-BizKit-Client']);
+      return {
+        ok: true,
+        json: async () => ({ ok: true, token: 'session-from-native', created: true }),
+      } as Response;
+    },
+  );
+  assert.equal(nativeUrl, 'https://pitchcrafter.glmlabs.io/api/auth/google/native');
+  assert.equal(nativeUrl.includes(nativeIdToken), false);
+  assert.equal(nativeHeader, 'mobile');
+  assert.match(nativeBody, /"id_token":"header.payload.signature"/);
+  assert.equal('token' in nativeSession && nativeSession.token, 'session-from-native');
+  const limitedSession = await requestNativeGoogleSession(
+    'https://pitchcrafter.glmlabs.io',
+    nativeIdToken,
+    async () => ({
+      ok: false,
+      json: async () => ({ ok: false, error: 'rate_limited' }),
+    }) as Response,
+  );
+  assert.deepEqual(limitedSession, { error: GOOGLE_RATE_LIMIT_MESSAGE });
+  assert.equal(JSON.stringify(limitedSession).includes(nativeIdToken), false);
 }
 
 function testWebButton() {
@@ -779,10 +914,201 @@ function testWebButton() {
   assert.match(account, /recordSignIn\(user\.id\)/);
 }
 
+function nativeRequest(
+  body: unknown,
+  remoteAddress: string,
+  headers: Record<string, string> = { [MOBILE_CLIENT_HEADER]: 'mobile' },
+): NextApiRequest {
+  return {
+    method: 'POST',
+    body,
+    headers,
+    socket: { remoteAddress },
+  } as unknown as NextApiRequest;
+}
+
+async function testNativeEndpoint() {
+  clearGoogleJwksCache();
+  resetAuthRateLimits();
+  const logs: string[] = [];
+  const consoleMethods = ['log', 'info', 'warn', 'error', 'debug'] as const;
+  const original = Object.fromEntries(consoleMethods.map((method) => [method, console[method]])) as {
+    [K in (typeof consoleMethods)[number]]: typeof console[K];
+  };
+  for (const method of consoleMethods) {
+    console[method] = (...args: unknown[]) => {
+      logs.push(args.map((arg) => (typeof arg === 'string' ? arg : JSON.stringify(arg))).join(' '));
+    };
+  }
+
+  const jwksFetch = (async () => ({
+    ok: true,
+    json: async () => ({ keys }),
+  })) as unknown as typeof fetch;
+
+  const androidClient = 'android-oauth-client.apps.googleusercontent.com';
+  let signedInWith: GoogleProfile | null = null;
+  const deps = {
+    verifyIdToken: (idToken: string) => verifyGoogleNativeIdToken(idToken, jwksFetch, NOW),
+    signIn: async (profile: GoogleProfile) => {
+      signedInWith = profile;
+      return {
+        token: 'native-session-token',
+        created: true,
+        user: {
+          id: 'user-9',
+          email: profile.email,
+          role: 'user' as const,
+          credits: 0,
+          usage_count: 0,
+          created_at: new Date('2026-01-01T00:00:00.000Z'),
+        },
+      };
+    },
+  };
+
+  function nativeToken(overrides: Record<string, unknown> = {}) {
+    return signToken(claims({
+      azp: androidClient,
+      nonce: undefined,
+      ...overrides,
+    }), privateKey);
+  }
+
+  try {
+    await withEnvAsync(configuredEnv(), async () => {
+      const idToken = nativeToken({ iss: 'accounts.google.com' });
+      const ok = createResponse();
+      await handleGoogleNative(nativeRequest({ id_token: idToken }, '203.0.113.40'), ok.res, deps);
+      assert.equal(ok.result().statusCode, 200);
+      const body = ok.result().jsonBody as {
+        ok?: boolean;
+        token?: string;
+        created?: boolean;
+        user?: { email?: string; password_hash?: string; id?: string };
+      };
+      assert.equal(body.ok, true);
+      assert.equal(body.token, 'native-session-token');
+      assert.equal(body.created, true);
+      assert.equal(body.user?.email, 'ada@example.com');
+      assert.equal(body.user?.id, 'user-9');
+      assert.equal(body.user?.password_hash, undefined);
+      assert.match(String(ok.result().setCookie), /bizkit_token=native-session-token/);
+      assert.equal(JSON.stringify(body).includes(idToken), false);
+      assert.equal(JSON.stringify(body).includes('avatar'), false);
+      assert.equal(JSON.stringify(ok.result().setCookie).includes(idToken), false);
+      assert.ok(signedInWith);
+      assert.equal(signedInWith?.email, 'ada@example.com');
+      assert.equal(signedInWith?.sub, 'google-sub-1');
+      assert.equal(signedInWith?.name, 'Ada Lovelace');
+      assert.equal(signedInWith?.emailVerified, true);
+      assert.equal(JSON.stringify(signedInWith).includes('avatar'), false);
+
+      const httpsIssuer = nativeToken({ iss: 'https://accounts.google.com' });
+      signedInWith = null;
+      const httpsOk = createResponse();
+      await handleGoogleNative(nativeRequest({ id_token: httpsIssuer }, '203.0.113.45'), httpsOk.res, deps);
+      assert.equal(httpsOk.result().statusCode, 200);
+      assert.equal((httpsOk.result().jsonBody as { token?: string }).token, 'native-session-token');
+
+      signedInWith = null;
+      const wrongAudienceToken = nativeToken({ aud: 'other-client' });
+      const wrongAudience = createResponse();
+      await handleGoogleNative(
+        nativeRequest({ id_token: wrongAudienceToken }, '203.0.113.41'),
+        wrongAudience.res,
+        deps,
+      );
+      assert.equal(wrongAudience.result().statusCode, 401);
+      assert.equal((wrongAudience.result().jsonBody as { error?: string }).error, 'bad_audience');
+      assert.equal(wrongAudience.result().jsonBody && JSON.stringify(wrongAudience.result().jsonBody).includes(wrongAudienceToken), false);
+      assert.equal(signedInWith, null);
+
+      const expiredToken = nativeToken({ exp: NOW - 120 });
+      const expired = createResponse();
+      await handleGoogleNative(nativeRequest({ id_token: expiredToken }, '203.0.113.42'), expired.res, deps);
+      assert.equal(expired.result().statusCode, 401);
+      assert.equal((expired.result().jsonBody as { error?: string }).error, 'expired');
+      assert.equal(JSON.stringify(expired.result().jsonBody).includes(expiredToken), false);
+      assert.equal(signedInWith, null);
+
+      const unverifiedToken = nativeToken({ email_verified: false });
+      const unverified = createResponse();
+      await handleGoogleNative(
+        nativeRequest({ id_token: unverifiedToken }, '203.0.113.43'),
+        unverified.res,
+        deps,
+      );
+      assert.equal(unverified.result().statusCode, 401);
+      assert.equal((unverified.result().jsonBody as { error?: string }).error, 'email_not_verified');
+      assert.equal(JSON.stringify(unverified.result().jsonBody).includes(unverifiedToken), false);
+      assert.equal(signedInWith, null);
+
+      const tamperedParts = idToken.split('.');
+      tamperedParts[1] = base64url(JSON.stringify(claims({ email: 'other@example.com', nonce: undefined })));
+      const tamperedToken = tamperedParts.join('.');
+      const tampered = createResponse();
+      await handleGoogleNative(nativeRequest({ id_token: tamperedToken }, '203.0.113.44'), tampered.res, deps);
+      assert.equal(tampered.result().statusCode, 401);
+      assert.equal((tampered.result().jsonBody as { error?: string }).error, 'token_invalid');
+      assert.equal(signedInWith, null);
+
+      const missingHeader = createResponse();
+      await handleGoogleNative(
+        nativeRequest({ id_token: idToken }, '203.0.113.46', {}),
+        missingHeader.res,
+        deps,
+      );
+      assert.equal(missingHeader.result().statusCode, 400);
+      assert.equal((missingHeader.result().jsonBody as { error?: string }).error, 'mobile_client_required');
+
+      const missingToken = createResponse();
+      await handleGoogleNative(nativeRequest({}, '203.0.113.47'), missingToken.res, deps);
+      assert.equal(missingToken.result().statusCode, 400);
+      assert.equal((missingToken.result().jsonBody as { error?: string }).error, 'invalid_token');
+
+      const wrongMethod = createResponse();
+      await handleGoogleNative(
+        { method: 'GET', query: {}, headers: {}, socket: { remoteAddress: '203.0.113.48' } } as unknown as NextApiRequest,
+        wrongMethod.res,
+        deps,
+      );
+      assert.equal(wrongMethod.result().statusCode, 405);
+
+      setEnv('GOOGLE_CLIENT_ID', undefined);
+      const disabled = createResponse();
+      await handleGoogleNative(nativeRequest({ id_token: idToken }, '203.0.113.49'), disabled.res, deps);
+      assert.equal(disabled.result().statusCode, 404);
+      assert.equal((disabled.result().jsonBody as { error?: string }).error, 'google_auth_disabled');
+      setEnv('GOOGLE_CLIENT_ID', CLIENT_ID);
+
+      const floodAddress = '198.51.100.77';
+      for (let attempt = 0; attempt < AUTH_RATE_LIMIT; attempt += 1) {
+        assert.equal(allowAuthAttempt(GOOGLE_NATIVE_RATE_ROUTE, floodAddress, Date.now()), true);
+      }
+      const limitedToken = `limited-${idToken}`;
+      const limited = createResponse();
+      await handleGoogleNative(nativeRequest({ id_token: limitedToken }, floodAddress), limited.res, deps);
+      assert.equal(limited.result().statusCode, 429);
+      assert.equal((limited.result().jsonBody as { error?: string }).error, 'rate_limited');
+      assert.equal(JSON.stringify(limited.result().jsonBody).includes(limitedToken), false);
+      assert.equal(JSON.stringify(limited.result()).includes(limitedToken), false);
+    });
+    assert.equal(logs.some((line) => line.includes('native-session-token')), false);
+    assert.equal(logs.some((line) => line.includes('android-oauth-client')), false);
+    assert.equal(logs.some((line) => line.includes('eyJ')), false);
+  } finally {
+    for (const method of consoleMethods) console[method] = original[method];
+    clearGoogleJwksCache();
+    resetAuthRateLimits();
+  }
+}
+
 testIdToken();
 testLinkPlan();
 testConfigGate();
 await testOAuthHandlers();
 await testMobileContract();
+await testNativeEndpoint();
 testWebButton();
 console.log('google auth tests passed');
