@@ -4,7 +4,6 @@ import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
 import { getApiBaseUrl } from './api';
 import {
-  GOOGLE_CANCELLED_MESSAGE,
   classifyNativeGoogleError,
   requestNativeGoogleSession,
   shouldUseNativeGoogleSignIn,
@@ -138,7 +137,7 @@ async function attemptNativeGoogleSignIn(apiBaseUrl: string): Promise<NativeAtte
   } catch (error) {
     const decision = classifyNativeGoogleError(thrownGoogleError(error, isErrorWithCode));
     if (decision.action === 'fallback') return { fallback: true };
-    if (decision.action === 'cancelled') return { error: decision.message };
+    if (decision.action === 'cancelled') return { cancelled: true };
     return { error: decision.message };
   }
 
@@ -157,10 +156,11 @@ async function attemptNativeGoogleSignIn(apiBaseUrl: string): Promise<NativeAtte
       if ('error' in session) return { error: session.error };
       return { token: session.token, created: session.created };
     }
-    return { error: GOOGLE_CANCELLED_MESSAGE };
+    return { cancelled: true };
   } catch (error) {
     const decision = classifyNativeGoogleError(thrownGoogleError(error, isErrorWithCode));
     if (decision.action === 'fallback') return { fallback: true };
+    if (decision.action === 'cancelled') return { cancelled: true };
     return { error: decision.message };
   }
 }

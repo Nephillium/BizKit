@@ -3,7 +3,14 @@ import { createSign, generateKeyPairSync, type KeyObject } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { AUTH_RATE_LIMIT, allowAuthAttempt, resetAuthRateLimits } from '../lib/authRateLimit';
+import {
+  AUTH_RATE_LIMIT,
+  AUTH_RATE_WINDOW_MS,
+  allowAuthAttempt,
+  authRateLimitBucketCount,
+  clientAddressFromRequest,
+  resetAuthRateLimits,
+} from '../lib/authRateLimit';
 import { MOBILE_CLIENT_HEADER } from '../lib/authResponse';
 import { CONTINUE_WITH_GOOGLE_LABEL } from '../components/ContinueWithGoogle';
 import { planGoogleLink, type GoogleProfile } from '../lib/googleAccount';
@@ -18,8 +25,10 @@ import { googleSignInErrorMessage } from '../lib/googleAuthCopy';
 import {
   GOOGLE_ISSUERS,
   GOOGLE_SCOPE_PARAM,
+  GOOGLE_JWKS_UNKNOWN_KID_REFRESH_MS,
   clearGoogleJwksCache,
   verifyGoogleIdToken,
+  verifyGoogleIdTokenForClient,
   verifyGoogleNativeIdToken,
   type GoogleJwk,
 } from '../lib/googleIdToken';
@@ -812,6 +821,12 @@ async function testMobileContract() {
   assert.match(signInSource, /attemptNativeGoogleSignIn/);
   assert.match(signInSource, /hasPlayServices/);
   assert.match(signInSource, /webClientId/);
+  const nativeAttempt = signInSource.slice(
+    signInSource.indexOf('async function attemptNativeGoogleSignIn'),
+    signInSource.indexOf('export async function startBrowserGoogleSignIn'),
+  );
+  assert.match(nativeAttempt, /return \{ cancelled: true \}/);
+  assert.equal(nativeAttempt.includes('GOOGLE_CANCELLED_MESSAGE'), false);
   assert.match(readFileSync('pages/api/auth/google/native.ts', 'utf8'), /handleGoogleNative/);
   const handlerSource = readFileSync('lib/googleAuthHandlers.ts', 'utf8');
   const nativeHandler = handlerSource.slice(handlerSource.indexOf('export async function handleGoogleNative'));
@@ -1104,10 +1119,105 @@ async function testNativeEndpoint() {
   }
 }
 
+function proxyRequest(forwardedFor: string): NextApiRequest {
+  return {
+    socket: { remoteAddress: '10.0.0.8' },
+    headers: { 'x-forwarded-for': forwardedFor },
+  } as unknown as NextApiRequest;
+}
+
+function testAuthRateLimitWindow() {
+  resetAuthRateLimits();
+  const previous = process.env.TRUST_PROXY;
+  try {
+    const t0 = 5_000_000;
+    assert.equal(allowAuthAttempt('google-native', '203.0.113.1', t0), true);
+    assert.equal(allowAuthAttempt('google-native', '203.0.113.2', t0), true);
+    assert.equal(authRateLimitBucketCount(), 2);
+    assert.equal(allowAuthAttempt('google-native', '203.0.113.3', t0 + AUTH_RATE_WINDOW_MS), true);
+    assert.equal(authRateLimitBucketCount(), 1);
+
+    setEnv('TRUST_PROXY', undefined);
+    const sharedA = clientAddressFromRequest(proxyRequest('203.0.113.8'));
+    const sharedB = clientAddressFromRequest(proxyRequest('198.51.100.9'));
+    assert.equal(sharedA, '10.0.0.8');
+    assert.equal(sharedB, sharedA);
+    resetAuthRateLimits();
+    for (let attempt = 0; attempt < AUTH_RATE_LIMIT; attempt += 1) {
+      assert.equal(allowAuthAttempt(GOOGLE_NATIVE_RATE_ROUTE, sharedA, t0), true);
+    }
+    assert.equal(allowAuthAttempt(GOOGLE_NATIVE_RATE_ROUTE, sharedB, t0), false);
+
+    setEnv('TRUST_PROXY', '1');
+    const visitorA = clientAddressFromRequest(proxyRequest('203.0.113.8'));
+    const visitorB = clientAddressFromRequest(proxyRequest('198.51.100.9'));
+    assert.equal(visitorA, '203.0.113.8');
+    assert.equal(visitorB, '198.51.100.9');
+    resetAuthRateLimits();
+    for (let attempt = 0; attempt < AUTH_RATE_LIMIT; attempt += 1) {
+      assert.equal(allowAuthAttempt(GOOGLE_NATIVE_RATE_ROUTE, visitorA, t0), true);
+    }
+    assert.equal(allowAuthAttempt(GOOGLE_NATIVE_RATE_ROUTE, visitorB, t0), true);
+    assert.equal(allowAuthAttempt(GOOGLE_NATIVE_RATE_ROUTE, visitorA, t0), false);
+  } finally {
+    setEnv('TRUST_PROXY', previous);
+    resetAuthRateLimits();
+  }
+}
+
+async function testUnknownKidRefreshThrottle() {
+  clearGoogleJwksCache();
+  const previous = process.env.GOOGLE_CLIENT_ID;
+  setEnv('GOOGLE_CLIENT_ID', CLIENT_ID);
+  let fetches = 0;
+  const jwksFetch = (async () => {
+    fetches += 1;
+    return { ok: true, json: async () => ({ keys }) };
+  }) as unknown as typeof fetch;
+  const token = signToken(claims(), privateKey, { alg: 'RS256', typ: 'JWT', kid: 'missing' });
+  const t0 = 1_800_000_000_000;
+  try {
+    const first = await verifyGoogleNativeIdToken(token, jwksFetch, NOW, t0);
+    assert.equal(first.ok, false);
+    if (!first.ok) assert.equal(first.error, 'unknown_kid');
+    assert.equal(fetches, 2);
+
+    const second = await verifyGoogleNativeIdToken(token, jwksFetch, NOW, t0 + 1_000);
+    assert.equal(second.ok, false);
+    if (!second.ok) assert.equal(second.error, 'unknown_kid');
+    assert.equal(fetches, 2);
+
+    const third = await verifyGoogleNativeIdToken(
+      token,
+      jwksFetch,
+      NOW,
+      t0 + GOOGLE_JWKS_UNKNOWN_KID_REFRESH_MS,
+    );
+    assert.equal(third.ok, false);
+    if (!third.ok) assert.equal(third.error, 'unknown_kid');
+    assert.equal(fetches, 3);
+
+    const browser = await verifyGoogleIdTokenForClient(
+      token,
+      'nonce-1',
+      jwksFetch,
+      t0 + GOOGLE_JWKS_UNKNOWN_KID_REFRESH_MS,
+    );
+    assert.equal(browser.ok, false);
+    if (!browser.ok) assert.equal(browser.error, 'unknown_kid');
+    assert.equal(fetches, 3);
+  } finally {
+    setEnv('GOOGLE_CLIENT_ID', previous);
+    clearGoogleJwksCache();
+  }
+}
+
 testIdToken();
 testLinkPlan();
+testAuthRateLimitWindow();
 testConfigGate();
 await testOAuthHandlers();
+await testUnknownKidRefreshThrottle();
 await testMobileContract();
 await testNativeEndpoint();
 testWebButton();
