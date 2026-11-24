@@ -209,8 +209,27 @@ export function verifyGoogleIdToken(
 type JwksCache = { keys: GoogleJwk[]; expiresAt: number };
 let jwksCache: JwksCache | null = null;
 
+/** Unknown key ids may refresh Google's certificates at most this often. */
+export const GOOGLE_JWKS_UNKNOWN_KID_REFRESH_MS = 60_000;
+
+let lastUnknownKidRefreshMs = Number.NEGATIVE_INFINITY;
+
 export function clearGoogleJwksCache(): void {
   jwksCache = null;
+  lastUnknownKidRefreshMs = Number.NEGATIVE_INFINITY;
+}
+
+/**
+ * One certificate refetch per minute when a token names a key id we do not
+ * have yet. Returns false when the last refetch is still inside the window,
+ * so a stream of unknown kids cannot fetch Google on every request.
+ * A true result drops the cached certificates before the caller fetches again.
+ */
+function takeUnknownKidRefresh(nowMs: number): boolean {
+  if (nowMs - lastUnknownKidRefreshMs < GOOGLE_JWKS_UNKNOWN_KID_REFRESH_MS) return false;
+  lastUnknownKidRefreshMs = nowMs;
+  jwksCache = null;
+  return true;
 }
 
 export async function fetchGoogleJwks(
@@ -234,13 +253,13 @@ export async function verifyGoogleIdTokenForClient(
   idToken: string,
   nonce: string,
   fetchImpl: typeof fetch = fetch,
+  refreshNow = Date.now(),
 ): Promise<GoogleIdTokenResult> {
   const clientId = (process.env.GOOGLE_CLIENT_ID || '').trim();
   if (!clientId) return { ok: false, error: 'bad_audience' };
   let keys = await fetchGoogleJwks(fetchImpl);
   let result = verifyGoogleIdToken(idToken, { clientId, keys, nonce });
-  if (!result.ok && result.error === 'unknown_kid') {
-    clearGoogleJwksCache();
+  if (!result.ok && result.error === 'unknown_kid' && takeUnknownKidRefresh(refreshNow)) {
     keys = await fetchGoogleJwks(fetchImpl);
     result = verifyGoogleIdToken(idToken, { clientId, keys, nonce });
   }
@@ -256,6 +275,7 @@ export async function verifyGoogleNativeIdToken(
   idToken: string,
   fetchImpl: typeof fetch = fetch,
   now?: number,
+  refreshNow = Date.now(),
 ): Promise<GoogleIdTokenResult> {
   const clientId = (process.env.GOOGLE_CLIENT_ID || '').trim();
   if (!clientId) return { ok: false, error: 'bad_audience' };
@@ -267,8 +287,7 @@ export async function verifyGoogleNativeIdToken(
   });
   let keys = await fetchGoogleJwks(fetchImpl);
   let result = verify(keys);
-  if (!result.ok && result.error === 'unknown_kid') {
-    clearGoogleJwksCache();
+  if (!result.ok && result.error === 'unknown_kid' && takeUnknownKidRefresh(refreshNow)) {
     keys = await fetchGoogleJwks(fetchImpl);
     result = verify(keys);
   }
