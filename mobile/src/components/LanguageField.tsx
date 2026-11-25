@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { LANGUAGES } from '../lib/generationOptions';
 import { theme } from '../lib/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLanguage } from '../contexts/LanguageContext';
 
 interface LanguageFieldProps {
@@ -19,6 +20,7 @@ interface LanguageFieldProps {
 
 export function LanguageField({ value, onChange }: LanguageFieldProps) {
   const { t } = useLanguage();
+  const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [customMode, setCustomMode] = useState(false);
@@ -59,7 +61,7 @@ export function LanguageField({ value, onChange }: LanguageFieldProps) {
         <Text style={styles.triggerText}>{value || t.selectLanguage}</Text>
       </TouchableOpacity>
       <Modal visible={open} animationType="slide" onRequestClose={close}>
-        <View style={styles.modal}>
+        <View style={[styles.modal, { paddingTop: insets.top + 12, paddingBottom: insets.bottom }]}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{t.selectLanguage}</Text>
             <TouchableOpacity style={styles.done} onPress={close} accessibilityRole="button">

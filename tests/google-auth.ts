@@ -842,7 +842,7 @@ async function testMobileContract() {
   assert.match(button, /Continue with Google/);
   assert.match(button, /#747775/);
   assert.match(appJson, /"scheme": "pitchcrafter"/);
-  assert.match(appJson, /"versionCode": 8/);
+  assert.match(appJson, /"versionCode": 9/);
   assert.match(appJson, /#6366F1/);
   assert.match(appJson, /#FAFAFA/);
   const appSource = readFileSync('mobile/App.tsx', 'utf8');

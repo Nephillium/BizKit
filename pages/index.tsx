@@ -7,7 +7,13 @@ import { useAuth } from '../hooks/useAuth'
 import { ACCOUNT_DELETION_PATH } from '../lib/accountDeletionCopy'
 import { googleSignInErrorMessage } from '../lib/googleAuthCopy'
 import type { Generation } from '../shared/schema'
-import { LANGUAGE_STORAGE_KEY, readStoredLanguage } from '../lib/languagePreference'
+import { LANGUAGES } from '../mobile/src/lib/generationOptions'
+import {
+  LANGUAGE_STORAGE_KEY,
+  generationLanguageForInterface,
+  readStoredGenerationLanguage,
+  readStoredLanguage,
+} from '../lib/languagePreference'
 import { translations, getTranslation, type Language } from '../lib/translations'
 import { HistoryPanel, type HistoryToolFilter } from '../components/HistoryPanel'
 import {
@@ -17,7 +23,6 @@ import {
   withTypeResult,
   type ContentType,
 } from '../mobile/src/lib/contentDrafts'
-import { LANGUAGES } from '../mobile/src/lib/generationOptions'
 
 type Tool = ContentType
 type CopyState = 'idle' | 'copied' | 'error'
@@ -111,6 +116,15 @@ const initialFormData: FormData = {
     platform: '',
     language: 'English',
   },
+}
+
+function withGenerationLanguage(data: FormData, generationLanguage: string): FormData {
+  return {
+    cold_email: { ...data.cold_email, language: generationLanguage },
+    proposal: { ...data.proposal, language: generationLanguage },
+    contract: { ...data.contract, language: generationLanguage },
+    social_pack: { ...data.social_pack, language: generationLanguage },
+  }
 }
 
 function getTabLabels(t: ReturnType<typeof getTranslation>): Record<Tool, string> {
@@ -450,10 +464,13 @@ export default function Home() {
   const [runtime, setRuntime] = useState<RuntimeConfig | null>(null)
 
   useEffect(() => {
-    const savedLang = readStoredLanguage((key) => localStorage.getItem(key))
+    const read = (key: string) => localStorage.getItem(key)
+    const savedLang = readStoredLanguage(read)
     if (savedLang) {
       setLang(savedLang)
     }
+    const generationLanguage = readStoredGenerationLanguage(read, LANGUAGES)
+    setFormData((current) => withGenerationLanguage(current, generationLanguage))
   }, [])
 
   useEffect(() => {
@@ -479,6 +496,7 @@ export default function Home() {
     const newLang = lang === 'en' ? 'tr' : 'en'
     setLang(newLang)
     localStorage.setItem(LANGUAGE_STORAGE_KEY, newLang)
+    setFormData((current) => withGenerationLanguage(current, generationLanguageForInterface(newLang)))
   }
 
   useEffect(() => {

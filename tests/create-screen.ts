@@ -16,6 +16,7 @@ const {
   PLATFORM_PRESETS,
   TONE_PRESETS,
 } = require('../mobile/src/lib/generationOptions.ts') as typeof import('../mobile/src/lib/generationOptions');
+const { isResultCardInView } = require('../mobile/src/lib/resultScroll.ts') as typeof import('../mobile/src/lib/resultScroll');
 
 const home = readFileSync('mobile/src/screens/HomeScreen.tsx', 'utf8');
 const web = readFileSync('pages/index.tsx', 'utf8');
@@ -38,6 +39,10 @@ results = withTypeResult(results, 'cold_email', '');
 assert.equal(resultForType(results, 'cold_email'), '');
 assert.equal(resultForType(results, 'proposal'), 'proposal draft');
 assert.deepEqual(types.map((type) => resultForType(emptyContentResults(), type)), ['', '', '', '']);
+assert.equal(isResultCardInView(null, 0, 800), false);
+assert.equal(isResultCardInView({ y: 900, height: 200 }, 0, 800), false);
+assert.equal(isResultCardInView({ y: 120, height: 200 }, 0, 800), true);
+assert.equal(isResultCardInView({ y: 40, height: 80 }, 200, 800), false);
 
 assert.equal(LANGUAGES.includes('English'), true);
 assert.equal(LANGUAGES.includes('Turkish'), true);
@@ -67,7 +72,7 @@ assert.match(web, /withTypeResult/);
 assert.match(web, /resultForType/);
 assert.doesNotMatch(web, /setOutput\(/);
 
-assert.match(appJson, /"versionCode": 8/);
+assert.match(appJson, /"versionCode": 9/);
 assert.match(home, /adjustsFontSizeToFit/);
 assert.match(home, /numberOfLines=\{1\}/);
 assert.match(home, /flex: 1/);
@@ -77,6 +82,15 @@ assert.match(readFileSync('mobile/src/lib/translations.ts', 'utf8'), /coldEmail:
 assert.match(readFileSync('mobile/src/lib/translations.ts', 'utf8'), /coldEmail: 'Soğuk Posta'/);
 assert.match(readFileSync('lib/translations.ts', 'utf8'), /coldEmail: 'Cold Mail'/);
 assert.match(readFileSync('lib/translations.ts', 'utf8'), /coldEmail: 'Soğuk Posta'/);
+assert.match(home, /assets\/icon\.png/);
+assert.match(home, /width: 28/);
+assert.match(home, /scrollTo/);
+assert.match(home, /onLayout/);
+assert.match(home, /seeResult/);
+assert.match(readFileSync('mobile/src/lib/translations.ts', 'utf8'), /seeResult: 'See result ↓'/);
+assert.match(readFileSync('mobile/src/lib/translations.ts', 'utf8'), /seeResult: 'Sonucu gör ↓'/);
+assert.match(readFileSync('mobile/src/screens/ProfileScreen.tsx', 'utf8'), /setPreferredLanguage/);
+assert.match(readFileSync('mobile/src/screens/ProfileScreen.tsx', 'utf8'), /LanguageField/);
 assert.match(appJson, /#6366F1/);
 assert.match(appJson, /#FAFAFA/);
 assert.doesNotMatch(appJson, /#FD7C55/);

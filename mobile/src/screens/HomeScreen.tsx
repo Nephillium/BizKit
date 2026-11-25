@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,10 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Image,
+  type LayoutChangeEvent,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Clipboard from 'expo-clipboard';
@@ -22,6 +26,7 @@ import {
 } from '../lib/contentDrafts';
 import { PLATFORM_PRESETS, tonePresets } from '../lib/generationOptions';
 import { theme } from '../lib/theme';
+import { isResultCardInView } from '../lib/resultScroll';
 import { OptionChips } from '../components/OptionChips';
 import { LanguageField } from '../components/LanguageField';
 import { AdvancedOptions, type PremiumOptionsState } from '../components/AdvancedOptions';
@@ -73,9 +78,16 @@ const DEFAULT_PREMIUM: PremiumOptionsState = {
 
 export default function HomeScreen() {
   const { user, refreshUser } = useAuth();
-  const { t, language, setLanguage } = useLanguage();
+  const { t, language, generationLanguage, setLanguage } = useLanguage();
   const insets = useSafeAreaInsets();
+  const scrollRef = useRef<ScrollView>(null);
+  const pendingScrollTool = useRef<ContentType | null>(null);
+  const scrollMetrics = useRef({ scrollY: 0, viewport: 0, y: 0, height: 0 });
+  const [resultInView, setResultInView] = useState(true);
+  const [autoScrolling, setAutoScrolling] = useState(false);
   const [activeTab, setActiveTab] = useState<ContentType>('cold_email');
+  const activeTabRef = useRef<ContentType>('cold_email');
+  activeTabRef.current = activeTab;
   const [loadingTool, setLoadingTool] = useState<ContentType | null>(null);
   const [results, setResults] = useState(emptyContentResults);
   const [copiedType, setCopiedType] = useState<ContentType | null>(null);
@@ -113,6 +125,28 @@ export default function HomeScreen() {
 
   const output = resultForType(results, activeTab);
   const isLoading = loadingTool === activeTab;
+
+  useEffect(() => {
+    setColdEmailForm((current) => ({ ...current, language: generationLanguage }));
+    setProposalForm((current) => ({ ...current, language: generationLanguage }));
+    setContractForm((current) => ({ ...current, language: generationLanguage }));
+    setSocialPackForm((current) => ({ ...current, language: generationLanguage }));
+  }, [generationLanguage]);
+
+  function updateResultVisibility() {
+    const metrics = scrollMetrics.current;
+    const visible = isResultCardInView(
+      metrics.height > 0 ? { y: metrics.y, height: metrics.height } : null,
+      metrics.scrollY,
+      metrics.viewport,
+    );
+    setResultInView((current) => (current === visible ? current : visible));
+    if (visible) setAutoScrolling(false);
+  }
+
+  function scrollToResult(y = scrollMetrics.current.y) {
+    scrollRef.current?.scrollTo({ y: Math.max(0, y - 8), animated: true });
+  }
   const toneOptions = tonePresets(language).map((tone) => ({ value: tone, label: tone }));
   const platformOptions = PLATFORM_PRESETS.map((platform) => ({ value: platform, label: platform }));
 
@@ -152,6 +186,8 @@ export default function HomeScreen() {
         Alert.alert('Error', result.error);
       } else if (result.content) {
         const content = result.content;
+        pendingScrollTool.current = tool;
+        if (tool === activeTabRef.current) setAutoScrolling(true);
         setResults((current) => withTypeResult(current, tool, content));
         refreshUser();
       }
@@ -242,13 +278,31 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <ScrollView
+        ref={scrollRef}
         style={styles.content}
         contentContainerStyle={[styles.contentInner, { paddingBottom: Math.max(insets.bottom, 24) }]}
         keyboardShouldPersistTaps="handled"
         nestedScrollEnabled
+        scrollEventThrottle={16}
+        onLayout={(event: LayoutChangeEvent) => {
+          scrollMetrics.current.viewport = event.nativeEvent.layout.height;
+          updateResultVisibility();
+        }}
+        onScroll={(event: NativeSyntheticEvent<NativeScrollEvent>) => {
+          scrollMetrics.current.scrollY = event.nativeEvent.contentOffset.y;
+          updateResultVisibility();
+        }}
+        onMomentumScrollEnd={() => setAutoScrolling(false)}
       >
         <View style={styles.header}>
-          <Text style={styles.logo}>{t.appName}</Text>
+          <View style={styles.brand}>
+            <Image
+              source={require('../../assets/icon.png')}
+              style={styles.brandMark}
+              accessibilityIgnoresInvertColors
+            />
+            <Text style={styles.logo} numberOfLines={1}>{t.appName}</Text>
+          </View>
           <View style={styles.headerRight}>
             <TouchableOpacity
               style={styles.langButton}
@@ -307,7 +361,19 @@ export default function HomeScreen() {
         </TouchableOpacity>
 
         {output ? (
-          <View style={styles.outputContainer}>
+          <View
+            style={styles.outputContainer}
+            onLayout={(event: LayoutChangeEvent) => {
+              const { y, height } = event.nativeEvent.layout;
+              scrollMetrics.current.y = y;
+              scrollMetrics.current.height = height;
+              updateResultVisibility();
+              if (pendingScrollTool.current === activeTab) {
+                pendingScrollTool.current = null;
+                scrollToResult(y);
+              }
+            }}
+          >
             <View style={styles.outputHeader}>
               <Text style={styles.outputTitle}>{t.generatedContent}</Text>
               <TouchableOpacity style={styles.copyButton} onPress={handleCopy}>
@@ -318,6 +384,17 @@ export default function HomeScreen() {
           </View>
         ) : null}
       </ScrollView>
+      {output && !autoScrolling && !resultInView ? (
+        <View pointerEvents="box-none" style={styles.seeResult}>
+          <TouchableOpacity
+            style={styles.seeResultButton}
+            onPress={() => scrollToResult()}
+            accessibilityRole="button"
+          >
+            <Text style={styles.seeResultText}>{t.seeResult}</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -371,10 +448,43 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.line,
     marginBottom: 16,
   },
+  brand: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  brandMark: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+  },
   logo: {
     fontSize: 20,
     fontWeight: '700',
     color: theme.brand,
+    flexShrink: 1,
+  },
+  seeResult: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 12,
+    alignItems: 'center',
+  },
+  seeResultButton: {
+    minHeight: 40,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: theme.button,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  seeResultText: {
+    color: theme.onButton,
+    fontSize: 13,
+    fontWeight: '600',
   },
   headerRight: {
     flexDirection: 'row',

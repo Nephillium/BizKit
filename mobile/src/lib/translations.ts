@@ -117,6 +117,7 @@ export const translations = {
     precise: 'Precise',
     creative: 'Creative',
     generatedContent: 'Generated Content',
+    seeResult: 'See result ↓',
     
     pleaseLogIn: 'Please Log In',
     needToLogIn: 'You need to log in to purchase credits.',
@@ -249,6 +250,7 @@ export const translations = {
     precise: 'Net',
     creative: 'Yaratıcı',
     generatedContent: 'Oluşturulan içerik',
+    seeResult: 'Sonucu gör ↓',
     
     pleaseLogIn: 'Giriş Yapmanız Gerekiyor',
     needToLogIn: 'Kredi satın almak için giriş yapmanız gerekiyor.',
