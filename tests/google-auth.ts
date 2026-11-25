@@ -49,7 +49,12 @@ import {
   scrubLogText,
   writeGoogleAuthLog,
 } from '../lib/googleAuthLog';
-import { GOOGLE_SCHEMA_STATEMENTS, cachedOnce, type SchemaCache } from '../lib/googleSchema';
+import {
+  GOOGLE_SCHEMA_STATEMENTS,
+  applyGoogleSchema,
+  cachedOnce,
+  type SchemaCache,
+} from '../lib/googleSchema';
 
 const require = createRequire(import.meta.url);
 const {
@@ -805,6 +810,27 @@ async function testMobileContract() {
   assert.match(postedBody, new RegExp(`"code_verifier":"${verifier}"`));
   assert.equal(postedHeader, 'mobile');
   assert.equal('token' in session && session.token, 'session-from-exchange');
+  const exchangeError = await requestMobileSession(
+    'https://pitchcrafter.glmlabs.io',
+    oneTimeCode,
+    verifier,
+    async () => ({
+      ok: false,
+      json: async () => ({ ok: false, error: 'invalid_verifier' }),
+    }) as Response,
+  );
+  assert.deepEqual(exchangeError, { error: 'Google sign-in failed (invalid_verifier). Try again.' });
+  const exchangeLeak = await requestMobileSession(
+    'https://pitchcrafter.glmlabs.io',
+    oneTimeCode,
+    verifier,
+    async () => ({
+      ok: false,
+      json: async () => ({ ok: false, error: 'ada@example.com' }),
+    }) as Response,
+  );
+  assert.deepEqual(exchangeLeak, { error: 'Google sign-in failed. Try again.' });
+  assert.equal(JSON.stringify(exchangeLeak).includes('ada@example.com'), false);
 
   const login = readFileSync('mobile/src/screens/LoginScreen.tsx', 'utf8');
   const register = readFileSync('mobile/src/screens/RegisterScreen.tsx', 'utf8');
@@ -817,6 +843,17 @@ async function testMobileContract() {
   assert.match(button, /#747775/);
   assert.match(appJson, /"scheme": "pitchcrafter"/);
   assert.match(appJson, /"versionCode": 6/);
+  assert.match(appJson, /#FD7C55/);
+  const appSource = readFileSync('mobile/App.tsx', 'utf8');
+  const themeSource = readFileSync('mobile/src/lib/theme.ts', 'utf8');
+  assert.match(appSource, /SafeAreaProvider/);
+  assert.match(appSource, /useSafeAreaInsets/);
+  assert.match(appSource, /Ionicons/);
+  assert.match(appSource, /tabCreate/);
+  assert.match(appSource, /tabAccount/);
+  assert.doesNotMatch(appSource, /homeIcon/);
+  assert.match(themeSource, /#FD7C55/);
+  assert.match(themeSource, /#C2410C/);
   assert.match(appConfig, /EXPO_PUBLIC_GOOGLE_AUTH/);
   assert.match(appConfig, /EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID/);
   assert.match(appConfig, /@react-native-google-signin\/google-signin/);
@@ -1321,6 +1358,12 @@ async function testGoogleDiagnostics() {
   assert.equal(scrubbed.includes('ada@example.com'), false);
   assert.equal(scrubbed.includes('s3cret-password'), false);
   assert.equal(scrubbed.includes('eyJ'), false);
+  const roleScrubbed = scrubLogText(
+    'password authentication failed for user "neondb_owner" and role "app_owner" does not exist',
+  );
+  assert.equal(roleScrubbed.includes('neondb_owner'), false);
+  assert.equal(roleScrubbed.includes('app_owner'), false);
+  assert.match(roleScrubbed, /\[role\]/);
 
   const described = describeIdToken(
     signToken(claims({ azp: 'android-client', nonce: undefined }), privateKey),
@@ -1335,12 +1378,30 @@ async function testGoogleDiagnostics() {
   assert.equal(JSON.stringify(described).includes('Ada Lovelace'), false);
   assert.equal(JSON.stringify(described).includes('ada@example.com'), false);
 
-  for (const statement of GOOGLE_SCHEMA_STATEMENTS) {
-    assert.match(statement, /CREATE TABLE IF NOT EXISTS/);
-    assert.doesNotMatch(statement, /^\s*(DROP|DELETE|TRUNCATE|UPDATE)\b/i);
-  }
-  assert.match(GOOGLE_SCHEMA_STATEMENTS.join('\n'), /google_accounts/);
-  assert.match(GOOGLE_SCHEMA_STATEMENTS.join('\n'), /google_mobile_codes/);
+  const schemaSql = GOOGLE_SCHEMA_STATEMENTS.join('\n');
+  assert.match(schemaSql, /ADD COLUMN IF NOT EXISTS last_sign_in_at/);
+  assert.match(schemaSql, /UPDATE users SET last_sign_in_at = NOW\(\) WHERE last_sign_in_at IS NULL/);
+  assert.match(schemaSql, /google_accounts/);
+  assert.match(schemaSql, /google_mobile_codes/);
+  assert.doesNotMatch(schemaSql, /^\s*(DROP|DELETE|TRUNCATE)\b/im);
+  let schemaCalls = 0;
+  await applyGoogleSchema(async () => {
+    schemaCalls += 1;
+    if (schemaCalls === 1) {
+      const duplicate = new Error('relation already exists') as Error & { code: string };
+      duplicate.code = '42P07';
+      throw duplicate;
+    }
+  });
+  assert.equal(schemaCalls, GOOGLE_SCHEMA_STATEMENTS.length);
+  await assert.rejects(
+    applyGoogleSchema(async () => {
+      const denied = new Error('permission denied') as Error & { code: string };
+      denied.code = '42501';
+      throw denied;
+    }),
+    (error: unknown) => (error as { code?: string }).code === '42501',
+  );
   assert.match(readFileSync('lib/googleAccount.ts', 'utf8'), /ensureGoogleSchema\(/);
   assert.match(readFileSync('lib/googleMobileCode.ts', 'utf8'), /ensureGoogleSchema\(/);
 

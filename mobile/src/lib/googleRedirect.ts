@@ -1,3 +1,5 @@
+import { GOOGLE_FAILED_MESSAGE, googleFailureWithCode } from './googleNative';
+
 /** Canonical return URL. The server redirects the system browser here with a one-time code. */
 export const GOOGLE_MOBILE_CALLBACK = 'pitchcrafter://auth/google';
 
@@ -100,9 +102,10 @@ export async function requestMobileSession(
       },
       body: JSON.stringify({ code, code_verifier: verifier }),
     });
-    const data = (await response.json()) as { ok?: unknown; token?: unknown; created?: unknown };
+    const data = (await response.json()) as { ok?: unknown; token?: unknown; created?: unknown; error?: unknown };
     if (!response.ok || data.ok !== true || typeof data.token !== 'string' || data.token.length === 0) {
-      return { error: 'Google sign-in failed. Try again.' };
+      const code = typeof data.error === 'string' ? data.error : '';
+      return { error: googleFailureWithCode(GOOGLE_FAILED_MESSAGE, code) };
     }
     return { token: data.token, created: data.created === true };
   } catch {

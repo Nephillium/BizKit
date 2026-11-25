@@ -3,6 +3,8 @@ export type Language = 'en' | 'tr'
 export const translations = {
   en: {
     appName: 'PitchCrafter',
+    tabCreate: 'Create',
+    tabAccount: 'Account',
     login: 'Log in',
     logout: 'Log out',
     admin: 'Admin',
@@ -124,6 +126,8 @@ export const translations = {
   },
   tr: {
     appName: 'PitchCrafter',
+    tabCreate: 'Oluştur',
+    tabAccount: 'Hesap',
     login: 'Giriş Yap',
     logout: 'Çıkış Yap',
     admin: 'Yönetici',

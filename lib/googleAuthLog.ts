@@ -77,6 +77,8 @@ export function scrubLogText(value: string): string {
     .replace(/eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*/g, '[token]')
     .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[email]')
     .replace(/postgres(?:ql)?:\/\/\S+/gi, '[database]')
+    .replace(/\b(role|user)\s+"[^"]*"/gi, '$1 "[role]"')
+    .replace(/\b(role|user)\s+[A-Za-z_][A-Za-z0-9_]*/gi, '$1 [role]')
     .replace(/\b[A-Za-z0-9_-]{32,}\b/g, '[redacted]')
     .slice(0, 240);
 }

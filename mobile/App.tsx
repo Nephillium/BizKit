@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaView, StyleSheet, ActivityIndicator, View, TouchableOpacity, Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useFonts } from 'expo-font';
+import { StyleSheet, ActivityIndicator, View, TouchableOpacity, Text, Platform } from 'react-native';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
-import { LanguageProvider } from './src/contexts/LanguageContext';
+import { LanguageProvider, useLanguage } from './src/contexts/LanguageContext';
 import AnalyticsConsent from './src/components/AnalyticsConsent';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
@@ -10,24 +13,46 @@ import HomeScreen from './src/screens/HomeScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import BuyCreditsScreen from './src/screens/BuyCreditsScreen';
 import { sellsCreditsInApp } from './src/lib/playBilling';
+import { theme } from './src/lib/theme';
 
 type Screen = 'login' | 'register' | 'home' | 'profile' | 'buyCredits';
 
-function TabBar({ currentScreen, setCurrentScreen }: { currentScreen: Screen; setCurrentScreen: (s: Screen) => void }) {
+function TabBar({
+  currentScreen,
+  setCurrentScreen,
+  bottomInset,
+}: {
+  currentScreen: Screen;
+  setCurrentScreen: (s: Screen) => void;
+  bottomInset: number;
+}) {
+  const { t } = useLanguage();
+  const tabs: { key: Screen; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+    { key: 'home', label: t.tabCreate, icon: 'create-outline' },
+    { key: 'profile', label: t.tabAccount, icon: 'person-outline' },
+  ];
+
   return (
-    <View style={styles.tabBar}>
-      <TouchableOpacity
-        style={[styles.tab, currentScreen === 'home' && styles.tabActive]}
-        onPress={() => setCurrentScreen('home')}
-      >
-        <View style={[styles.homeIcon, currentScreen === 'home' && styles.iconActive]} />
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.tab, currentScreen === 'profile' && styles.tabActive]}
-        onPress={() => setCurrentScreen('profile')}
-      >
-        <View style={[styles.profileIcon, currentScreen === 'profile' && styles.iconActive]} />
-      </TouchableOpacity>
+    <View style={[styles.tabBar, { paddingBottom: Math.max(bottomInset, 8) }]}>
+      {tabs.map((tab) => {
+        const active = tab.key === 'profile'
+          ? currentScreen === 'profile' || currentScreen === 'buyCredits'
+          : currentScreen === tab.key;
+        const color = active ? theme.primary : theme.muted;
+        return (
+          <TouchableOpacity
+            key={tab.key}
+            style={styles.tab}
+            onPress={() => setCurrentScreen(tab.key)}
+            accessibilityRole="tab"
+            accessibilityLabel={tab.label}
+            accessibilityState={{ selected: active }}
+          >
+            <Ionicons name={tab.icon} size={22} color={color} />
+            <Text style={[styles.tabLabel, { color }]}>{tab.label}</Text>
+          </TouchableOpacity>
+        );
+      })}
     </View>
   );
 }
@@ -39,7 +64,7 @@ function AppContent({ currentScreen, setCurrentScreen }: { currentScreen: Screen
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#6366f1" />
+        <ActivityIndicator size="large" color={theme.primary} />
       </View>
     );
   }
@@ -74,36 +99,55 @@ function AppContent({ currentScreen, setCurrentScreen }: { currentScreen: Screen
 
 function MainApp() {
   const { isAuthenticated } = useAuth();
+  const insets = useSafeAreaInsets();
   const [currentScreen, setCurrentScreen] = useState<Screen>('home');
+  const [fontsLoaded, fontError] = useFonts(Ionicons.font);
+
+  if (!fontsLoaded && !fontError) {
+    return (
+      <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
+        <ActivityIndicator size="large" color={theme.primary} />
+      </View>
+    );
+  }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar style="dark" />
+      <View style={{ height: insets.top, backgroundColor: theme.brand }} />
       <View style={styles.content}>
         <AppContent currentScreen={currentScreen} setCurrentScreen={setCurrentScreen} />
       </View>
-      {isAuthenticated && (
-        <TabBar currentScreen={currentScreen} setCurrentScreen={setCurrentScreen} />
+      {isAuthenticated ? (
+        <TabBar
+          currentScreen={currentScreen}
+          setCurrentScreen={setCurrentScreen}
+          bottomInset={insets.bottom}
+        />
+      ) : (
+        <View style={{ height: insets.bottom, backgroundColor: theme.page }} />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
 export default function App() {
   return (
-    <LanguageProvider>
-      <AuthProvider>
-        <MainApp />
-        <AnalyticsConsent />
-      </AuthProvider>
-    </LanguageProvider>
+    <SafeAreaProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <MainApp />
+          <AnalyticsConsent />
+        </AuthProvider>
+      </LanguageProvider>
+    </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: theme.page,
   },
   content: {
     flex: 1,
@@ -112,38 +156,24 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: theme.page,
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
+    backgroundColor: theme.page,
     borderTopWidth: 1,
-    borderTopColor: '#e2e8f0',
-    paddingBottom: 20,
-    paddingTop: 10,
+    borderTopColor: theme.line,
+    paddingTop: 8,
   },
   tab: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 8,
+    justifyContent: 'center',
+    paddingVertical: 6,
+    gap: 2,
   },
-  tabActive: {
-    borderTopWidth: 2,
-    borderTopColor: '#6366f1',
-  },
-  homeIcon: {
-    width: 20,
-    height: 20,
-    backgroundColor: '#94a3b8',
-    borderRadius: 4,
-  },
-  profileIcon: {
-    width: 20,
-    height: 20,
-    backgroundColor: '#94a3b8',
-    borderRadius: 10,
-  },
-  iconActive: {
-    backgroundColor: '#6366f1',
+  tabLabel: {
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

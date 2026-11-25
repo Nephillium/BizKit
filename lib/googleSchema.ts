@@ -1,10 +1,15 @@
 import { pool } from './db';
 
 /**
- * Additive Google tables. Same statements as lib/initSchema.ts.
- * IF NOT EXISTS only: a fresh database gains the tables, an existing one is left alone.
+ * Additive Google tables and the sign-in timestamp, matching lib/initSchema.ts.
+ * Existing rows keep a last_sign_in_at that is already set. Only nulls are filled.
  */
 export const GOOGLE_SCHEMA_STATEMENTS = [
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_sign_in_at TIMESTAMPTZ`,
+  `UPDATE users SET last_sign_in_at = NOW() WHERE last_sign_in_at IS NULL`,
+  `ALTER TABLE users ALTER COLUMN last_sign_in_at SET DEFAULT NOW()`,
+  `ALTER TABLE users ALTER COLUMN last_sign_in_at SET NOT NULL`,
+  `CREATE INDEX IF NOT EXISTS idx_users_last_sign_in_at ON users (last_sign_in_at)`,
   `CREATE TABLE IF NOT EXISTS google_accounts (
         google_sub TEXT PRIMARY KEY,
         user_id VARCHAR NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
@@ -41,13 +46,26 @@ export function resetGoogleSchemaCache(): void {
   cache.current = null;
 }
 
-async function runGoogleSchema(exec: (sql: string) => Promise<unknown>): Promise<void> {
+/** Postgres duplicate_table. Concurrent IF NOT EXISTS can still raise this. */
+export function isAlreadyExistsError(error: unknown): boolean {
+  return Boolean(
+    error
+    && typeof error === 'object'
+    && (error as { code?: unknown }).code === '42P07',
+  );
+}
+
+export async function applyGoogleSchema(exec: (sql: string) => Promise<unknown>): Promise<void> {
   for (const statement of GOOGLE_SCHEMA_STATEMENTS) {
-    await exec(statement);
+    try {
+      await exec(statement);
+    } catch (error) {
+      if (!isAlreadyExistsError(error)) throw error;
+    }
   }
 }
 
 /** Create the Google tables once per process. A failed attempt can run again. */
 export function ensureGoogleSchema(): Promise<void> {
-  return cachedOnce(cache, () => runGoogleSchema((sql) => pool.query(sql)));
+  return cachedOnce(cache, () => applyGoogleSchema((sql) => pool.query(sql)));
 }

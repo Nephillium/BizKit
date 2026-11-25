@@ -14,6 +14,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { createCheckoutSession } from '../lib/api';
 import { sellsCreditsInApp } from '../lib/playBilling';
+import { theme } from '../lib/theme';
 
 const CREDIT_PACKAGES = [
   { credits: 10, price: 5, priceId: 'price_10_credits' },
@@ -107,7 +108,7 @@ export default function BuyCreditsScreen({ onGoBack }: Props) {
 
               <View style={[styles.buyButton, pkg.popular && styles.buyButtonPopular]}>
                 {loadingPriceId === pkg.priceId ? (
-                  <ActivityIndicator color={pkg.popular ? '#fff' : '#6366f1'} />
+                  <ActivityIndicator color={pkg.popular ? theme.onPrimary : theme.primary} />
                 ) : (
                   <Text style={[styles.buyButtonText, pkg.popular && styles.buyButtonTextPopular]}>
                     {t.buyNow}
@@ -139,7 +140,7 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 14,
-    color: '#6366f1',
+    color: theme.primary,
   },
   title: {
     fontSize: 24,
@@ -176,7 +177,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   packageCardPopular: {
-    borderColor: '#6366f1',
+    borderColor: theme.primary,
     borderWidth: 2,
   },
   popularBadge: {
@@ -184,7 +185,7 @@ const styles = StyleSheet.create({
     top: -12,
     paddingHorizontal: 12,
     paddingVertical: 4,
-    backgroundColor: '#6366f1',
+    backgroundColor: theme.primary,
     borderRadius: 12,
   },
   popularBadgeText: {
@@ -206,7 +207,7 @@ const styles = StyleSheet.create({
   price: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#6366f1',
+    color: theme.primary,
   },
   perCredit: {
     fontSize: 14,
@@ -221,12 +222,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#f1f5f9',
   },
   buyButtonPopular: {
-    backgroundColor: '#6366f1',
+    backgroundColor: theme.primary,
   },
   buyButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6366f1',
+    color: theme.primary,
   },
   buyButtonTextPopular: {
     color: '#fff',

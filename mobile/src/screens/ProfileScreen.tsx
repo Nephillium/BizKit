@@ -16,6 +16,7 @@ import {
 } from '../lib/analytics';
 import type { AnalyticsConsent } from '../lib/analyticsPolicy';
 import { sellsCreditsInApp } from '../lib/playBilling';
+import { theme } from '../lib/theme';
 
 interface Props {
   onNavigateToBuyCredits?: () => void;
@@ -190,7 +191,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#6366f1',
+    backgroundColor: theme.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -221,32 +222,32 @@ const styles = StyleSheet.create({
     width: '100%',
     paddingVertical: 16,
     paddingHorizontal: 20,
-    backgroundColor: '#eef2ff',
+    backgroundColor: theme.brand,
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 8,
   },
   creditsLabel: {
     fontSize: 14,
-    color: '#6366f1',
+    color: theme.onBrand,
     marginBottom: 4,
   },
   creditsValue: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#6366f1',
+    color: theme.onBrand,
   },
   creditsNote: {
     marginTop: 8,
     fontSize: 14,
     lineHeight: 20,
-    color: '#64748b',
+    color: theme.onBrand,
     textAlign: 'center',
   },
   buyButton: {
     width: '100%',
     marginTop: 16,
-    backgroundColor: '#6366f1',
+    backgroundColor: theme.primary,
     borderRadius: 8,
     padding: 14,
     alignItems: 'center',
@@ -284,7 +285,7 @@ const styles = StyleSheet.create({
   },
   settingValue: {
     fontSize: 15,
-    color: '#6366f1',
+    color: theme.primary,
     fontWeight: '500',
   },
   logoutButton: {
