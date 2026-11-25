@@ -33,7 +33,7 @@ export const translations = {
     cancel: 'Cancel',
     freeTrialUsed: 'Your free trial is used. Create a free account or log in to keep drafting.',
     
-    coldEmail: 'Cold Email',
+    coldEmail: 'Cold Mail',
     proposal: 'Proposal',
     contract: 'Contract',
     socialPack: 'Social Pack',
@@ -165,7 +165,7 @@ export const translations = {
     cancel: 'İptal',
     freeTrialUsed: 'Ücretsiz denemeniz kullanıldı. Taslak hazırlamaya devam etmek için ücretsiz hesap oluşturun veya giriş yapın.',
     
-    coldEmail: 'Soğuk E-posta',
+    coldEmail: 'Soğuk Posta',
     proposal: 'Teklif',
     contract: 'Sözleşme',
     socialPack: 'Sosyal Medya',

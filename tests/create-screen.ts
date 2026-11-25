@@ -67,7 +67,16 @@ assert.match(web, /withTypeResult/);
 assert.match(web, /resultForType/);
 assert.doesNotMatch(web, /setOutput\(/);
 
-assert.match(appJson, /"versionCode": 7/);
+assert.match(appJson, /"versionCode": 8/);
+assert.match(home, /adjustsFontSizeToFit/);
+assert.match(home, /numberOfLines=\{1\}/);
+assert.match(home, /flex: 1/);
+assert.match(home, /minWidth: 0/);
+assert.doesNotMatch(home, /horizontal/);
+assert.match(readFileSync('mobile/src/lib/translations.ts', 'utf8'), /coldEmail: 'Cold Mail'/);
+assert.match(readFileSync('mobile/src/lib/translations.ts', 'utf8'), /coldEmail: 'Soğuk Posta'/);
+assert.match(readFileSync('lib/translations.ts', 'utf8'), /coldEmail: 'Cold Mail'/);
+assert.match(readFileSync('lib/translations.ts', 'utf8'), /coldEmail: 'Soğuk Posta'/);
 assert.match(appJson, /#6366F1/);
 assert.match(appJson, /#FAFAFA/);
 assert.doesNotMatch(appJson, /#FD7C55/);
