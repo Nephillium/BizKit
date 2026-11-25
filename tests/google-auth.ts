@@ -42,6 +42,14 @@ import {
   readOAuthCookie,
 } from '../lib/googleOAuth';
 import { publicRuntimeConfig } from '../lib/runtimeConfig';
+import {
+  databaseHost,
+  describeIdToken,
+  resetGoogleAuthHostLogForTests,
+  scrubLogText,
+  writeGoogleAuthLog,
+} from '../lib/googleAuthLog';
+import { GOOGLE_SCHEMA_STATEMENTS, cachedOnce, type SchemaCache } from '../lib/googleSchema';
 
 const require = createRequire(import.meta.url);
 const {
@@ -63,9 +71,7 @@ const {
   GOOGLE_NO_ACCOUNT_MESSAGE,
   GOOGLE_NO_SAVED_CREDENTIAL,
   GOOGLE_NULL_PRESENTER,
-  GOOGLE_PLAY_SERVICES_MESSAGE,
   GOOGLE_PLAY_SERVICES_NOT_AVAILABLE,
-  GOOGLE_RATE_LIMIT_MESSAGE,
   GOOGLE_SIGN_IN_CANCELLED,
   GOOGLE_SIGN_IN_FAILED,
   GOOGLE_SIGN_IN_REQUIRED,
@@ -810,7 +816,7 @@ async function testMobileContract() {
   assert.match(button, /Continue with Google/);
   assert.match(button, /#747775/);
   assert.match(appJson, /"scheme": "pitchcrafter"/);
-  assert.match(appJson, /"versionCode": 5/);
+  assert.match(appJson, /"versionCode": 6/);
   assert.match(appConfig, /EXPO_PUBLIC_GOOGLE_AUTH/);
   assert.match(appConfig, /EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID/);
   assert.match(appConfig, /@react-native-google-signin\/google-signin/);
@@ -860,19 +866,33 @@ async function testMobileContract() {
   }
   const noAccount = classifyNativeGoogleError({ code: GOOGLE_SIGN_IN_REQUIRED });
   assert.equal(noAccount.action, 'message');
-  if (noAccount.action === 'message') assert.equal(noAccount.message, GOOGLE_NO_ACCOUNT_MESSAGE);
+  if (noAccount.action === 'message') {
+    assert.equal(
+      noAccount.message,
+      'No Google account is on this device. Add a Google account in Android settings, then try again (4).',
+    );
+  }
   const noCredential = classifyNativeGoogleError({ code: GOOGLE_NO_SAVED_CREDENTIAL });
-  if (noCredential.action === 'message') assert.equal(noCredential.message, GOOGLE_NO_ACCOUNT_MESSAGE);
+  if (noCredential.action === 'message') {
+    assert.equal(noCredential.message.includes('(NO_SAVED_CREDENTIAL_FOUND)'), true);
+  }
   const noAccountText = classifyNativeGoogleError({ message: 'No Google account on this device' });
   if (noAccountText.action === 'message') assert.equal(noAccountText.message, GOOGLE_NO_ACCOUNT_MESSAGE);
   const playServices = classifyNativeGoogleError({ code: GOOGLE_PLAY_SERVICES_NOT_AVAILABLE });
-  if (playServices.action === 'message') assert.equal(playServices.message, GOOGLE_PLAY_SERVICES_MESSAGE);
+  if (playServices.action === 'message') {
+    assert.equal(
+      playServices.message,
+      'Google Play services is missing or out of date on this device (PLAY_SERVICES_NOT_AVAILABLE).',
+    );
+  }
   assert.equal(classifyNativeGoogleError({ code: GOOGLE_DEVELOPER_ERROR }).action, 'fallback');
   assert.equal(classifyNativeGoogleError({ code: GOOGLE_SIGN_IN_FAILED, message: 'DEVELOPER_ERROR' }).action, 'fallback');
   assert.equal(classifyNativeGoogleError({ code: GOOGLE_NULL_PRESENTER }).action, 'fallback');
   assert.equal(classifyNativeGoogleError({ message: 'Cannot find native module' }).action, 'fallback');
   const unknownCode = classifyNativeGoogleError({ code: '999' });
-  if (unknownCode.action === 'message') assert.equal(unknownCode.message, GOOGLE_FAILED_MESSAGE);
+  if (unknownCode.action === 'message') {
+    assert.equal(unknownCode.message, 'Google sign-in failed (999). Try again.');
+  }
 
   const nativeIdToken = 'header.payload.signature';
   let nativeUrl = '';
@@ -904,8 +924,30 @@ async function testMobileContract() {
       json: async () => ({ ok: false, error: 'rate_limited' }),
     }) as Response,
   );
-  assert.deepEqual(limitedSession, { error: GOOGLE_RATE_LIMIT_MESSAGE });
+  assert.deepEqual(limitedSession, {
+    error: 'Too many Google sign-in attempts. Wait a minute and try again (rate_limited).',
+  });
   assert.equal(JSON.stringify(limitedSession).includes(nativeIdToken), false);
+  const audienceSession = await requestNativeGoogleSession(
+    'https://pitchcrafter.glmlabs.io',
+    nativeIdToken,
+    async () => ({
+      ok: false,
+      json: async () => ({ ok: false, error: 'bad_audience' }),
+    }) as Response,
+  );
+  assert.deepEqual(audienceSession, { error: 'Google sign-in failed (bad_audience). Try again.' });
+  const leaked = await requestNativeGoogleSession(
+    'https://pitchcrafter.glmlabs.io',
+    nativeIdToken,
+    async () => ({
+      ok: false,
+      json: async () => ({ ok: false, error: 'ada@example.com' }),
+    }) as Response,
+  );
+  assert.deepEqual(leaked, { error: GOOGLE_FAILED_MESSAGE });
+  assert.equal(JSON.stringify(leaked).includes('ada@example.com'), false);
+  assert.equal(JSON.stringify(leaked).includes(nativeIdToken), false);
 }
 
 function testWebButton() {
@@ -1038,6 +1080,47 @@ async function testNativeEndpoint() {
       assert.equal((wrongAudience.result().jsonBody as { error?: string }).error, 'bad_audience');
       assert.equal(wrongAudience.result().jsonBody && JSON.stringify(wrongAudience.result().jsonBody).includes(wrongAudienceToken), false);
       assert.equal(signedInWith, null);
+      const audienceLog = loggedGoogleAuth(logs).find((entry) => entry.error === 'bad_audience');
+      assert.ok(audienceLog);
+      assert.equal(audienceLog.route, 'POST /api/auth/google/native');
+      assert.equal(audienceLog.status, 401);
+      assert.equal(audienceLog.verify, 'aud');
+      assert.equal(audienceLog.aud_matched, false);
+      assert.equal(audienceLog.azp_present, true);
+      assert.equal(audienceLog.azp_equals_client_id, false);
+      assert.equal(audienceLog.has_id_token, true);
+      assert.equal(audienceLog.token_length, wrongAudienceToken.length);
+      assert.equal(audienceLog.kid, 'test-key');
+      assert.equal(audienceLog.alg, 'RS256');
+      const audienceText = JSON.stringify(audienceLog);
+      assert.equal(audienceText.includes(wrongAudienceToken), false);
+      assert.equal(audienceText.includes('ada@example.com'), false);
+      assert.equal(audienceText.includes('Ada Lovelace'), false);
+      assert.equal(audienceText.includes('android-oauth-client'), false);
+
+      const dbError = Object.assign(
+        new Error('relation "google_accounts" does not exist for ada@example.com'),
+        { code: '42P01' },
+      );
+      const failedDb = createResponse();
+      await handleGoogleNative(
+        nativeRequest({ id_token: idToken }, '203.0.113.70'),
+        failedDb.res,
+        {
+          verifyIdToken: deps.verifyIdToken,
+          signIn: async () => {
+            throw dbError;
+          },
+        },
+      );
+      assert.equal(failedDb.result().statusCode, 500);
+      assert.equal((failedDb.result().jsonBody as { error?: string }).error, 'google_sign_in_failed');
+      const dbLog = loggedGoogleAuth(logs).find((entry) => entry.pg_code === '42P01');
+      assert.ok(dbLog);
+      assert.equal(dbLog.error, 'google_sign_in_failed');
+      assert.match(String(dbLog.pg_message), /google_accounts/);
+      assert.equal(String(dbLog.pg_message).includes('ada@example.com'), false);
+      assert.equal(JSON.stringify(dbLog).includes(idToken), false);
 
       const expiredToken = nativeToken({ exp: NOW - 120 });
       const expired = createResponse();
@@ -1212,9 +1295,135 @@ async function testUnknownKidRefreshThrottle() {
   }
 }
 
+function loggedGoogleAuth(lines: string[]): Array<Record<string, unknown>> {
+  return lines.flatMap((line) => {
+    try {
+      const parsed = JSON.parse(line) as Record<string, unknown>;
+      return parsed.event === 'google_auth' ? [parsed] : [];
+    } catch {
+      return [];
+    }
+  });
+}
+
+async function testGoogleDiagnostics() {
+  const secretUrl = 'postgres://neondb_owner:s3cret-password@ep-cool.eu-central-1.aws.neon.tech/neondb';
+  assert.equal(databaseHost(secretUrl), 'ep-cool.eu-central-1.aws.neon.tech');
+  assert.equal(databaseHost(secretUrl)?.includes('s3cret'), false);
+  assert.equal(databaseHost(secretUrl)?.includes('neondb_owner'), false);
+  assert.equal(databaseHost(''), null);
+  assert.equal(databaseHost('not a url'), null);
+
+  const scrubbed = scrubLogText(
+    'relation "google_accounts" does not exist for ada@example.com eyJhbGciOi.eyJzdWI.sig postgres://user:s3cret-password@host/db',
+  );
+  assert.match(scrubbed, /google_accounts/);
+  assert.equal(scrubbed.includes('ada@example.com'), false);
+  assert.equal(scrubbed.includes('s3cret-password'), false);
+  assert.equal(scrubbed.includes('eyJ'), false);
+
+  const described = describeIdToken(
+    signToken(claims({ azp: 'android-client', nonce: undefined }), privateKey),
+    CLIENT_ID,
+  );
+  assert.equal(described.has_id_token, true);
+  assert.equal(described.kid, 'test-key');
+  assert.equal(described.alg, 'RS256');
+  assert.equal(described.aud_matched, true);
+  assert.equal(described.azp_present, true);
+  assert.equal(described.azp_equals_client_id, false);
+  assert.equal(JSON.stringify(described).includes('Ada Lovelace'), false);
+  assert.equal(JSON.stringify(described).includes('ada@example.com'), false);
+
+  for (const statement of GOOGLE_SCHEMA_STATEMENTS) {
+    assert.match(statement, /CREATE TABLE IF NOT EXISTS/);
+    assert.doesNotMatch(statement, /^\s*(DROP|DELETE|TRUNCATE|UPDATE)\b/i);
+  }
+  assert.match(GOOGLE_SCHEMA_STATEMENTS.join('\n'), /google_accounts/);
+  assert.match(GOOGLE_SCHEMA_STATEMENTS.join('\n'), /google_mobile_codes/);
+  assert.match(readFileSync('lib/googleAccount.ts', 'utf8'), /ensureGoogleSchema\(/);
+  assert.match(readFileSync('lib/googleMobileCode.ts', 'utf8'), /ensureGoogleSchema\(/);
+
+  const cache: SchemaCache = { current: null };
+  let calls = 0;
+  await cachedOnce(cache, async () => {
+    calls += 1;
+    throw new Error('unavailable');
+  }).catch((error: unknown) => {
+    assert.equal(error instanceof Error && error.message, 'unavailable');
+  });
+  assert.equal(cache.current, null);
+  assert.equal(calls, 1);
+  const again = cachedOnce(cache, async () => {
+    calls += 1;
+  });
+  const third = cachedOnce(cache, async () => {
+    calls += 1;
+  });
+  await Promise.all([again, third]);
+  assert.equal(calls, 2);
+}
+
+function testDatabaseHostLog() {
+  resetGoogleAuthHostLogForTests();
+  const previous = process.env.DATABASE_URL;
+  const lines: string[] = [];
+  const original = console.info;
+  console.info = (...args: unknown[]) => {
+    lines.push(args.map((arg) => (typeof arg === 'string' ? arg : JSON.stringify(arg))).join(' '));
+  };
+  try {
+    setEnv('DATABASE_URL', 'postgres://neondb_owner:s3cret-password@ep-cool.eu-central-1.aws.neon.tech/neondb');
+    writeGoogleAuthLog({
+      route: 'POST /api/auth/google/native',
+      status: 200,
+      error: null,
+      has_id_token: false,
+      token_length: 0,
+      kid: null,
+      alg: null,
+      verify: null,
+      aud_matched: null,
+      azp_present: null,
+      azp_equals_client_id: null,
+      error_name: null,
+      pg_code: null,
+      pg_message: null,
+    });
+    writeGoogleAuthLog({
+      route: 'POST /api/auth/google/native',
+      status: 200,
+      error: null,
+      has_id_token: false,
+      token_length: 0,
+      kid: null,
+      alg: null,
+      verify: null,
+      aud_matched: null,
+      azp_present: null,
+      azp_equals_client_id: null,
+      error_name: null,
+      pg_code: null,
+      pg_message: null,
+    });
+    const hostLines = lines.filter((line) => line.includes('google_auth_db'));
+    assert.equal(hostLines.length, 1);
+    assert.match(hostLines[0] ?? '', /ep-cool\.eu-central-1\.aws\.neon\.tech/);
+    assert.equal((hostLines[0] ?? '').includes('s3cret-password'), false);
+    assert.equal((hostLines[0] ?? '').includes('neondb_owner'), false);
+    assert.equal(lines.filter((line) => line.includes('"event":"google_auth"')).length, 2);
+  } finally {
+    console.info = original;
+    setEnv('DATABASE_URL', previous);
+    resetGoogleAuthHostLogForTests();
+  }
+}
+
 testIdToken();
 testLinkPlan();
 testAuthRateLimitWindow();
+await testGoogleDiagnostics();
+testDatabaseHostLog();
 testConfigGate();
 await testOAuthHandlers();
 await testUnknownKidRefreshThrottle();

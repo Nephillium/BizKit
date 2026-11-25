@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { pool, query } from './db';
+import { ensureGoogleSchema } from './googleSchema';
 import {
   mobileAuthCode,
   mobileCodeChallenge,
@@ -35,6 +36,7 @@ export async function saveMobileAuthCode(input: {
   if (!code || !codeChallenge) {
     throw new Error('invalid_mobile_code');
   }
+  await ensureGoogleSchema();
   const now = input.now ?? new Date();
   const expiresAt = new Date(now.getTime() + MOBILE_CODE_TTL_MS);
   await query(
@@ -62,6 +64,7 @@ export async function redeemMobileAuthCode(input: {
   const verifier = mobilePkceVerifier(input.verifier);
   if (!verifier) return { ok: false, error: 'invalid_verifier' };
 
+  await ensureGoogleSchema();
   const now = input.now ?? new Date();
   const codeHash = hashMobileCode(code);
   const client = await pool.connect();

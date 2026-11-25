@@ -1,4 +1,5 @@
 import { pool } from './db';
+import { ensureGoogleSchema } from './googleSchema';
 import { recordSignIn } from './signInTracking';
 import { publicSignupBlockReason } from './superUserPolicy';
 import {
@@ -113,6 +114,7 @@ export async function signInWithGoogleProfile(profile: GoogleProfile): Promise<G
     return { error: early.error };
   }
 
+  await ensureGoogleSchema();
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
