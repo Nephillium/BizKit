@@ -108,6 +108,15 @@ export const translations = {
     generationError: 'An error occurred while generating content. Please try again.',
     
     selectLanguage: 'Select language',
+    searchLanguages: 'Search languages...',
+    noLanguagesFound: 'No languages found',
+    customLanguage: 'Custom language...',
+    enterCustomLanguage: 'Enter custom language',
+    backToList: 'Back to list',
+    add: 'Add',
+    precise: 'Precise',
+    creative: 'Creative',
+    generatedContent: 'Generated Content',
     
     pleaseLogIn: 'Please Log In',
     needToLogIn: 'You need to log in to purchase credits.',
@@ -231,6 +240,15 @@ export const translations = {
     generationError: 'İçerik oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.',
     
     selectLanguage: 'Dil seçin',
+    searchLanguages: 'Dil ara...',
+    noLanguagesFound: 'Dil bulunamadı',
+    customLanguage: 'Özel dil...',
+    enterCustomLanguage: 'Özel dil girin',
+    backToList: 'Listeye dön',
+    add: 'Ekle',
+    precise: 'Net',
+    creative: 'Yaratıcı',
+    generatedContent: 'Oluşturulan içerik',
     
     pleaseLogIn: 'Giriş Yapmanız Gerekiyor',
     needToLogIn: 'Kredi satın almak için giriş yapmanız gerekiyor.',

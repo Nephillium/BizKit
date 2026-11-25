@@ -108,7 +108,7 @@ export default function BuyCreditsScreen({ onGoBack }: Props) {
 
               <View style={[styles.buyButton, pkg.popular && styles.buyButtonPopular]}>
                 {loadingPriceId === pkg.priceId ? (
-                  <ActivityIndicator color={theme.ink} />
+                  <ActivityIndicator color={pkg.popular ? theme.onButton : theme.ink} />
                 ) : (
                   <Text style={[styles.buyButtonText, pkg.popular && styles.buyButtonTextPopular]}>
                     {t.buyNow}
@@ -232,6 +232,6 @@ const styles = StyleSheet.create({
     color: theme.ink,
   },
   buyButtonTextPopular: {
-    color: theme.ink,
+    color: theme.onButton,
   },
 });

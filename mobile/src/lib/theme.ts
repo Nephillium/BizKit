@@ -1,27 +1,33 @@
 /**
- * Lighter palette built from the Android icon.
- * icon.png is #FD7C55 (872,595 of 1,048,576 pixels) with a white mark.
- * adaptive-icon.png is that white mark on transparency, painted on #FD7C55.
+ * Website palette from styles/globals.css (the Next.js theme on
+ * pitchcrafter.glmlabs.io). RGB channels there are:
+ * background 250 250 250, foreground 15 23 42, primary 99 102 241,
+ * primary-foreground 255 255 255, muted-foreground 100 116 139,
+ * border 226 232 240. Selected length chips on the site use
+ * rgb(238, 242, 255) with a primary border.
  *
- * White on #FD7C55 is about 2.6:1, below WCAG AA for large text (3:1).
- * #FD7C55 on #FFE4DA is about 2.1:1, and on #FFF4F0 about 2.4:1.
- * Near-black #1C1917 on #FD7C55 is about 6.8:1, and on #FFF4F0 about 16:1.
- * Buttons use the softer coral #FB8A68 with dark labels. Selected chips use
- * the light tint with a coral border and dark labels (coral text on the tint
- * is about 2.1:1, below large-text AA).
+ * White on #6366F1 is 4.47:1, just under WCAG AA for normal text (4.5:1).
+ * Button fills use #6265EF, the same primary scaled one step toward black,
+ * where white is 4.54:1. #6366F1 on #EEF2FF is 3.99:1, so chip labels use
+ * #0F172A (about 16:1) with a primary border. #0F172A on #FAFAFA is about 17:1.
  */
 export const theme = {
-  /** Icon field. Buttons, logo, active icons, and chip borders. */
-  brand: '#FD7C55',
-  /** Softer button fill. Dark text on it is about 7.4:1. */
-  button: '#FB8A68',
-  /** Selected chips, tabs, and the credits pill. */
-  tint: '#FFE4DA',
-  /** Page, header, and the status-bar strip. */
-  page: '#FFF4F0',
-  /** Cards and the Google button stay white. */
+  /** Website --primary. Logo, borders, active icons, splash, and the icon field. */
+  brand: '#6366F1',
+  /** Primary darkened so white labels clear WCAG AA. */
+  button: '#6265EF',
+  /** Website primary-foreground. */
+  onButton: '#FFFFFF',
+  /** Website selected-chip fill (indigo-50). */
+  tint: '#EEF2FF',
+  /** Website --background. Page, header, and the status-bar strip. */
+  page: '#FAFAFA',
+  /** Website --card. */
   card: '#FFFFFF',
-  ink: '#1C1917',
-  muted: '#57534E',
-  line: '#E7E5E4',
+  /** Website --foreground. */
+  ink: '#0F172A',
+  /** Website --muted-foreground. */
+  muted: '#64748B',
+  /** Website --border. */
+  line: '#E2E8F0',
 } as const;

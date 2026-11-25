@@ -100,7 +100,7 @@ export default function LoginScreen({ onNavigateToRegister }: Props) {
             disabled={isLoading}
           >
             {isLoading ? (
-              <ActivityIndicator color={theme.ink} />
+              <ActivityIndicator color={theme.onButton} />
             ) : (
               <Text style={styles.buttonText}>{t.login}</Text>
             )}
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#94a3b8',
   },
   buttonText: {
-    color: theme.ink,
+    color: theme.onButton,
     fontSize: 16,
     fontWeight: '600',
   },
