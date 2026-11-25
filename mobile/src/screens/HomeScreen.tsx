@@ -340,7 +340,7 @@ export default function HomeScreen() {
           disabled={isLoading}
         >
           {isLoading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={theme.ink} />
           ) : (
             <Text style={styles.generateButtonText}>{t.generate}</Text>
           )}
@@ -367,7 +367,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: theme.page,
   },
   header: {
     flexDirection: 'row',
@@ -375,14 +375,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
+    backgroundColor: theme.page,
     borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    borderBottomColor: theme.line,
   },
   logo: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.primary,
+    color: theme.brand,
   },
   headerRight: {
     flexDirection: 'row',
@@ -403,13 +403,15 @@ const styles = StyleSheet.create({
   creditsContainer: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: theme.brand,
+    backgroundColor: theme.tint,
     borderRadius: 6,
+    borderWidth: 1,
+    borderColor: theme.brand,
   },
   creditsText: {
     fontSize: 12,
     fontWeight: '500',
-    color: theme.onBrand,
+    color: theme.ink,
   },
   content: {
     flex: 1,
@@ -428,7 +430,7 @@ const styles = StyleSheet.create({
     borderColor: '#e2e8f0',
   },
   tabActive: {
-    backgroundColor: theme.brand,
+    backgroundColor: theme.tint,
     borderColor: theme.brand,
   },
   tabText: {
@@ -437,7 +439,7 @@ const styles = StyleSheet.create({
     color: '#64748b',
   },
   tabTextActive: {
-    color: theme.onBrand,
+    color: theme.ink,
   },
   formContainer: {
     backgroundColor: '#fff',
@@ -470,7 +472,7 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   generateButton: {
-    backgroundColor: theme.primary,
+    backgroundColor: theme.button,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -480,7 +482,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#94a3b8',
   },
   generateButtonText: {
-    color: '#fff',
+    color: theme.ink,
     fontSize: 16,
     fontWeight: '600',
   },

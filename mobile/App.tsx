@@ -38,7 +38,8 @@ function TabBar({
         const active = tab.key === 'profile'
           ? currentScreen === 'profile' || currentScreen === 'buyCredits'
           : currentScreen === tab.key;
-        const color = active ? theme.primary : theme.muted;
+        const color = active ? theme.brand : theme.muted;
+        const labelColor = active ? theme.ink : theme.muted;
         return (
           <TouchableOpacity
             key={tab.key}
@@ -49,7 +50,7 @@ function TabBar({
             accessibilityState={{ selected: active }}
           >
             <Ionicons name={tab.icon} size={22} color={color} />
-            <Text style={[styles.tabLabel, { color }]}>{tab.label}</Text>
+            <Text style={[styles.tabLabel, { color: labelColor }]}>{tab.label}</Text>
           </TouchableOpacity>
         );
       })}
@@ -64,7 +65,7 @@ function AppContent({ currentScreen, setCurrentScreen }: { currentScreen: Screen
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.primary} />
+        <ActivityIndicator size="large" color={theme.brand} />
       </View>
     );
   }
@@ -106,7 +107,7 @@ function MainApp() {
   if (!fontsLoaded && !fontError) {
     return (
       <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
-        <ActivityIndicator size="large" color={theme.primary} />
+        <ActivityIndicator size="large" color={theme.brand} />
       </View>
     );
   }
@@ -114,7 +115,7 @@ function MainApp() {
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
-      <View style={{ height: insets.top, backgroundColor: theme.brand }} />
+      <View style={{ height: insets.top, backgroundColor: theme.page }} />
       <View style={styles.content}>
         <AppContent currentScreen={currentScreen} setCurrentScreen={setCurrentScreen} />
       </View>
