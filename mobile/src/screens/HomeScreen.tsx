@@ -266,25 +266,23 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <View style={styles.tabsContainer}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            nestedScrollEnabled
-            keyboardShouldPersistTaps="handled"
-          >
-            {TABS.map((tab) => (
-              <TouchableOpacity
-                key={tab.key}
-                style={[styles.tab, activeTab === tab.key && styles.tabActive]}
-                onPress={() => setActiveTab(tab.key)}
+        <View style={styles.tabRow}>
+          {TABS.map((tab) => (
+            <TouchableOpacity
+              key={tab.key}
+              style={[styles.tab, activeTab === tab.key && styles.tabActive]}
+              onPress={() => setActiveTab(tab.key)}
+            >
+              <Text
+                style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.7}
               >
-                <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>
-                  {t[tab.labelKey]}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+                {t[tab.labelKey]}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
         {renderForm()}
@@ -409,13 +407,16 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: theme.ink,
   },
-  tabsContainer: {
+  tabRow: {
+    flexDirection: 'row',
+    gap: 6,
     marginBottom: 20,
   },
   tab: {
+    flex: 1,
+    minWidth: 0,
     minHeight: 44,
-    paddingHorizontal: 16,
-    marginRight: 8,
+    paddingHorizontal: 4,
     backgroundColor: theme.card,
     borderRadius: 8,
     borderWidth: 1,
@@ -428,9 +429,11 @@ const styles = StyleSheet.create({
     borderColor: theme.brand,
   },
   tabText: {
-    fontSize: 14,
-    fontWeight: '500',
+    width: '100%',
+    fontSize: 13,
+    fontWeight: '600',
     color: theme.muted,
+    textAlign: 'center',
   },
   tabTextActive: {
     color: theme.ink,

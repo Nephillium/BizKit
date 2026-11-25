@@ -47,7 +47,7 @@ export const translations = {
     maybeLater: 'Maybe Later',
     
     // Tabs
-    coldEmail: 'Cold Email',
+    coldEmail: 'Cold Mail',
     proposal: 'Proposal',
     contract: 'Contract',
     socialPack: 'Social Pack',
@@ -213,7 +213,7 @@ export const translations = {
     maybeLater: 'Daha Sonra',
     
     // Tabs
-    coldEmail: 'Soğuk E-posta',
+    coldEmail: 'Soğuk Posta',
     proposal: 'Teklif',
     contract: 'Sözleşme',
     socialPack: 'Sosyal Medya',
