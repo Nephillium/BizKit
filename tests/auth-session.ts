@@ -459,6 +459,12 @@ function testLanguagePreference() {
   store.set('pitchcrafter_lang', 'Spanish');
   assert.equal(readStoredLanguage(read), 'tr');
   assert.equal(readStoredGenerationLanguage(read, LANGUAGES), 'Spanish');
+
+  const legacyOnly = new Map<string, string>([['bizkit_lang', 'tr']]);
+  const readLegacy = (key: string) => legacyOnly.get(key) ?? null;
+  legacyOnly.set(INTERFACE_LANGUAGE_STORAGE_KEY, 'en');
+  assert.equal(readStoredLanguage(readLegacy), 'en');
+  assert.equal(readStoredGenerationLanguage(readLegacy, LANGUAGES), 'Turkish');
 }
 
 testLanguagePreference();

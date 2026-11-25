@@ -37,23 +37,35 @@ export function readStoredLanguage(read: LanguageRead): StoredLanguage | null {
 }
 
 /**
- * Generation language stored in the current key.
+ * Generation language from pitchcrafter_lang, then bizkit_lang.
  * en/tr and English/Turkish map to the names the generator expects.
- * Any other non-empty current value is a list or custom generation language.
- * Otherwise the interface choice, or English, supplies the default.
+ * Any other accepted value is a list or custom generation language.
+ * The interface key is not consulted here: a header toggle must not
+ * replace a legacy generation choice. Only when neither storage key
+ * holds a generation language does the interface language, or English, apply.
  */
 export function readStoredGenerationLanguage(
   read: LanguageRead,
   languages: readonly string[] = [],
 ): string {
-  const current = (read(LANGUAGE_STORAGE_KEY) || '').trim();
-  if (current === 'en' || current === 'English') return 'English';
-  if (current === 'tr' || current === 'Turkish') return 'Turkish';
-  if (current && (languages.includes(current) || isCustomGenerationLanguage(current))) {
-    return current;
+  for (const key of [LANGUAGE_STORAGE_KEY, LEGACY_LANGUAGE_STORAGE_KEY]) {
+    const generation = generationLanguageFromStored(read(key), languages);
+    if (generation) return generation;
   }
   const ui = readStoredLanguage(read);
   return ui ? generationLanguageForInterface(ui) : 'English';
+}
+
+function generationLanguageFromStored(
+  value: string | null | undefined,
+  languages: readonly string[],
+): string | null {
+  const current = (value || '').trim();
+  if (!current) return null;
+  if (current === 'en' || current === 'English') return 'English';
+  if (current === 'tr' || current === 'Turkish') return 'Turkish';
+  if (languages.includes(current) || isCustomGenerationLanguage(current)) return current;
+  return null;
 }
 
 function isCustomGenerationLanguage(value: string): boolean {

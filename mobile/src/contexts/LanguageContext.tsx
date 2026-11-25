@@ -69,6 +69,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       setLanguageState(ui);
       setGenerationLanguageState(storedGeneration);
       try {
+        // English and Turkish are both the generation preference and the interface.
+        // pitchcrafter_lang keeps the generation value (en/tr). pitchcrafter_ui_lang
+        // is set to the same code so the header toggle and the next load stay on
+        // that interface. It does not store a second generation language.
         await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, ui);
         await AsyncStorage.setItem(INTERFACE_LANGUAGE_STORAGE_KEY, ui);
       } catch (error) {
