@@ -105,7 +105,7 @@ export default function RegisterScreen({ onNavigateToLogin }: Props) {
             disabled={isLoading}
           >
             {isLoading ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={theme.ink} />
             ) : (
               <Text style={styles.buttonText}>{t.createAccount}</Text>
             )}
@@ -123,7 +123,7 @@ export default function RegisterScreen({ onNavigateToLogin }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: theme.page,
   },
   scrollContent: {
     flexGrow: 1,
@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
   logo: {
     fontSize: 32,
     fontWeight: '700',
-    color: theme.primary,
+    color: theme.brand,
     marginBottom: 16,
   },
   title: {
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
     color: '#0f172a',
   },
   button: {
-    backgroundColor: theme.primary,
+    backgroundColor: theme.button,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -183,12 +183,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#94a3b8',
   },
   buttonText: {
-    color: '#fff',
+    color: theme.ink,
     fontSize: 16,
     fontWeight: '600',
   },
   linkText: {
-    color: theme.primary,
+    color: theme.brand,
     fontSize: 14,
     textAlign: 'center',
     marginTop: 16,

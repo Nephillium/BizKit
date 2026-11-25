@@ -16,7 +16,7 @@
     },
     "androidStatusBar": {
       "barStyle": "dark-content",
-      "backgroundColor": "#FD7C55",
+      "backgroundColor": "#FFF4F0",
       "translucent": true
     },
     "ios": {
@@ -24,7 +24,7 @@
     },
     "android": {
       "package": "com.glmlabs.pitchcrafter",
-      "versionCode": 6,
+      "versionCode": 7,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FD7C55"

@@ -108,7 +108,7 @@ export default function BuyCreditsScreen({ onGoBack }: Props) {
 
               <View style={[styles.buyButton, pkg.popular && styles.buyButtonPopular]}>
                 {loadingPriceId === pkg.priceId ? (
-                  <ActivityIndicator color={pkg.popular ? theme.onPrimary : theme.primary} />
+                  <ActivityIndicator color={theme.ink} />
                 ) : (
                   <Text style={[styles.buyButtonText, pkg.popular && styles.buyButtonTextPopular]}>
                     {t.buyNow}
@@ -126,21 +126,21 @@ export default function BuyCreditsScreen({ onGoBack }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: theme.page,
   },
   header: {
     paddingHorizontal: 16,
     paddingVertical: 16,
-    backgroundColor: '#fff',
+    backgroundColor: theme.page,
     borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    borderBottomColor: theme.line,
   },
   backButton: {
     marginBottom: 8,
   },
   backText: {
     fontSize: 14,
-    color: theme.primary,
+    color: theme.brand,
   },
   title: {
     fontSize: 24,
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   packageCardPopular: {
-    borderColor: theme.primary,
+    borderColor: theme.brand,
     borderWidth: 2,
   },
   popularBadge: {
@@ -185,13 +185,15 @@ const styles = StyleSheet.create({
     top: -12,
     paddingHorizontal: 12,
     paddingVertical: 4,
-    backgroundColor: theme.primary,
+    backgroundColor: theme.tint,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.brand,
   },
   popularBadgeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#fff',
+    color: theme.ink,
   },
   creditsAmount: {
     fontSize: 48,
@@ -207,7 +209,7 @@ const styles = StyleSheet.create({
   price: {
     fontSize: 28,
     fontWeight: '700',
-    color: theme.primary,
+    color: theme.brand,
   },
   perCredit: {
     fontSize: 14,
@@ -222,14 +224,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#f1f5f9',
   },
   buyButtonPopular: {
-    backgroundColor: theme.primary,
+    backgroundColor: theme.button,
   },
   buyButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.primary,
+    color: theme.ink,
   },
   buyButtonTextPopular: {
-    color: '#fff',
+    color: theme.ink,
   },
 });

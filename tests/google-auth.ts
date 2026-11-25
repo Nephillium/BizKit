@@ -842,7 +842,7 @@ async function testMobileContract() {
   assert.match(button, /Continue with Google/);
   assert.match(button, /#747775/);
   assert.match(appJson, /"scheme": "pitchcrafter"/);
-  assert.match(appJson, /"versionCode": 6/);
+  assert.match(appJson, /"versionCode": 7/);
   assert.match(appJson, /#FD7C55/);
   const appSource = readFileSync('mobile/App.tsx', 'utf8');
   const themeSource = readFileSync('mobile/src/lib/theme.ts', 'utf8');
@@ -853,7 +853,10 @@ async function testMobileContract() {
   assert.match(appSource, /tabAccount/);
   assert.doesNotMatch(appSource, /homeIcon/);
   assert.match(themeSource, /#FD7C55/);
-  assert.match(themeSource, /#C2410C/);
+  assert.match(themeSource, /#FB8A68/);
+  assert.match(themeSource, /#FFF4F0/);
+  assert.match(themeSource, /#FFE4DA/);
+  assert.doesNotMatch(themeSource, /#C2410C/);
   assert.match(appConfig, /EXPO_PUBLIC_GOOGLE_AUTH/);
   assert.match(appConfig, /EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID/);
   assert.match(appConfig, /@react-native-google-signin\/google-signin/);

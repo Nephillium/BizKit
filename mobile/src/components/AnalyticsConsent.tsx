@@ -99,14 +99,14 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   allowButton: {
-    backgroundColor: theme.primary,
+    backgroundColor: theme.button,
     borderRadius: 8,
     padding: 14,
     alignItems: 'center',
     marginBottom: 8,
   },
   allowText: {
-    color: '#fff',
+    color: theme.ink,
     fontSize: 16,
     fontWeight: '600',
   },
