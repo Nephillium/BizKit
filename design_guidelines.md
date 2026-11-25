@@ -1,10 +1,10 @@
-# BizKit AI Design Guidelines
+# PitchCrafter Design Guidelines
 
 ## Design Approach
 
 **Selected Approach:** Design System (Utility-Focused SaaS Tool)  
 **Primary References:** Linear's clean interface patterns, Notion's form clarity, Stripe's professional trust  
-**Rationale:** BizKit AI is a productivity tool for professionals requiring efficiency, clarity, and trust-building design over visual flair.
+**Rationale:** PitchCrafter is a productivity tool for professionals requiring efficiency, clarity, and trust-building design over visual flair.
 
 ## Core Design Principles
 

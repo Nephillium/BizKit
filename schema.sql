@@ -1,4 +1,4 @@
--- BizKit AI database schema.
+-- PitchCrafter database schema.
 -- Applied by `npm run db:init` / `POST /api/init-db` (see lib/initSchema.ts).
 -- This file is the SQL form of that initializer.
 

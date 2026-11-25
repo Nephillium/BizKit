@@ -2,7 +2,7 @@ export type Language = 'en' | 'tr'
 
 export const translations = {
   en: {
-    appName: 'BizKit AI',
+    appName: 'PitchCrafter',
     login: 'Log in',
     logout: 'Log out',
     account: 'Account',
@@ -135,7 +135,7 @@ export const translations = {
     betaBadge: 'Free beta – Pro plans coming soon',
     
     // Footer
-    footer: 'BizKit AI – Beta v1.0',
+    footer: 'PitchCrafter – Beta v1.0',
     
     // Errors
     networkError: 'Network error. Please check your connection and try again.',
@@ -168,7 +168,7 @@ export const translations = {
     paymentCanceled: 'Payment was canceled.',
   },
   tr: {
-    appName: 'BizKit AI',
+    appName: 'PitchCrafter',
     login: 'Giriş Yap',
     logout: 'Çıkış Yap',
     account: 'Hesap',
@@ -301,7 +301,7 @@ export const translations = {
     betaBadge: 'Ücretsiz beta – Pro planlar yakında',
     
     // Footer
-    footer: 'BizKit AI – Beta v1.0',
+    footer: 'PitchCrafter – Beta v1.0',
     
     // Errors
     networkError: 'Ağ hatası. Lütfen bağlantınızı kontrol edip tekrar deneyin.',

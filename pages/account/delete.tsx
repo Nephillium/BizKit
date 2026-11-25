@@ -4,6 +4,7 @@ import { ContinueWithGoogle } from '../../components/ContinueWithGoogle'
 import { useAuth } from '../../hooks/useAuth'
 import { ACCOUNT_DELETION_EMAIL } from '../../lib/accountDeletionCopy'
 import { googleSignInErrorMessage } from '../../lib/googleAuthCopy'
+import { readStoredLanguage } from '../../lib/languagePreference'
 import { type Language } from '../../lib/translations'
 
 const copy = {
@@ -76,8 +77,8 @@ export default function DeleteAccountPage() {
   const [googleAuth, setGoogleAuth] = useState(false)
 
   useEffect(() => {
-    const saved = localStorage.getItem('bizkit_lang')
-    if (saved === 'en' || saved === 'tr') setLang(saved)
+    const saved = readStoredLanguage((key) => localStorage.getItem(key))
+    if (saved) setLang(saved)
   }, [])
 
   useEffect(() => {

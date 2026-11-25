@@ -1,4 +1,4 @@
-# BizKit
+# PitchCrafter
 
 Web and mobile app that drafts cold emails, proposals, contracts, and social packs. Accounts use email and password. Credits are purchased with Stripe when it is configured. Anonymous visitors get one free generation.
 
@@ -18,11 +18,11 @@ npm run dev
 
 Open http://localhost:5000.
 
-`npm run db:up` starts Postgres from `docker-compose.yml` (`postgres://bizkit:bizkit@localhost:5432/bizkit`, local only). `npm run db:setup` creates the tables and the demo user.
+`npm run db:up` starts Postgres from `docker-compose.yml` (`postgres://pitchcrafter:pitchcrafter@localhost:5432/pitchcrafter`, local only). `npm run db:setup` creates the tables and the demo user.
 
 Demo login (also on the sign-in dialog outside production):
 
-- Email: `demo@bizkit.local`
+- Email: `demo@pitchcrafter.local`
 - Password: `demo-only-password`
 - 25 credits
 
@@ -83,7 +83,7 @@ Checkout and webhooks use `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, and `ST
 
 Sign-in is email and password. A successful `POST /api/auth/login` or `POST /api/auth/register` sets an httpOnly cookie named `bizkit_token` (7 days, `SameSite=Lax`, `Secure` in production). The JSON body is `{ ok: true, user }` and does not include the session token.
 
-The Expo app cannot read that cookie. On login and register it sends `X-BizKit-Client: mobile`. The value must be exactly `mobile` (capitalization and surrounding spaces are ignored; a list of values is ignored). Only then does the JSON also include `token`. The app stores that value and sends `Authorization: Bearer <token>` on later requests. `/api/auth/me`, `/api/generate`, `/api/generations`, and `/api/stripe/create-checkout` accept either the cookie or that bearer token. Any other client, including the web app, omits the header and receives `{ ok: true, user }` only. A field in the JSON body is ignored.
+The Expo app cannot read that cookie. On login and register it sends `X-PitchCrafter-Client: mobile`. Older builds send `X-BizKit-Client: mobile`. The value must be exactly `mobile` (capitalization and surrounding spaces are ignored; a list of values is ignored). Either header, on its own, makes the JSON also include `token`. The app stores that value and sends `Authorization: Bearer <token>` on later requests. `/api/auth/me`, `/api/generate`, `/api/generations`, and `/api/stripe/create-checkout` accept either the cookie or that bearer token. Any other client, including the web app, omits the header and receives `{ ok: true, user }` only. A field in the JSON body is ignored.
 
 Routes: `/api/auth/login`, `/api/auth/register`, `/api/auth/me`, `/api/auth/logout`.
 
@@ -91,7 +91,7 @@ Google sign-in is off unless `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `AP
 
 The redirect URI is `${APP_BASE_URL}/api/auth/google/callback`. For production that is `https://pitchcrafter.glmlabs.io/api/auth/google/callback`. Set `EXPO_PUBLIC_GOOGLE_AUTH=1` on the app build or the mobile button stays hidden. See `docs/ANDROID.md`.
 
-On Android, the button opens the device Google account picker when `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` is also set. That value is the Web client id, the same string as `GOOGLE_CLIENT_ID`. It is public. The app requests an ID token for that client and POSTs it to `POST /api/auth/google/native` with `X-BizKit-Client: mobile`. The server checks the signature against Google's certificates, then `iss` (`https://accounts.google.com` or `accounts.google.com`), `aud` (must equal `GOOGLE_CLIENT_ID`), `exp`, and `email_verified`. It links or creates the account the same way as the browser callback, and returns the same bearer token as `/api/auth/google/exchange` (`{ ok, token, created, user }`). The token is not logged. The route is rate-limited per client address. On Vercel the socket address is the platform proxy, so `TRUST_PROXY` must be `1` (after the hop check below) or every visitor shares that one bucket. With `TRUST_PROXY=1` the limit uses the rightmost `X-Forwarded-For` address. The app stores that bearer in SecureStore, the same place password sign-in uses.
+On Android, the button opens the device Google account picker when `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` is also set. That value is the Web client id, the same string as `GOOGLE_CLIENT_ID`. It is public. The app requests an ID token for that client and POSTs it to `POST /api/auth/google/native` with `X-PitchCrafter-Client: mobile`. The server checks the signature against Google's certificates, then `iss` (`https://accounts.google.com` or `accounts.google.com`), `aud` (must equal `GOOGLE_CLIENT_ID`), `exp`, and `email_verified`. It links or creates the account the same way as the browser callback, and returns the same bearer token as `/api/auth/google/exchange` (`{ ok, token, created, user }`). The token is not logged. The route is rate-limited per client address. On Vercel the socket address is the platform proxy, so `TRUST_PROXY` must be `1` (after the hop check below) or every visitor shares that one bucket. With `TRUST_PROXY=1` the limit uses the rightmost `X-Forwarded-For` address. The app stores that bearer in SecureStore, the same place password sign-in uses.
 
 The browser PKCE flow stays as the automatic fallback when native sign-in is unavailable (Expo Go, iOS, a missing module) or Google returns a developer/config error such as `DEVELOPER_ERROR`. The app generates its own PKCE verifier, opens the system browser on `/api/auth/google/start?client=mobile&code_challenge=...`, and the callback redirects to `pitchcrafter://auth/google` with only a single-use code that expires in 60 seconds. The app then POSTs that code and its verifier to `/api/auth/google/exchange`. The code is stored as a hash bound to the challenge. A replay, an expired code, or a wrong verifier fails. Cancelling the account picker stays on the device and does not show an error, the same as dismissing the browser. No Google account on the device, and missing Play services, show a message and do not open the browser.
 
@@ -192,8 +192,8 @@ Do not set `DEMO_USER_PASSWORD` on Vercel. The seed script will not run there un
 `Dockerfile` builds the Next.js app and starts `npm start` on port 5000 (or `PORT`).
 
 ```sh
-docker build -t bizkit .
-docker run --env-file .env -p 5000:5000 bizkit
+docker build -t pitchcrafter .
+docker run --env-file .env -p 5000:5000 pitchcrafter
 ```
 
 On Render, use the Dockerfile (or a Node service with `npm ci`, `npm run build`, and `npm start`). Set the same production variables as Vercel. Put Postgres on Render, Neon, or another host and set `DATABASE_URL`. Call `POST /api/init-db` once the app can reach the database. Set `TRUST_PROXY=1` only when Render is the single trusted hop. Render does not read `vercel.json`. Schedule a daily `POST` to `https://<your-host>/api/cron/retention` with `Authorization: Bearer <CRON_SECRET>`.
@@ -223,13 +223,13 @@ npm run db:up
 npm run test:api
 ```
 
-If `DATABASE_URL` is unset, `npm run test:api` uses `postgres://bizkit:bizkit@127.0.0.1:5432/bizkit`. If `JWT_SECRET` is missing or shorter than 32 characters, the runner generates a throwaway secret for that process and does not print it. The same applies to an empty `QUOTA_IP_SALT`. Point this at a local or CI database. The suite applies `lib/initSchema.ts` and deletes only the users and anonymous-quota rows it creates. Retention tests delete the `retention-*` users and waitlist rows they insert. Before that, they move any other already-expired `last_sign_in_at` or waitlist `created_at` forward to the test clock so a shared local database is not wiped.
+If `DATABASE_URL` is unset, `npm run test:api` uses `postgres://pitchcrafter:pitchcrafter@127.0.0.1:5432/pitchcrafter`. If `JWT_SECRET` is missing or shorter than 32 characters, the runner generates a throwaway secret for that process and does not print it. The same applies to an empty `QUOTA_IP_SALT`. Point this at a local or CI database. The suite applies `lib/initSchema.ts` and deletes only the users and anonymous-quota rows it creates. Retention tests delete the `retention-*` users and waitlist rows they insert. Before that, they move any other already-expired `last_sign_in_at` or waitlist `created_at` forward to the test clock so a shared local database is not wiped.
 
-`npm run test:security` runs `tests/security-hardening.ts`, `tests/demo-mode.ts`, `tests/auth-session.ts`, `tests/google-auth.ts`, `tests/generation-history.ts`, and `tests/mobile-api-base-url.ts`. That covers anonymous-quota decisions, admin-promotion rules, demo-mode selection, the production 503 when no AI provider is configured, the `AI_PROVIDER` switch, the production seed refusal, the rule that login and register omit the session token unless the request sends `X-BizKit-Client: mobile`, history search text as a bound parameter scoped with `user_id`, and the mobile API base URL plus the Android credit-purchase gate. `npm run test:api` calls the route handlers and checks:
+`npm run test:security` runs `tests/security-hardening.ts`, `tests/demo-mode.ts`, `tests/auth-session.ts`, `tests/google-auth.ts`, `tests/generation-history.ts`, and `tests/mobile-api-base-url.ts`. That covers anonymous-quota decisions, admin-promotion rules, demo-mode selection, the production 503 when no AI provider is configured, the `AI_PROVIDER` switch, the production seed refusal, the rule that login and register omit the session token unless the request sends `X-PitchCrafter-Client: mobile` or `X-BizKit-Client: mobile`, history search text as a bound parameter scoped with `user_id`, and the mobile API base URL plus the Android credit-purchase gate. `npm run test:api` calls the route handlers and checks:
 
 - Anonymous free generation is one row in `anonymous_generations`, keyed by the server-observed address. Dropping cookies or sending `X-Forwarded-For` without `TRUST_PROXY` does not grant another try. A signed-in caller on that same address is not blocked by the anonymous row.
 - In production, with `OPENAI_API_KEY`, `HUGGINGFACE_API_KEY`, and `LMSTUDIO_API_URL` unset and `DEMO_MODE` unset, `POST /api/generate` returns 503 `ai_not_configured` and does not change credits, usage, history, or the anonymous quota. `DEMO_MODE=1` returns labelled sample output and then deducts one credit.
-- Register, login, and logout against Postgres. Web clients get the httpOnly cookie and no `token` field, even if the JSON body asks for one. `X-BizKit-Client: mobile` also returns `token`. `GET /api/auth/me`, `/api/generations`, and `POST /api/stripe/create-checkout` reject missing or invalid credentials and accept either the cookie or `Authorization: Bearer`.
+- Register, login, and logout against Postgres. Web clients get the httpOnly cookie and no `token` field, even if the JSON body asks for one. `X-PitchCrafter-Client: mobile` or `X-BizKit-Client: mobile` also returns `token`. `GET /api/auth/me`, `/api/generations`, and `POST /api/stripe/create-checkout` reject missing or invalid credentials and accept either the cookie or `Authorization: Bearer`.
 - History list and delete stay on the signed-in user for both the cookie and `Authorization: Bearer`. `q` and `tool` only narrow that user's rows. Deleting another user's id returns 404 and leaves the row in place.
 - Retention deletes a waitlist row at 12 months only when that email has no account this run keeps, and deletes an account at 24 months without a newer sign-in, including its generations and credit transactions. One second younger than either cutoff is kept. A second run deletes nothing further. Dry-run and a missing `CRON_SECRET` delete nothing. Login, Google sign-in, and `recordSignIn` refresh `last_sign_in_at`.
 

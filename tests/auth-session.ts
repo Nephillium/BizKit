@@ -10,6 +10,7 @@ import {
   sessionCookie,
 } from '../lib/authResponse';
 import { getSessionFromRequest, withAuth } from '../lib/session';
+import { readStoredLanguage } from '../lib/languagePreference';
 import { generateToken, getUserFromRequest, type User } from '../lib/users';
 import logoutHandler from '../pages/api/auth/logout';
 
@@ -164,7 +165,7 @@ async function testLoginHidesTokenUnlessMobileAsks() {
   await handleLogin(
     createRequest(
       { email: 'ada@example.com', password: 'correct-password' },
-      { 'x-bizkit-client': 'Mobile' },
+      { 'x-pitchcrafter-client': 'Mobile' },
     ),
     mobile.res,
     authenticate,
@@ -175,6 +176,19 @@ async function testLoginHidesTokenUnlessMobileAsks() {
   assert.equal(mobileBody.token, SESSION_TOKEN);
   assert.match(String(mobileResult.setCookie), /HttpOnly/);
   assert.match(String(mobileResult.setCookie), new RegExp(`bizkit_token=${SESSION_TOKEN}`));
+
+  const legacy = createResponse();
+  await handleLogin(
+    createRequest(
+      { email: 'ada@example.com', password: 'correct-password' },
+      { 'x-bizkit-client': 'mobile' },
+    ),
+    legacy.res,
+    authenticate,
+  );
+  const legacyBody = legacy.result().jsonBody as { token?: string };
+  assert.equal(legacy.result().statusCode, 200);
+  assert.equal(legacyBody.token, SESSION_TOKEN);
 
   const rejected = createResponse();
   await handleLogin(
@@ -319,7 +333,8 @@ async function testExpoClientAsksForTokenAndSendsBearer() {
     const url = String(input);
     calls.push({ url, headers, body: typeof init?.body === 'string' ? init.body : undefined });
     if (url.endsWith('/api/auth/login') || url.endsWith('/api/auth/register')) {
-      assert.equal(headers.get('x-bizkit-client'), 'mobile');
+      assert.equal(headers.get('x-pitchcrafter-client'), 'mobile');
+      assert.equal(headers.get('x-bizkit-client'), null);
       assert.equal(headers.get('content-type'), 'application/json');
       const payload = JSON.parse(calls[calls.length - 1].body || '{}') as Record<string, unknown>;
       assert.equal(payload.email, 'ada@example.com');
@@ -371,7 +386,8 @@ async function testExpoClientAsksForTokenAndSendsBearer() {
     globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
       const headers = new Headers(init?.headers);
       assert.equal(String(input).endsWith('/api/auth/register'), true);
-      assert.equal(headers.get('x-bizkit-client'), 'mobile');
+      assert.equal(headers.get('x-pitchcrafter-client'), 'mobile');
+      assert.equal(headers.get('x-bizkit-client'), null);
       assert.equal(headers.get('authorization'), null);
       return new Response(
         JSON.stringify({ ok: true, user: { id: 1, email: 'ada@example.com', role: 'user', credits: 0 } }),
@@ -392,6 +408,8 @@ function testWebClientDoesNotAskForToken() {
   const webAuth = readFileSync('hooks/useAuth.ts', 'utf8');
   assert.equal(webAuth.includes('X-BizKit-Client'), false);
   assert.equal(webAuth.includes('x-bizkit-client'), false);
+  assert.equal(webAuth.includes('X-PitchCrafter-Client'), false);
+  assert.equal(webAuth.includes('x-pitchcrafter-client'), false);
   assert.match(webAuth, /credentials:\s*'include'/);
 
   const loginPage = readFileSync('pages/api/auth/login.ts', 'utf8');
@@ -408,6 +426,19 @@ function testWebClientDoesNotAskForToken() {
   );
 }
 
+function testLanguagePreference() {
+  const store = new Map<string, string>([['bizkit_lang', 'tr']]);
+  const read = (key: string) => store.get(key) ?? null;
+  assert.equal(readStoredLanguage(read), 'tr');
+  store.set('pitchcrafter_lang', 'en');
+  assert.equal(readStoredLanguage(read), 'en');
+  store.set('pitchcrafter_lang', 'nope');
+  assert.equal(readStoredLanguage(read), 'tr');
+  store.delete('bizkit_lang');
+  assert.equal(readStoredLanguage(read), null);
+}
+
+testLanguagePreference();
 testClientHeaderMatching();
 testCookieFlags();
 await testLoginHidesTokenUnlessMobileAsks();

@@ -4,9 +4,9 @@ import { stripeSecretConfigured } from '../../../lib/runtimeConfig';
 import { getUserFromRequest, findUserById } from '../../../lib/users';
 
 const PACKS: Record<string, { credits: number; amount: number; name: string }> = {
-  'credits_10': { credits: 10, amount: 500, name: 'BizKit AI - 10 Credit Pack' },
-  'credits_50': { credits: 50, amount: 2000, name: 'BizKit AI - 50 Credit Pack' },
-  'credits_100': { credits: 100, amount: 3500, name: 'BizKit AI - 100 Credit Pack' },
+  'credits_10': { credits: 10, amount: 500, name: 'PitchCrafter - 10 Credit Pack' },
+  'credits_50': { credits: 50, amount: 2000, name: 'PitchCrafter - 50 Credit Pack' },
+  'credits_100': { credits: 100, amount: 3500, name: 'PitchCrafter - 100 Credit Pack' },
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -73,7 +73,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             unit_amount: pack.amount,
             product_data: {
               name: pack.name,
-              description: `${pack.credits} AI generation credits for BizKit AI`,
+              description: `${pack.credits} AI generation credits for PitchCrafter`,
             },
           },
           quantity: 1,

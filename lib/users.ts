@@ -27,6 +27,7 @@ export interface JWTPayload {
 }
 
 const INSECURE_JWT_SECRETS = new Set([
+  'pitchcrafter-dev-secret',
   'bizkit-dev-secret',
   'replace-with-at-least-32-random-characters',
 ]);
@@ -37,7 +38,7 @@ export function getJwtSecret(): string {
     if (process.env.NODE_ENV === 'production') {
       throw new Error('JWT_SECRET or SESSION_SECRET is required in production');
     }
-    return 'bizkit-dev-secret';
+    return 'pitchcrafter-dev-secret';
   }
   if (
     process.env.NODE_ENV === 'production' &&

@@ -7,6 +7,7 @@ import { useAuth } from '../hooks/useAuth'
 import { ACCOUNT_DELETION_PATH } from '../lib/accountDeletionCopy'
 import { googleSignInErrorMessage } from '../lib/googleAuthCopy'
 import type { Generation } from '../shared/schema'
+import { LANGUAGE_STORAGE_KEY, readStoredLanguage } from '../lib/languagePreference'
 import { translations, getTranslation, type Language } from '../lib/translations'
 import { HistoryPanel, type HistoryToolFilter } from '../components/HistoryPanel'
 
@@ -470,8 +471,8 @@ export default function Home() {
   const [runtime, setRuntime] = useState<RuntimeConfig | null>(null)
 
   useEffect(() => {
-    const savedLang = localStorage.getItem('bizkit_lang') as Language
-    if (savedLang && (savedLang === 'en' || savedLang === 'tr')) {
+    const savedLang = readStoredLanguage((key) => localStorage.getItem(key))
+    if (savedLang) {
       setLang(savedLang)
     }
   }, [])
@@ -498,7 +499,7 @@ export default function Home() {
   const toggleLanguage = () => {
     const newLang = lang === 'en' ? 'tr' : 'en'
     setLang(newLang)
-    localStorage.setItem('bizkit_lang', newLang)
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, newLang)
   }
 
   useEffect(() => {
@@ -604,7 +605,7 @@ export default function Home() {
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `bizkit-${activeTab}-${Date.now()}.txt`
+    link.download = `pitchcrafter-${activeTab}-${Date.now()}.txt`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -626,7 +627,7 @@ export default function Home() {
       
       doc.setFontSize(18)
       doc.setFont('helvetica', 'bold')
-      doc.text(`BizKit AI - ${title}`, margin, margin)
+      doc.text(`PitchCrafter - ${title}`, margin, margin)
       
       doc.setFontSize(10)
       doc.setFont('helvetica', 'normal')
@@ -638,7 +639,7 @@ export default function Home() {
       const lines = doc.splitTextToSize(output, maxWidth)
       doc.text(lines, margin, margin + 20)
       
-      doc.save(`bizkit-${activeTab}-${Date.now()}.pdf`)
+      doc.save(`pitchcrafter-${activeTab}-${Date.now()}.pdf`)
     } catch (err) {
       console.error('PDF export error:', err)
     } finally {
@@ -668,7 +669,7 @@ export default function Home() {
             new Paragraph({
               children: [
                 new TextRun({
-                  text: `BizKit AI - ${title}`,
+                  text: `PitchCrafter - ${title}`,
                   bold: true,
                   size: 32,
                 }),
@@ -694,7 +695,7 @@ export default function Home() {
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `bizkit-${activeTab}-${Date.now()}.docx`
+      link.download = `pitchcrafter-${activeTab}-${Date.now()}.docx`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -835,7 +836,7 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>BizKit AI - Client-Winning Content in Seconds</title>
+        <title>PitchCrafter - Client-Winning Content in Seconds</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
@@ -859,7 +860,7 @@ export default function Home() {
           }}
         >
           <div style={{ fontWeight: 600, fontSize: '1.125rem', color: 'rgb(15, 23, 42)' }}>
-            BizKit AI
+            PitchCrafter
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             {/* Language Selector */}
@@ -1072,7 +1073,7 @@ export default function Home() {
               }}
               data-testid="text-hero-title"
             >
-              BizKit AI – Client-Winning Content in Seconds
+              PitchCrafter – Client-Winning Content in Seconds
             </h1>
             <p
               style={{
@@ -2414,7 +2415,7 @@ export default function Home() {
             }}
             data-testid="text-footer"
           >
-            BizKit AI – Beta v1.0
+            PitchCrafter – Beta v1.0
           </p>
           <p style={{ marginTop: '8px' }}>
             <a
@@ -2554,7 +2555,7 @@ export default function Home() {
                       Contact us to subscribe and get unlimited access:
                     </p>
                     <a
-                      href="mailto:support@bizkit.ai?subject=BizKit AI Subscription"
+                      href="mailto:support@bizkit.ai?subject=PitchCrafter Subscription"
                       style={{
                         display: 'block',
                         width: '100%',
