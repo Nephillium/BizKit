@@ -10,8 +10,8 @@ function blank(name: string): boolean {
 }
 
 if (blank('DATABASE_URL')) {
-  process.env.DATABASE_URL = 'postgres://bizkit:bizkit@127.0.0.1:5432/bizkit';
-  console.log('DATABASE_URL is unset. Using postgres://bizkit@127.0.0.1:5432/bizkit (local docker-compose).');
+  process.env.DATABASE_URL = 'postgres://pitchcrafter:pitchcrafter@127.0.0.1:5432/pitchcrafter';
+  console.log('DATABASE_URL is unset. Using postgres://pitchcrafter@127.0.0.1:5432/pitchcrafter (local docker-compose).');
 }
 
 const configuredSecret = process.env.JWT_SECRET || process.env.SESSION_SECRET || '';

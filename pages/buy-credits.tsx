@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import Head from 'next/head'
 import { useAuth } from '../hooks/useAuth'
+import { readStoredLanguage } from '../lib/languagePreference'
 import { translations, type Language } from '../lib/translations'
 
 interface CreditPackage {
@@ -25,8 +26,8 @@ export default function BuyCredits() {
   const [stripeEnabled, setStripeEnabled] = useState<boolean | null>(null)
 
   useEffect(() => {
-    const savedLang = localStorage.getItem('bizkit_lang') as Language
-    if (savedLang && (savedLang === 'en' || savedLang === 'tr')) {
+    const savedLang = readStoredLanguage((key) => localStorage.getItem(key))
+    if (savedLang) {
       setLang(savedLang)
     }
   }, [])
@@ -101,7 +102,7 @@ export default function BuyCredits() {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', padding: '20px' }}>
         <Head>
-          <title>{t.buyCredits} - BizKit AI</title>
+          <title>{t.buyCredits} - PitchCrafter</title>
         </Head>
         <h1 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '16px', color: 'rgb(15, 23, 42)' }}>
           {t.pleaseLogIn}
@@ -132,8 +133,8 @@ export default function BuyCredits() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'rgb(248, 250, 252)' }}>
       <Head>
-        <title>Buy Credits - BizKit AI</title>
-        <meta name="description" content="Purchase credits for BizKit AI content generation" />
+        <title>Buy Credits - PitchCrafter</title>
+        <meta name="description" content="Purchase credits for PitchCrafter content generation" />
       </Head>
 
       <nav
@@ -147,7 +148,7 @@ export default function BuyCredits() {
         }}
       >
         <a href="/" style={{ fontWeight: 600, fontSize: '1.125rem', color: 'rgb(15, 23, 42)', textDecoration: 'none' }}>
-          BizKit AI
+          PitchCrafter
         </a>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <span style={{ fontSize: '0.875rem', color: 'rgb(51, 65, 85)' }}>

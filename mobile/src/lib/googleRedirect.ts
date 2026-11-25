@@ -98,7 +98,7 @@ export async function requestMobileSession(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-BizKit-Client': 'mobile',
+        'X-PitchCrafter-Client': 'mobile',
       },
       body: JSON.stringify({ code, code_verifier: verifier }),
     });

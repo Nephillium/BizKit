@@ -1,4 +1,4 @@
-export const DEFAULT_DEMO_EMAIL = 'demo@bizkit.local';
+export const DEFAULT_DEMO_EMAIL = 'demo@pitchcrafter.local';
 export const DEFAULT_DEMO_PASSWORD = 'demo-only-password';
 export const DEFAULT_DEMO_CREDITS = 25;
 

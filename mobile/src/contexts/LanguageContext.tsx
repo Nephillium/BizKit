@@ -19,7 +19,9 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   async function loadLanguage() {
     try {
-      const stored = await AsyncStorage.getItem('bizkit_lang');
+      const current = await AsyncStorage.getItem('pitchcrafter_lang');
+      const legacy = await AsyncStorage.getItem('bizkit_lang');
+      const stored = current === 'en' || current === 'tr' ? current : legacy;
       if (stored === 'en' || stored === 'tr') {
         setLanguageState(stored);
       }
@@ -31,7 +33,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   async function setLanguage(lang: Language) {
     setLanguageState(lang);
     try {
-      await AsyncStorage.setItem('bizkit_lang', lang);
+      await AsyncStorage.setItem('pitchcrafter_lang', lang);
     } catch (error) {
       console.error('Error saving language:', error);
     }

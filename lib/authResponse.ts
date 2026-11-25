@@ -8,6 +8,7 @@ const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
  * Any other value, or a missing header, keeps the session token out of the JSON body.
  */
 export const MOBILE_CLIENT_HEADER = 'x-bizkit-client';
+export const PITCHCRAFTER_CLIENT_HEADER = 'x-pitchcrafter-client';
 export const MOBILE_CLIENT_VALUE = 'mobile';
 
 type HeaderValue = string | string[] | undefined;
@@ -27,11 +28,20 @@ function headerValues(value: HeaderValue): string[] {
   return Array.isArray(value) ? value : [value];
 }
 
+function headerIsMobileClient(
+  headers: Record<string, HeaderValue> | undefined,
+  name: string,
+): boolean {
+  const values = headerValues(headers?.[name]);
+  return values.length === 1 && values[0].trim().toLowerCase() === MOBILE_CLIENT_VALUE;
+}
+
+/** The current app sends X-PitchCrafter-Client. Older builds send X-BizKit-Client. */
 export function clientRequestsSessionToken(
   headers: Record<string, HeaderValue> | undefined,
 ): boolean {
-  const values = headerValues(headers?.[MOBILE_CLIENT_HEADER]);
-  return values.length === 1 && values[0].trim().toLowerCase() === MOBILE_CLIENT_VALUE;
+  return headerIsMobileClient(headers, PITCHCRAFTER_CLIENT_HEADER)
+    || headerIsMobileClient(headers, MOBILE_CLIENT_HEADER);
 }
 
 export function authSuccessBody<T>(

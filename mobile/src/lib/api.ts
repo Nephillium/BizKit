@@ -56,7 +56,7 @@ let authToken: string | null = null;
 // Asks the API to include the session JWT in the login/register JSON body.
 // Must match MOBILE_CLIENT_HEADER / MOBILE_CLIENT_VALUE in lib/authResponse.ts.
 const MOBILE_CLIENT_HEADERS = {
-  'X-BizKit-Client': 'mobile',
+  'X-PitchCrafter-Client': 'mobile',
 };
 
 export function setAuthToken(token: string | null) {

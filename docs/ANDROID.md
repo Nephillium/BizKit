@@ -1,6 +1,6 @@
 # PitchCrafter Android builds
 
-PitchCrafter is the public name of the Expo app in `mobile/`. The repository is still BizKit. The company is GLM Labs (`glmlabs.io`). The planned web origin is `https://pitchcrafter.glmlabs.io`. The Android application id is `com.glmlabs.pitchcrafter`.
+PitchCrafter is the public name of the Expo app in `mobile/` and of the web app. The GitHub repository is still named BizKit. The company is GLM Labs (`glmlabs.io`). The planned web origin is `https://pitchcrafter.glmlabs.io`. The Android application id is `com.glmlabs.pitchcrafter`.
 
 Store builds use EAS remote credentials. Do not commit a keystore, `.jks`, upload certificate, Play service-account JSON, or `google-services.json`.
 
@@ -105,7 +105,7 @@ The label is the English string "Continue with Google", using Google's button co
 
 Native sign-in is on only when `EXPO_PUBLIC_GOOGLE_AUTH=1` and `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` is set. That second value is the Web client id, the same string as the server's `GOOGLE_CLIENT_ID`. It is public. Do not commit a real value.
 
-The app uses `@react-native-google-signin/google-signin` (config plugin in `mobile/app.config.ts`, so EAS prebuild links it). `GoogleSignin.configure({ webClientId })` requests an ID token for that Web client. The button asks Android for the account picker. On success the app POSTs `{ id_token }` to `/api/auth/google/native` with `X-BizKit-Client: mobile`. The server checks the signature with Google's certificates, `iss`, `aud == GOOGLE_CLIENT_ID`, `exp`, and `email_verified`, then links or creates the user the same way as the browser callback. The response is the same bearer shape as `/api/auth/google/exchange`. The Google ID token is not stored and is not logged.
+The app uses `@react-native-google-signin/google-signin` (config plugin in `mobile/app.config.ts`, so EAS prebuild links it). `GoogleSignin.configure({ webClientId })` requests an ID token for that Web client. The button asks Android for the account picker. On success the app POSTs `{ id_token }` to `/api/auth/google/native` with `X-PitchCrafter-Client: mobile`. The server also accepts `X-BizKit-Client: mobile` from older builds. The server checks the signature with Google's certificates, `iss`, `aud == GOOGLE_CLIENT_ID`, `exp`, and `email_verified`, then links or creates the user the same way as the browser callback. The response is the same bearer shape as `/api/auth/google/exchange`. The Google ID token is not stored and is not logged.
 
 Cancelling the account picker returns without an error, the same as dismissing the browser. A device with no Google account, and missing or outdated Play services, show a message and do not open the browser.
 

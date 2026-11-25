@@ -136,7 +136,7 @@ export async function requestNativeGoogleSession(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-BizKit-Client': 'mobile',
+        'X-PitchCrafter-Client': 'mobile',
       },
       body: JSON.stringify({ id_token: idToken }),
     });

@@ -159,8 +159,8 @@ function testProviderSelection() {
     );
 
     setEnv('NODE_ENV', 'development');
-    setEnv('SUPER_USER_EMAIL', 'demo@bizkit.local');
-    setEnv('DEMO_USER_EMAIL', 'demo@bizkit.local');
+    setEnv('SUPER_USER_EMAIL', 'demo@pitchcrafter.local');
+    setEnv('DEMO_USER_EMAIL', 'demo@pitchcrafter.local');
     assert.match(demoSeedRefusal() || '', /SUPER_USER_EMAIL/);
     assert.equal(publicDemoLogin(), null);
   } finally {
@@ -305,11 +305,11 @@ function testProviderConnectionError() {
 }
 
 function testDatabaseSsl() {
-  assert.equal(databaseSsl('postgres://bizkit:bizkit@localhost:5432/bizkit'), false);
-  assert.equal(databaseSsl('postgres://bizkit:bizkit@127.0.0.1:5432/bizkit'), false);
-  const remote = databaseSsl('postgres://user:pw@db.example.com:5432/bizkit?sslmode=require');
+  assert.equal(databaseSsl('postgres://pitchcrafter:pitchcrafter@localhost:5432/pitchcrafter'), false);
+  assert.equal(databaseSsl('postgres://pitchcrafter:pitchcrafter@127.0.0.1:5432/pitchcrafter'), false);
+  const remote = databaseSsl('postgres://user:pw@db.example.com:5432/pitchcrafter?sslmode=require');
   assert.equal(typeof remote, 'object');
-  assert.equal(databaseSsl('postgres://user:pw@db.example.com:5432/bizkit?sslmode=disable'), false);
+  assert.equal(databaseSsl('postgres://user:pw@db.example.com:5432/pitchcrafter?sslmode=disable'), false);
 }
 
 function testExplicitAiProvider() {

@@ -1,6 +1,6 @@
 # PitchCrafter mobile app
 
-React Native app for PitchCrafter (this repository is still BizKit). It drafts cold emails, proposals, contracts, and social posts.
+React Native app for PitchCrafter. It drafts cold emails, proposals, contracts, and social posts. The GitHub repository is still named BizKit.
 
 ## Features
 
@@ -101,7 +101,7 @@ mobile/
 
 ## Backend Requirements
 
-The mobile app requires the BizKit web backend to be running. Login and register send `X-BizKit-Client: mobile` so the API includes the session token in JSON. The app stores that token and sends `Authorization: Bearer <token>` on later requests. The backend provides:
+The mobile app requires the PitchCrafter web backend to be running. Login and register send `X-PitchCrafter-Client: mobile` so the API includes the session token in JSON. The server also accepts `X-BizKit-Client: mobile` from an older build. The app stores that token and sends `Authorization: Bearer <token>` on later requests. The backend provides:
 
 - `/api/auth/login` - User authentication
 - `/api/auth/register` - User registration  

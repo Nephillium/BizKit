@@ -20,18 +20,18 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: bizkit
+          POSTGRES_USER: pitchcrafter
           POSTGRES_PASSWORD: ci-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
-          POSTGRES_DB: bizkit_ci
+          POSTGRES_DB: pitchcrafter_ci
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U bizkit -d bizkit_ci"
+          --health-cmd "pg_isready -U pitchcrafter -d pitchcrafter_ci"
           --health-interval 2s
           --health-timeout 5s
           --health-retries 30
     env:
-      DATABASE_URL: postgres://bizkit:ci-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}@localhost:5432/bizkit_ci
+      DATABASE_URL: postgres://pitchcrafter:ci-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}@localhost:5432/pitchcrafter_ci
       HUGGINGFACE_API_KEY: ""
       LMSTUDIO_API_URL: ""
       DEMO_MODE: ""

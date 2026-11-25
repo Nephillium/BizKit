@@ -796,7 +796,7 @@ async function testMobileContract() {
     async (url, init) => {
       postedUrl = String(url);
       postedBody = String(init?.body);
-      postedHeader = String((init?.headers as Record<string, string>)['X-BizKit-Client']);
+      postedHeader = String((init?.headers as Record<string, string>)['X-PitchCrafter-Client']);
       return {
         ok: true,
         json: async () => ({ ok: true, token: 'session-from-exchange', created: false }),
@@ -941,7 +941,7 @@ async function testMobileContract() {
     async (url, init) => {
       nativeUrl = String(url);
       nativeBody = String(init?.body);
-      nativeHeader = String((init?.headers as Record<string, string>)['X-BizKit-Client']);
+      nativeHeader = String((init?.headers as Record<string, string>)['X-PitchCrafter-Client']);
       return {
         ok: true,
         json: async () => ({ ok: true, token: 'session-from-native', created: true }),
