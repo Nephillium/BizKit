@@ -10,7 +10,11 @@ import {
   sessionCookie,
 } from '../lib/authResponse';
 import { getSessionFromRequest, withAuth } from '../lib/session';
-import { readStoredGenerationLanguage, readStoredLanguage } from '../lib/languagePreference';
+import {
+  INTERFACE_LANGUAGE_STORAGE_KEY,
+  readStoredGenerationLanguage,
+  readStoredLanguage,
+} from '../lib/languagePreference';
 import { generateToken, getUserFromRequest, type User } from '../lib/users';
 import logoutHandler from '../pages/api/auth/logout';
 
@@ -448,6 +452,13 @@ function testLanguagePreference() {
   store.delete('bizkit_lang');
   assert.equal(readStoredLanguage(read), null);
   assert.equal(readStoredGenerationLanguage(read, LANGUAGES), 'Klingon');
+  store.set(INTERFACE_LANGUAGE_STORAGE_KEY, 'en');
+  assert.equal(readStoredLanguage(read), 'en');
+  assert.equal(readStoredGenerationLanguage(read, LANGUAGES), 'Klingon');
+  store.set(INTERFACE_LANGUAGE_STORAGE_KEY, 'tr');
+  store.set('pitchcrafter_lang', 'Spanish');
+  assert.equal(readStoredLanguage(read), 'tr');
+  assert.equal(readStoredGenerationLanguage(read, LANGUAGES), 'Spanish');
 }
 
 testLanguagePreference();

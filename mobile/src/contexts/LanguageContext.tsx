@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Language, getTranslation, translations } from '../lib/translations';
 import { LANGUAGES } from '../lib/generationOptions';
 import {
+  INTERFACE_LANGUAGE_STORAGE_KEY,
   LANGUAGE_STORAGE_KEY,
   LEGACY_LANGUAGE_STORAGE_KEY,
   generationLanguageForInterface,
@@ -25,6 +26,7 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>('en');
   const [generationLanguage, setGenerationLanguageState] = useState('English');
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     loadLanguage();
@@ -34,9 +36,11 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     try {
       const current = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
       const legacy = await AsyncStorage.getItem(LEGACY_LANGUAGE_STORAGE_KEY);
+      const interfaceLanguage = await AsyncStorage.getItem(INTERFACE_LANGUAGE_STORAGE_KEY);
       const read: LanguageRead = (key) => {
         if (key === LANGUAGE_STORAGE_KEY) return current;
         if (key === LEGACY_LANGUAGE_STORAGE_KEY) return legacy;
+        if (key === INTERFACE_LANGUAGE_STORAGE_KEY) return interfaceLanguage;
         return null;
       };
       const stored = readStoredLanguage(read);
@@ -44,15 +48,15 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       setGenerationLanguageState(readStoredGenerationLanguage(read, LANGUAGES));
     } catch (error) {
       console.error('Error loading language:', error);
+    } finally {
+      setReady(true);
     }
   }
 
   async function setLanguage(lang: Language) {
-    const nextGeneration = generationLanguageForInterface(lang);
     setLanguageState(lang);
-    setGenerationLanguageState(nextGeneration);
     try {
-      await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
+      await AsyncStorage.setItem(INTERFACE_LANGUAGE_STORAGE_KEY, lang);
     } catch (error) {
       console.error('Error saving language:', error);
     }
@@ -61,7 +65,15 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   async function setPreferredLanguage(nextGeneration: string) {
     const ui = interfaceLanguageForGeneration(nextGeneration);
     if (ui) {
-      await setLanguage(ui);
+      const storedGeneration = generationLanguageForInterface(ui);
+      setLanguageState(ui);
+      setGenerationLanguageState(storedGeneration);
+      try {
+        await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, ui);
+        await AsyncStorage.setItem(INTERFACE_LANGUAGE_STORAGE_KEY, ui);
+      } catch (error) {
+        console.error('Error saving language:', error);
+      }
       return;
     }
     setGenerationLanguageState(nextGeneration);
@@ -74,6 +86,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   }
 
   const t = getTranslation(language);
+
+  if (!ready) return null;
 
   return (
     <LanguageContext.Provider value={{ language, generationLanguage, setLanguage, setPreferredLanguage, t }}>

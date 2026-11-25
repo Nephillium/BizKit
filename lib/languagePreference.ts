@@ -1,5 +1,7 @@
 export const LANGUAGE_STORAGE_KEY = 'pitchcrafter_lang';
 export const LEGACY_LANGUAGE_STORAGE_KEY = 'bizkit_lang';
+/** Interface language only. The header EN/TR control writes this and leaves the generation preference alone. */
+export const INTERFACE_LANGUAGE_STORAGE_KEY = 'pitchcrafter_ui_lang';
 
 export type StoredLanguage = 'en' | 'tr';
 
@@ -23,6 +25,8 @@ export function generationLanguageForInterface(language: StoredLanguage): string
  * so the reader keeps looking at the legacy key.
  */
 export function readStoredLanguage(read: LanguageRead): StoredLanguage | null {
+  const explicit = read(INTERFACE_LANGUAGE_STORAGE_KEY);
+  if (explicit === 'en' || explicit === 'tr') return explicit;
   for (const key of [LANGUAGE_STORAGE_KEY, LEGACY_LANGUAGE_STORAGE_KEY]) {
     const ui = interfaceLanguageForGeneration(read(key));
     if (ui && (read(key) === 'en' || read(key) === 'tr' || read(key) === 'English' || read(key) === 'Turkish')) {

@@ -1,4 +1,5 @@
 export {
+  INTERFACE_LANGUAGE_STORAGE_KEY,
   LANGUAGE_STORAGE_KEY,
   LEGACY_LANGUAGE_STORAGE_KEY,
   generationLanguageForInterface,
