@@ -66,6 +66,23 @@ function looksLikePlayServices(message: string): boolean {
  * User-facing results stay on screen. A missing native module or a Google
  * developer/config error (SHA-1, OAuth client) falls back to the browser flow.
  */
+/** A short status code safe to show in an alert. Anything else could be an email or a token. */
+export function publicErrorCode(code: string | null | undefined): string | null {
+  if (typeof code !== 'string') return null;
+  const trimmed = code.trim();
+  if (!/^[A-Za-z0-9_-]{1,64}$/.test(trimmed)) return null;
+  return trimmed;
+}
+
+/** Keep the explanation and add the code, for example "Google sign-in failed (bad_audience). Try again." */
+export function googleFailureWithCode(message: string, code: string | null | undefined): string {
+  const safe = publicErrorCode(code);
+  if (!safe) return message;
+  if (message === GOOGLE_FAILED_MESSAGE) return `Google sign-in failed (${safe}). Try again.`;
+  if (message.includes(`(${safe})`)) return message;
+  return `${message.replace(/\.$/, '')} (${safe}).`;
+}
+
 export function classifyNativeGoogleError(input: {
   code?: string | null;
   message?: string | null;
@@ -82,20 +99,20 @@ export function classifyNativeGoogleError(input: {
     code === GOOGLE_PLAY_SERVICES_NOT_AVAILABLE
     || looksLikePlayServices(message)
   ) {
-    return { action: 'message', message: GOOGLE_PLAY_SERVICES_MESSAGE };
+    return { action: 'message', message: googleFailureWithCode(GOOGLE_PLAY_SERVICES_MESSAGE, code) };
   }
   if (
     code === GOOGLE_SIGN_IN_REQUIRED
     || code === GOOGLE_NO_SAVED_CREDENTIAL
     || looksLikeNoAccount(message)
   ) {
-    return { action: 'message', message: GOOGLE_NO_ACCOUNT_MESSAGE };
+    return { action: 'message', message: googleFailureWithCode(GOOGLE_NO_ACCOUNT_MESSAGE, code) };
   }
   if (code === GOOGLE_SIGN_IN_IN_PROGRESS) {
-    return { action: 'message', message: GOOGLE_IN_PROGRESS_MESSAGE };
+    return { action: 'message', message: googleFailureWithCode(GOOGLE_IN_PROGRESS_MESSAGE, code) };
   }
   if (code === GOOGLE_NETWORK_ERROR) {
-    return { action: 'message', message: GOOGLE_NETWORK_MESSAGE };
+    return { action: 'message', message: googleFailureWithCode(GOOGLE_NETWORK_MESSAGE, code) };
   }
   if (
     code === GOOGLE_DEVELOPER_ERROR
@@ -106,7 +123,7 @@ export function classifyNativeGoogleError(input: {
   ) {
     return { action: 'fallback' };
   }
-  return { action: 'message', message: GOOGLE_FAILED_MESSAGE };
+  return { action: 'message', message: googleFailureWithCode(GOOGLE_FAILED_MESSAGE, code) };
 }
 
 export async function requestNativeGoogleSession(
@@ -126,14 +143,22 @@ export async function requestNativeGoogleSession(
     const data = (await response.json()) as { ok?: unknown; token?: unknown; created?: unknown; error?: unknown };
     if (!response.ok || data.ok !== true || typeof data.token !== 'string' || data.token.length === 0) {
       const code = typeof data.error === 'string' ? data.error : '';
-      if (code === 'rate_limited') return { error: GOOGLE_RATE_LIMIT_MESSAGE };
-      if (code === 'email_not_verified') return { error: 'Google has not verified this email address.' };
-      if (code === 'signup_blocked') return { error: 'This email cannot be registered.' };
-      if (code === 'identity_conflict') return { error: 'This email is already linked to a different Google account.' };
-      return { error: GOOGLE_FAILED_MESSAGE };
+      if (code === 'rate_limited') {
+        return { error: googleFailureWithCode(GOOGLE_RATE_LIMIT_MESSAGE, code) };
+      }
+      if (code === 'email_not_verified') {
+        return { error: googleFailureWithCode('Google has not verified this email address.', code) };
+      }
+      if (code === 'signup_blocked') {
+        return { error: googleFailureWithCode('This email cannot be registered.', code) };
+      }
+      if (code === 'identity_conflict') {
+        return { error: googleFailureWithCode('This email is already linked to a different Google account.', code) };
+      }
+      return { error: googleFailureWithCode(GOOGLE_FAILED_MESSAGE, code) };
     }
     return { token: data.token, created: data.created === true };
   } catch {
-    return { error: GOOGLE_FAILED_MESSAGE };
+    return { error: googleFailureWithCode(GOOGLE_FAILED_MESSAGE, 'network') };
   }
 }
