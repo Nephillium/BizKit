@@ -15,6 +15,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   if (!plugins.includes('expo-web-browser')) {
     plugins.push('expo-web-browser');
   }
+  if (!plugins.includes('expo-font')) {
+    plugins.push('expo-font');
+  }
   const googleSignInPlugin = '@react-native-google-signin/google-signin';
   const hasGoogleSignIn = plugins.some((plugin) => (
     plugin === googleSignInPlugin

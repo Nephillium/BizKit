@@ -13,6 +13,7 @@ import * as Clipboard from 'expo-clipboard';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { generateContent } from '../lib/api';
+import { theme } from '../lib/theme';
 
 type ContentType = 'cold_email' | 'proposal' | 'contract' | 'social_pack';
 
@@ -381,7 +382,7 @@ const styles = StyleSheet.create({
   logo: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#6366f1',
+    color: theme.primary,
   },
   headerRight: {
     flexDirection: 'row',
@@ -402,13 +403,13 @@ const styles = StyleSheet.create({
   creditsContainer: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: '#eef2ff',
+    backgroundColor: theme.brand,
     borderRadius: 6,
   },
   creditsText: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#6366f1',
+    color: theme.onBrand,
   },
   content: {
     flex: 1,
@@ -427,8 +428,8 @@ const styles = StyleSheet.create({
     borderColor: '#e2e8f0',
   },
   tabActive: {
-    backgroundColor: '#6366f1',
-    borderColor: '#6366f1',
+    backgroundColor: theme.brand,
+    borderColor: theme.brand,
   },
   tabText: {
     fontSize: 14,
@@ -436,7 +437,7 @@ const styles = StyleSheet.create({
     color: '#64748b',
   },
   tabTextActive: {
-    color: '#fff',
+    color: theme.onBrand,
   },
   formContainer: {
     backgroundColor: '#fff',
@@ -469,7 +470,7 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   generateButton: {
-    backgroundColor: '#6366f1',
+    backgroundColor: theme.primary,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',

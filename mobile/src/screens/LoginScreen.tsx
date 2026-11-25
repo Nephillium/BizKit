@@ -14,6 +14,7 @@ import {
 import ContinueWithGoogleButton from '../components/ContinueWithGoogleButton';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { theme } from '../lib/theme';
 
 interface Props {
   onNavigateToRegister: () => void;
@@ -131,7 +132,7 @@ const styles = StyleSheet.create({
   logo: {
     fontSize: 32,
     fontWeight: '700',
-    color: '#6366f1',
+    color: theme.primary,
     marginBottom: 16,
   },
   title: {
@@ -167,7 +168,7 @@ const styles = StyleSheet.create({
     color: '#0f172a',
   },
   button: {
-    backgroundColor: '#6366f1',
+    backgroundColor: theme.primary,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -182,7 +183,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   linkText: {
-    color: '#6366f1',
+    color: theme.primary,
     fontSize: 14,
     textAlign: 'center',
     marginTop: 16,

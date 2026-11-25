@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { theme } from '../lib/theme';
 import { useLanguage } from '../contexts/LanguageContext';
 import {
   applyStoredAnalyticsConsent,
@@ -14,6 +16,7 @@ import {
  */
 export default function AnalyticsConsent() {
   const { t } = useLanguage();
+  const insets = useSafeAreaInsets();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -44,7 +47,7 @@ export default function AnalyticsConsent() {
 
   return (
     <Modal visible transparent animationType="fade" onRequestClose={() => choose(false)}>
-      <View style={styles.backdrop}>
+      <View style={[styles.backdrop, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }]}>
         <View style={styles.card}>
           <Text style={styles.title}>{t.analyticsTitle}</Text>
           <Text style={styles.body}>{t.analyticsPrompt}</Text>
@@ -96,7 +99,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   allowButton: {
-    backgroundColor: '#6366f1',
+    backgroundColor: theme.primary,
     borderRadius: 8,
     padding: 14,
     alignItems: 'center',
