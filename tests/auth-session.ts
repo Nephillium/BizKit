@@ -465,6 +465,13 @@ function testLanguagePreference() {
   legacyOnly.set(INTERFACE_LANGUAGE_STORAGE_KEY, 'en');
   assert.equal(readStoredLanguage(readLegacy), 'en');
   assert.equal(readStoredGenerationLanguage(readLegacy, LANGUAGES), 'Turkish');
+
+  const mobilePreference = createRequire(import.meta.url)(
+    '../mobile/src/lib/languagePreference.ts',
+  ) as typeof import('../lib/languagePreference');
+  assert.equal(mobilePreference.readStoredLanguage(readLegacy), 'en');
+  assert.equal(mobilePreference.readStoredGenerationLanguage(readLegacy, LANGUAGES), 'Turkish');
+  assert.equal(readFileSync('mobile/src/lib/languagePreference.ts', 'utf8').includes('../../../'), false);
 }
 
 testLanguagePreference();
