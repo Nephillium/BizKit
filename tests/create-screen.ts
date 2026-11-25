@@ -105,6 +105,8 @@ assert.match(readFileSync('mobile/src/lib/translations.ts', 'utf8'), /seeResult:
 assert.match(readFileSync('mobile/src/lib/translations.ts', 'utf8'), /seeResult: 'Sonucu gör ↓'/);
 assert.match(readFileSync('mobile/src/screens/ProfileScreen.tsx', 'utf8'), /setPreferredLanguage/);
 assert.match(readFileSync('mobile/src/screens/ProfileScreen.tsx', 'utf8'), /LanguageField/);
+assert.doesNotMatch(readFileSync('mobile/src/lib/languagePreference.ts', 'utf8'), /\.\.\/\.\.\/\.\.\//);
+assert.match(readFileSync('.github/workflows/ci.yml', 'utf8'), /expo export --platform android/);
 assert.match(appJson, /#6366F1/);
 assert.match(appJson, /#FAFAFA/);
 assert.doesNotMatch(appJson, /#FD7C55/);
