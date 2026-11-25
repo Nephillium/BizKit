@@ -12,11 +12,11 @@
     "splash": {
       "image": "./assets/adaptive-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#FD7C55"
+      "backgroundColor": "#6366F1"
     },
     "androidStatusBar": {
       "barStyle": "dark-content",
-      "backgroundColor": "#FFF4F0",
+      "backgroundColor": "#FAFAFA",
       "translucent": true
     },
     "ios": {
@@ -27,7 +27,7 @@
       "versionCode": 7,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#FD7C55"
+        "backgroundColor": "#6366F1"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,

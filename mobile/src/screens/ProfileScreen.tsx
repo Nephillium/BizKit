@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 32,
     fontWeight: '700',
-    color: theme.ink,
+    color: theme.onButton,
   },
   email: {
     fontSize: 18,
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buyButtonText: {
-    color: theme.ink,
+    color: theme.onButton,
     fontSize: 16,
     fontWeight: '600',
   },

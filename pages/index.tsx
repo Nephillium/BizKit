@@ -10,8 +10,16 @@ import type { Generation } from '../shared/schema'
 import { LANGUAGE_STORAGE_KEY, readStoredLanguage } from '../lib/languagePreference'
 import { translations, getTranslation, type Language } from '../lib/translations'
 import { HistoryPanel, type HistoryToolFilter } from '../components/HistoryPanel'
+import {
+  emptyContentResults,
+  isContentType,
+  resultForType,
+  withTypeResult,
+  type ContentType,
+} from '../mobile/src/lib/contentDrafts'
+import { LANGUAGES } from '../mobile/src/lib/generationOptions'
 
-type Tool = 'cold_email' | 'proposal' | 'contract' | 'social_pack'
+type Tool = ContentType
 type CopyState = 'idle' | 'copied' | 'error'
 type ExportState = 'idle' | 'exporting'
 type LengthOption = 'short' | 'standard' | 'detailed'
@@ -113,36 +121,6 @@ function getTabLabels(t: ReturnType<typeof getTranslation>): Record<Tool, string
     social_pack: t.socialPack,
   }
 }
-
-const LANGUAGES = [
-  'English',
-  'Spanish',
-  'French',
-  'German',
-  'Portuguese',
-  'Italian',
-  'Dutch',
-  'Swedish',
-  'Danish',
-  'Norwegian',
-  'Finnish',
-  'Polish',
-  'Turkish',
-  'Arabic',
-  'Hebrew',
-  'Russian',
-  'Ukrainian',
-  'Hindi',
-  'Bengali',
-  'Indonesian',
-  'Malay',
-  'Vietnamese',
-  'Thai',
-  'Chinese (Simplified)',
-  'Chinese (Traditional)',
-  'Japanese',
-  'Korean',
-]
 
 interface LanguagePickerProps {
   value: string
@@ -435,7 +413,8 @@ export default function Home() {
   const t = translations[lang]
   const [activeTab, setActiveTab] = useState<Tool>('cold_email')
   const [formData, setFormData] = useState<FormData>(initialFormData)
-  const [output, setOutput] = useState<string>('')
+  const [outputs, setOutputs] = useState(emptyContentResults())
+  const output = resultForType(outputs, activeTab)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string>('')
   const [copyState, setCopyState] = useState<CopyState>('idle')
@@ -589,12 +568,14 @@ export default function Home() {
   }
 
   const loadGeneration = (generation: Generation) => {
-    setActiveTab(generation.toolType as Tool)
+    const tool = generation.toolType
+    if (!isContentType(tool)) return
+    setActiveTab(tool)
     setFormData(prev => ({
       ...prev,
-      [generation.toolType]: generation.inputs,
+      [tool]: generation.inputs,
     }))
-    setOutput(generation.output)
+    setOutputs((current) => withTypeResult(current, tool, generation.output))
     setShowHistory(false)
   }
 
@@ -723,10 +704,11 @@ export default function Home() {
 
   const handleRegenerate = async () => {
     if (isLoading) return
-    
+    const tool = activeTab
+
     setIsLoading(true)
     setError('')
-    const previousOutput = output
+    const previousOutput = resultForType(outputs, tool)
     
     try {
       const response = await fetch('/api/generate', {
@@ -736,8 +718,8 @@ export default function Home() {
         },
         credentials: 'include',
         body: JSON.stringify({
-          tool: activeTab,
-          inputs: formData[activeTab],
+          tool,
+          inputs: formData[tool],
           premiumOptions: showAdvancedOptions ? premiumOptions : undefined,
         }),
       })
@@ -745,7 +727,7 @@ export default function Home() {
       const data = await response.json()
 
       if (data.ok) {
-        setOutput(data.output)
+        setOutputs((current) => withTypeResult(current, tool, data.output))
         if (data.usageCount !== undefined && data.usageLimit !== undefined) {
           setUsageInfo({ count: data.usageCount, limit: data.usageLimit })
         }
@@ -754,7 +736,7 @@ export default function Home() {
           refresh()
         }
       } else {
-        setOutput(previousOutput)
+        setOutputs((current) => withTypeResult(current, tool, previousOutput))
         if (data.error === 'usage_limit_exceeded') {
           setUsageInfo({ count: data.usageCount, limit: data.usageLimit })
           setShowSubscriptionPrompt(true)
@@ -768,7 +750,7 @@ export default function Home() {
         }
       }
     } catch {
-      setOutput(previousOutput)
+      setOutputs((current) => withTypeResult(current, tool, previousOutput))
       setError('Network error. Please check your connection and try again.')
     } finally {
       setIsLoading(false)
@@ -791,9 +773,10 @@ export default function Home() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
+    const tool = activeTab
     setIsLoading(true)
     setError('')
-    setOutput('')
+    setOutputs((current) => withTypeResult(current, tool, ''))
 
     try {
       const response = await fetch('/api/generate', {
@@ -803,8 +786,8 @@ export default function Home() {
         },
         credentials: 'include',
         body: JSON.stringify({
-          tool: activeTab,
-          inputs: formData[activeTab],
+          tool,
+          inputs: formData[tool],
           premiumOptions: showAdvancedOptions ? premiumOptions : undefined,
         }),
       })
@@ -812,7 +795,7 @@ export default function Home() {
       const data = await response.json()
 
       if (data.ok) {
-        setOutput(data.output)
+        setOutputs((current) => withTypeResult(current, tool, data.output))
         if (isAuthenticated) {
           fetchGenerations()
           refresh()
@@ -1156,7 +1139,6 @@ export default function Home() {
                 key={tool}
                 onClick={() => {
                   setActiveTab(tool)
-                  setOutput('')
                   setError('')
                 }}
                 style={{
