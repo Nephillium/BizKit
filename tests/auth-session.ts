@@ -10,11 +10,12 @@ import {
   sessionCookie,
 } from '../lib/authResponse';
 import { getSessionFromRequest, withAuth } from '../lib/session';
-import { readStoredLanguage } from '../lib/languagePreference';
+import { readStoredGenerationLanguage, readStoredLanguage } from '../lib/languagePreference';
 import { generateToken, getUserFromRequest, type User } from '../lib/users';
 import logoutHandler from '../pages/api/auth/logout';
 
 // mobile/package.json is CommonJS, so a static ESM import cannot see its named exports.
+const { LANGUAGES } = createRequire(import.meta.url)('../mobile/src/lib/generationOptions.ts') as typeof import('../mobile/src/lib/generationOptions');
 const {
   generateContent,
   getAuthToken,
@@ -434,8 +435,19 @@ function testLanguagePreference() {
   assert.equal(readStoredLanguage(read), 'en');
   store.set('pitchcrafter_lang', 'nope');
   assert.equal(readStoredLanguage(read), 'tr');
+  assert.equal(readStoredGenerationLanguage(read, LANGUAGES), 'Turkish');
+  store.set('pitchcrafter_lang', 'Spanish');
+  assert.equal(readStoredLanguage(read), 'tr');
+  assert.equal(readStoredGenerationLanguage(read, LANGUAGES), 'Spanish');
+  store.set('pitchcrafter_lang', 'Turkish');
+  assert.equal(readStoredLanguage(read), 'tr');
+  assert.equal(readStoredGenerationLanguage(read, LANGUAGES), 'Turkish');
+  store.set('pitchcrafter_lang', 'Klingon');
+  assert.equal(readStoredLanguage(read), 'tr');
+  assert.equal(readStoredGenerationLanguage(read, LANGUAGES), 'Klingon');
   store.delete('bizkit_lang');
   assert.equal(readStoredLanguage(read), null);
+  assert.equal(readStoredGenerationLanguage(read, LANGUAGES), 'Klingon');
 }
 
 testLanguagePreference();

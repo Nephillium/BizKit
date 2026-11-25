@@ -24,7 +24,7 @@
     },
     "android": {
       "package": "com.glmlabs.pitchcrafter",
-      "versionCode": 8,
+      "versionCode": 9,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#6366F1"

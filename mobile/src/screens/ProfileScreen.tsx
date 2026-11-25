@@ -17,6 +17,7 @@ import {
 import type { AnalyticsConsent } from '../lib/analyticsPolicy';
 import { sellsCreditsInApp } from '../lib/playBilling';
 import { theme } from '../lib/theme';
+import { LanguageField } from '../components/LanguageField';
 
 interface Props {
   onNavigateToBuyCredits?: () => void;
@@ -24,7 +25,7 @@ interface Props {
 
 export default function ProfileScreen({ onNavigateToBuyCredits }: Props) {
   const { user, logout, deleteAccount } = useAuth();
-  const { t, language, setLanguage } = useLanguage();
+  const { t, generationLanguage, setPreferredLanguage } = useLanguage();
   const sellsInApp = sellsCreditsInApp(Platform.OS);
   const analyticsAvailable = Platform.OS === 'android' && isAnalyticsConfigured();
   const [analyticsConsent, setAnalyticsConsent] = useState<AnalyticsConsent | null>(null);
@@ -118,15 +119,7 @@ export default function ProfileScreen({ onNavigateToBuyCredits }: Props) {
         <View style={styles.settingsCard}>
           <Text style={styles.settingsTitle}>{t.settings}</Text>
 
-          <TouchableOpacity
-            style={styles.settingRow}
-            onPress={() => setLanguage(language === 'en' ? 'tr' : 'en')}
-          >
-            <Text style={styles.settingLabel}>{t.language}</Text>
-            <Text style={styles.settingValue}>
-              {language === 'en' ? 'English' : 'Turkce'}
-            </Text>
-          </TouchableOpacity>
+          <LanguageField value={generationLanguage} onChange={setPreferredLanguage} />
 
           {analyticsAvailable && (
             <TouchableOpacity style={styles.settingRow} onPress={toggleAnalytics} accessibilityRole="button">
