@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -98,14 +98,14 @@ export default function HomeScreen() {
     target: '',
     service: '',
     tone: '',
-    language: 'English',
+    language: generationLanguage,
   });
   const [proposalForm, setProposalForm] = useState<ProposalForm>({
     clientType: '',
     projectScope: '',
     deliverables: '',
     budgetRange: '',
-    language: 'English',
+    language: generationLanguage,
   });
   const [contractForm, setContractForm] = useState<ContractForm>({
     clientName: '',
@@ -113,25 +113,18 @@ export default function HomeScreen() {
     serviceDescription: '',
     paymentTerms: '',
     jurisdiction: '',
-    language: 'English',
+    language: generationLanguage,
   });
   const [socialPackForm, setSocialPackForm] = useState<SocialPackForm>({
     businessType: '',
     niche: '',
     tone: '',
     platform: '',
-    language: 'English',
+    language: generationLanguage,
   });
 
   const output = resultForType(results, activeTab);
   const isLoading = loadingTool === activeTab;
-
-  useEffect(() => {
-    setColdEmailForm((current) => ({ ...current, language: generationLanguage }));
-    setProposalForm((current) => ({ ...current, language: generationLanguage }));
-    setContractForm((current) => ({ ...current, language: generationLanguage }));
-    setSocialPackForm((current) => ({ ...current, language: generationLanguage }));
-  }, [generationLanguage]);
 
   function updateResultVisibility() {
     const metrics = scrollMetrics.current;
@@ -299,6 +292,7 @@ export default function HomeScreen() {
             <Image
               source={require('../../assets/icon.png')}
               style={styles.brandMark}
+              accessibilityLabel="PitchCrafter"
               accessibilityIgnoresInvertColors
             />
             <Text style={styles.logo} numberOfLines={1}>{t.appName}</Text>

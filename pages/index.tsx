@@ -9,8 +9,7 @@ import { googleSignInErrorMessage } from '../lib/googleAuthCopy'
 import type { Generation } from '../shared/schema'
 import { LANGUAGES } from '../mobile/src/lib/generationOptions'
 import {
-  LANGUAGE_STORAGE_KEY,
-  generationLanguageForInterface,
+  INTERFACE_LANGUAGE_STORAGE_KEY,
   readStoredGenerationLanguage,
   readStoredLanguage,
 } from '../lib/languagePreference'
@@ -495,8 +494,7 @@ export default function Home() {
   const toggleLanguage = () => {
     const newLang = lang === 'en' ? 'tr' : 'en'
     setLang(newLang)
-    localStorage.setItem(LANGUAGE_STORAGE_KEY, newLang)
-    setFormData((current) => withGenerationLanguage(current, generationLanguageForInterface(newLang)))
+    localStorage.setItem(INTERFACE_LANGUAGE_STORAGE_KEY, newLang)
   }
 
   useEffect(() => {

@@ -82,7 +82,21 @@ assert.match(readFileSync('mobile/src/lib/translations.ts', 'utf8'), /coldEmail:
 assert.match(readFileSync('mobile/src/lib/translations.ts', 'utf8'), /coldEmail: 'Soğuk Posta'/);
 assert.match(readFileSync('lib/translations.ts', 'utf8'), /coldEmail: 'Cold Mail'/);
 assert.match(readFileSync('lib/translations.ts', 'utf8'), /coldEmail: 'Soğuk Posta'/);
+assert.match(home, /accessibilityLabel="PitchCrafter"/);
 assert.match(home, /assets\/icon\.png/);
+assert.doesNotMatch(home, /setColdEmailForm\(\(current\)/);
+const languageContext = readFileSync('mobile/src/contexts/LanguageContext.tsx', 'utf8');
+const setLanguageSource = languageContext.slice(
+  languageContext.indexOf('async function setLanguage'),
+  languageContext.indexOf('async function setPreferredLanguage'),
+);
+assert.match(setLanguageSource, /INTERFACE_LANGUAGE_STORAGE_KEY/);
+assert.equal(setLanguageSource.includes('setItem(LANGUAGE_STORAGE_KEY'), false);
+assert.doesNotMatch(setLanguageSource, /setGenerationLanguageState/);
+const toggleSource = web.slice(web.indexOf('const toggleLanguage'), web.indexOf('const fetchGenerations'));
+assert.match(toggleSource, /INTERFACE_LANGUAGE_STORAGE_KEY/);
+assert.equal(toggleSource.includes('setItem(LANGUAGE_STORAGE_KEY'), false);
+assert.doesNotMatch(toggleSource, /withGenerationLanguage/);
 assert.match(home, /width: 28/);
 assert.match(home, /scrollTo/);
 assert.match(home, /onLayout/);
